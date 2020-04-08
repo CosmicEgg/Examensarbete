@@ -22,8 +22,18 @@ public class CreateCreature : MonoBehaviour
             nodes.Add(new Node());
         }
 
+        for (int x = 0; x < nodes.Count; x++)
+        {
+            for (int y = 0; y < nodes[x].numOfChildren; y++)
+            {
+                nodes[x].children.Add(nodes[Random.Range(0, numOfNodes + 1)]);
+            }
+        }
 
+        for (int i = 0; i < ; i++)
+        {
 
+        }
     }
 
     // Update is called once per frame
@@ -35,7 +45,9 @@ public class CreateCreature : MonoBehaviour
 
 public class Node
 {
-    GameObject segment = GameObject.CreatePrimitive(PrimitiveType.Cube);
+    //GameObject segment = GameObject.CreatePrimitive(PrimitiveType.Cube);
+    public int numOfChildren = Random.Range(0, 11);
+    public List<Node> children = new List<Node>();
 }
 
 public class Edge
