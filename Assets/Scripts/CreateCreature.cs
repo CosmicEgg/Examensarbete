@@ -15,7 +15,7 @@ public class CreateCreature : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        numOfNodes = Random.Range(0, 11);
+        numOfNodes = Random.Range(1, 11);
         startPosition = Vector3.zero;
         nodes = new List<Node>();
         finalNodes = new List<Node>();
@@ -80,27 +80,33 @@ public class CreateCreature : MonoBehaviour
                 continue;
             }
 
-            foreach (Edge edge in currentNode.edges)
+
+            for (int i = 0; i < currentNode.edges.Count; i++)
             {
-                //If not already traversed and not a recursive edge
-                if (!edge.traversed && edge.to != currentNode)
+                if (!currentNode.edges[i].traversed && !currentNode.edges[i].to.Equals(currentNode))
                 {
                     //If not already in stack i.e. edge is not a backwards edge
-                    if (!edge.to.stacked)
+                    currentNode.edges[i].traversed = true;
+
+                    if (!currentNode.edges[i].to.stacked)
                     {
-                        edge.to.stacked = true;
-                        nodeStack.Push(edge.to);
-                        nodeOrder.Add(edge.to.id);
+                        currentNode.edges[i].to.stacked = true;
+                        nodeStack.Push(currentNode.edges[i].to);
+                        nodeOrder.Add(currentNode.edges[i].to.id);
+                    }
+                    else //Remove backwards edge
+                    {
+                        currentNode.edges.RemoveAt(i);
                     }
 
-                    edge.traversed = true;
+
                     break;
                 }
             }
 
             foreach (Edge edge in currentNode.edges)
             {
-                if (!edge.traversed && edge.to == currentNode)
+                if (!edge.traversed && edge.to.Equals(currentNode))
                 {
                     //If not already in stack i.e. edge is not a backwards edge
                     recurssionStack.Push(edge.to);
@@ -122,11 +128,18 @@ public class CreateCreature : MonoBehaviour
         //Tror vi måste göra en DFS från varje recursiv nod för att hitta alla barnen och skapa en helt ny gren nedåt
         while (recurssionStack.Count > 0)
         {
+            bool startOver = false;
             Node currentNode = recurssionStack.Peek();
+
+            if (currentNode.edges.Count == 0)
+            {
+                recurssionStack.Pop();
+                continue;
+            }
 
             for (int i = 0; i < currentNode.edges.Count; i++)
             {
-                if(currentNode.edges[i].to == currentNode.edges[i].from 
+                if(currentNode.edges[i].to.Equals(currentNode.edges[i].from) 
                     && currentNode.edges[i].numOfTravels < currentNode.edges[i].recursiveLimit)
                 {
                     currentNode.edges[i].numOfTravels++;
@@ -135,13 +148,19 @@ public class CreateCreature : MonoBehaviour
                     currentNode.edges.Add(new Edge(currentNode, newNode, currentNode.edges[i].recursiveLimit, currentNode.edges[i].numOfTravels));
                     recurssionStack.Push(newNode);
                     currentNode.edges.RemoveAt(i);
+                    startOver = true;
+                    break;
                 }
-                else if(currentNode.edges[i].to == currentNode.edges[i].from
-                    && currentNode.edges[i].numOfTravels >= currentNode.edges[i].recursiveLimit)
-                {
-                    recurssionStack.Pop();
-                    currentNode.edges.RemoveAt(i);
-                }
+            }
+
+            if (startOver)
+            {
+                continue;
+            }
+
+            recurssionStack.Pop();
+
+
             }
         }
 
@@ -222,8 +241,8 @@ public class CreateCreature : MonoBehaviour
     //        }
     //    }
 
-    //}
-}
+//    }
+//}
 
 public class Node
 {
@@ -244,6 +263,8 @@ public class Node
         {
             if (!e.to.Equals(e.from))
                 edges.Add(new Edge(this, new Node(e.to), e.recursiveLimit, e.numOfTravels));
+            if (e.to.Equals(e.from))
+                edges.Add(new Edge(this, this, e.recursiveLimit, e.numOfTravels));
         }
     }
 
