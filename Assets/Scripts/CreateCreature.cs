@@ -5,9 +5,10 @@ using UnityEngine;
 
 public class CreateCreature : MonoBehaviour
 {
-    public List<Node> nodes;
+    public List<Node> nodes, finalNodes;
     List<int> nodeOrder;
     Stack<Node> nodeStack;
+    Stack<Node> recurssionStack;
     int recursiveLimit;
     int numOfNodes;
     Vector3 startPosition;
@@ -19,15 +20,17 @@ public class CreateCreature : MonoBehaviour
         recursiveLimit = 3;
         startPosition = Vector3.zero;
         nodes = new List<Node>();
+        finalNodes = new List<Node>();
+        recurssionStack = new Stack<Node>();
         nodeOrder = new List<int>();
         nodeStack = new Stack<Node>();
 
         //Spawn Nodes
         for (int i = 0; i < numOfNodes; i++)
         {
-            Node newNode = new Node();
-            newNode.id = i;
-            nodes.Add(newNode);
+            Node node = new Node();
+            node.id = i;
+            nodes.Add(node);
         }
 
         //Add Children
@@ -35,30 +38,32 @@ public class CreateCreature : MonoBehaviour
         {
             for (int y = 0; y < nodes[x].numOfChildren; y++)
             {
-                nodes[x].children.Add(nodes[Random.Range(0, numOfNodes)]);
+                nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)]));
             }
         }
+
+        finalNodes = nodes;
 
         //Root Node def.
         nodeStack.Push(nodes[0]);
         nodeOrder.Add(nodes[0].id);
         nodes[0].stacked = true;
 
-        //Start DFS
+        //Start DFS to find all recursive nodes
         while(nodeStack.Count > 0)
         {
             Node currentNode = nodeStack.Peek();
             bool startOver = false;
 
-            if (currentNode.children.Count == 0)
+            if (currentNode.edges.Count == 0)
             {
                 nodeStack.Pop();
                 continue;
             }
 
-            foreach (Node child in currentNode.children)
+            foreach (Edge edge in currentNode.edges)
             {
-                if (!child.visited)
+                if (!edge.traversed)
                 {
                     startOver = false;
                     break;
@@ -73,13 +78,39 @@ public class CreateCreature : MonoBehaviour
                 continue;
             }
 
-            foreach (Node child in currentNode.children)
+
+            //!!Måste se till att detta inte händer varje gång vi startar om loopen!! Gjorde fullösning med en till bool
+            //Check all edges for recursive edges and add these to recursionStack
+            if (!currentNode.visited)
             {
-                if(!child.visited)
+                currentNode.visited = true;
+
+                foreach (Edge edge in currentNode.edges)
                 {
-                    nodeStack.Push(child);
-                    nodeOrder.Add(child.id);
-                    child.visited = true;
+                    if (edge.to == edge.from)
+                    {
+                        for (int i = 0; i < recursiveLimit; i++)
+                        {
+                            recurssionStack.Push(currentNode);
+                        }
+                    }
+                }
+            }
+           
+            foreach (Edge edge in currentNode.edges)
+            {
+                //If not already traversed and not a recursive edge
+                if(!edge.traversed && edge.to != currentNode)
+                {
+                    //If not already in stack i.e. edge is not a backwards edge
+                    if (!edge.to.stacked)
+                    {
+                        edge.to.stacked = true;
+                        nodeStack.Push(edge.to);
+                        nodeOrder.Add(edge.to.id);
+                    }
+
+                    edge.traversed = true;
                     break;
                 }
             }
@@ -89,28 +120,46 @@ public class CreateCreature : MonoBehaviour
         {
             Debug.Log(id);
         }
-    }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+        //Begin adding recursive nodes to graph
+        //Tror vi måste göra en DFS från varje recursiv nod för att hitta alla barnen och skapa en helt ny gren nedåt
+        while (recurssionStack.Count > 0)
+        {
+            Node temp = recurssionStack.Pop();
+            List<Node> subTree = new List<Node>();
+            
+            Edge edge = new Edge(nodes[temp.id], temp);
+            finalNodes[temp.id].edges.Add(edge);
+        }
+
+
+        //Redo graph traversal on now complete tree creating all geometry
     }
 }
 
 public class Node
 {
     //GameObject segment = GameObject.CreatePrimitive(PrimitiveType.Cube);
+    public bool visited = false;
     public int numOfChildren = Random.Range(0, 5);
     public bool stacked;
     public int id;
-    public List<Node> children = new List<Node>();
+    //public List<Node> children = new List<Node>();
+    public List<Edge> edges = new List<Edge>();
 }
 
 public class Edge
 {
     public Node from;
     public Node to;
+    public int traversions = 0;
+
+    public Edge(Node from, Node to)
+    {
+        this.from = from;
+        this.to = to;
+    }
+
     public bool traversed = false;
 }
 
