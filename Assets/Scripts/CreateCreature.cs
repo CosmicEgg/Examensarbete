@@ -9,7 +9,6 @@ public class CreateCreature : MonoBehaviour
     List<int> nodeOrder;
     Stack<Node> nodeStack;
     Stack<Node> recurssionStack;
-    int recursiveLimit;
     int numOfNodes;
     Vector3 startPosition;
 
@@ -17,7 +16,6 @@ public class CreateCreature : MonoBehaviour
     void Start()
     {
         numOfNodes = Random.Range(0, 11);
-        recursiveLimit = 3;
         startPosition = Vector3.zero;
         nodes = new List<Node>();
         finalNodes = new List<Node>();
@@ -38,7 +36,7 @@ public class CreateCreature : MonoBehaviour
         {
             for (int y = 0; y < nodes[x].numOfChildren; y++)
             {
-                nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)]));
+                nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)], Random.Range(0,4),0));
             }
         }
 
@@ -48,121 +46,6 @@ public class CreateCreature : MonoBehaviour
         nodeStack.Push(nodes[0]);
         nodeOrder.Add(nodes[0].id);
         nodes[0].stacked = true;
-
-        //Start DFS to find all recursive nodes
-        while(nodeStack.Count > 0)
-        {
-            Node currentNode = nodeStack.Peek();
-            bool startOver = false;
-
-            if (currentNode.edges.Count == 0)
-            {
-                nodeStack.Pop();
-                currentNode.stacked = false;
-                continue;
-            }
-
-            foreach (Edge edge in currentNode.edges)
-            {
-                //If all are traversed we are finished with this node
-                if (!edge.traversed)
-                {
-                    startOver = false;
-                    break;
-                }
-                else
-                    startOver = true;
-            }
-
-            //Pop and start over
-            if (startOver)
-            {
-                nodeStack.Pop();
-                currentNode.stacked = false;
-                continue;
-            }         
-
-            foreach (Edge edge in currentNode.edges)
-            {
-                //If not already traversed and not a recursive edge
-                if(!edge.traversed && edge.to != currentNode)
-                {
-                    //If not already in stack i.e. edge is not a backwards edge
-                    if (!edge.to.stacked)
-                    {
-                        edge.to.stacked = true;
-                        nodeStack.Push(edge.to);
-                        nodeOrder.Add(edge.to.id);
-                    }
-
-                    edge.traversed = true;
-                    break;
-                }
-            }
-
-            foreach (Edge edge in currentNode.edges)
-            {
-                if (!edge.traversed && edge.to == currentNode)
-                {
-                    //If not already in stack i.e. edge is not a backwards edge
-                    recurssionStack.Push(edge.to);
-                    nodeOrder.Add(edge.to.id);
-                    
-                    edge.traversed = true;
-                    break;
-                }
-            }
-        }
-
-        foreach (int id in nodeOrder)
-        {
-            Debug.Log(id);
-        }
-
-        //Begin adding recursive nodes to graph
-        //Tror vi måste göra en DFS från varje recursiv nod för att hitta alla barnen och skapa en helt ny gren nedåt
-        while (recurssionStack.Count > 0)
-        {
-            Node currentNode = recurssionStack.Peek();
-            Node newNode = new Node();
-            newNode.visited = true;
-            newNode.id = currentNode.id;
-            nodes.Add(newNode);
-
-
-            foreach (Edge e in currentNode.edges)
-            {
-                if (e.to != currentNode && !e.to.visited)
-                {
-                    Node child = new Node
-                    Edge temp  = new Edge(newNode, new Node(e.to));
-
-                }
-            }
-
-            Edge edge = new Edge(nodes[currentNode.id], newNode);
-            currentNode.edges.Add(edge);
-
-
-            List<Node> subTree = new List<Node>();
-
-
-
-            //finalNodes[temp.id].edges.Add(edge);
-        }
-
-
-        //Redo graph traversal on now complete tree creating all geometry
-    }
-
-    public void SubTreeDFS(Node root)
-    {
-        Stack<Node> nodeStack = new Stack<Node>();
-        List<int> nodeOrder = new List<int>();
-
-        nodeStack.Push(root);
-        nodeOrder.Add(root.id);
-        root.stacked = true;
 
         //Start DFS to find all recursive nodes
         while (nodeStack.Count > 0)
@@ -195,7 +78,7 @@ public class CreateCreature : MonoBehaviour
                 nodeStack.Pop();
                 currentNode.stacked = false;
                 continue;
-            } 
+            }
 
             foreach (Edge edge in currentNode.edges)
             {
@@ -228,7 +111,118 @@ public class CreateCreature : MonoBehaviour
                 }
             }
         }
+
+        foreach (int id in nodeOrder)
+        {
+            Debug.Log(id);
+        }
+
+
+        //Begin adding recursive nodes to graph
+        //Tror vi måste göra en DFS från varje recursiv nod för att hitta alla barnen och skapa en helt ny gren nedåt
+        while (recurssionStack.Count > 0)
+        {
+            Node currentNode = recurssionStack.Peek();
+
+            for (int i = 0; i < currentNode.edges.Count; i++)
+            {
+                if(currentNode.edges[i].to == currentNode.edges[i].from 
+                    && currentNode.edges[i].numOfTravels < currentNode.edges[i].recursiveLimit)
+                {
+                    currentNode.edges[i].numOfTravels++;
+                    Node newNode = new Node(currentNode);
+                    nodes.Add(newNode);
+                    currentNode.edges.Add(new Edge(currentNode, newNode, currentNode.edges[i].recursiveLimit, currentNode.edges[i].numOfTravels));
+                    recurssionStack.Push(newNode);
+                    currentNode.edges.RemoveAt(i);
+                }
+                else if(currentNode.edges[i].to == currentNode.edges[i].from
+                    && currentNode.edges[i].numOfTravels >= currentNode.edges[i].recursiveLimit)
+                {
+                    recurssionStack.Pop();
+                    currentNode.edges.RemoveAt(i);
+                }
+            }
+        }
+
+        //Redo graph traversal on now complete tree creating all geometry
     }
+
+    //public void CopyTree(Node root)
+    //{
+    //    Stack<Node> nodeStack = new Stack<Node>();
+    //    List<int> nodeOrder = new List<int>();
+
+    //    nodeStack.Push(root);
+    //    nodeOrder.Add(root.id);
+    //    root.stacked = true;
+
+    //    while (nodeStack.Count > 0)
+    //    {
+    //        Node currentNode = nodeStack.Peek();
+    //        bool startOver = false;
+
+    //        if (currentNode.edges.Count == 0)
+    //        {
+    //            nodeStack.Pop();
+    //            currentNode.stacked = false;
+    //            continue;
+    //        }
+
+    //        foreach (Edge edge in currentNode.edges)
+    //        {
+    //            //If all are traversed we are finished with this node
+    //            if (!edge.traversed)
+    //            {
+    //                startOver = false;
+    //                break;
+    //            }
+    //            else
+    //                startOver = true;
+    //        }
+
+    //        //Pop and start over
+    //        if (startOver)
+    //        {
+    //            nodeStack.Pop();
+    //            currentNode.stacked = false;
+    //            continue;
+    //        }
+
+    //        foreach (Edge edge in currentNode.edges)
+    //        {
+    //            //If not already traversed and not a recursive edge
+    //            if (!edge.traversed && edge.to != currentNode && !edge.to.visited)
+    //            {
+    //                Node newNode = new Node(edge.to.recursiveLimit)
+    //                //If not already in stack i.e. edge is not a backwards edge
+    //                if (!edge.to.stacked)
+    //                {
+    //                    edge.to.stacked = true;
+    //                    nodeStack.Push(edge.to);
+    //                    nodeOrder.Add(edge.to.id);
+    //                }
+
+    //                edge.traversed = true;
+    //                break;
+    //            }
+    //        }
+
+    //        foreach (Edge edge in currentNode.edges)
+    //        {
+    //            if (!edge.traversed && edge.to == currentNode)
+    //            {
+    //                //If not already in stack i.e. edge is not a backwards edge
+    //                recurssionStack.Push(edge.to);
+    //                nodeOrder.Add(edge.to.id);
+
+    //                edge.traversed = true;
+    //                break;
+    //            }
+    //        }
+    //    }
+
+    //}
 }
 
 public class Node
@@ -238,24 +232,24 @@ public class Node
     public int numOfChildren = Random.Range(0, 5);
     public bool stacked;
     public int id;
+
     //public List<Node> children = new List<Node>();
     public List<Edge> edges = new List<Edge>();
+
+    public Node(Node other)
+    {
+        id = other.id;
+
+        foreach(Edge e in other.edges)
+        {
+            if (!e.to.Equals(e.from))
+                edges.Add(new Edge(this, new Node(e.to), e.recursiveLimit, e.numOfTravels));
+        }
+    }
 
     public Node()
     {
 
-    }
-
-    public Node(Node other)
-    {
-
-    }
-
-    public Node DeepCopy()
-    {
-        Node other = (Node) this.MemberwiseClone();
-        other.edges = new List<Edge>(edges);
-        return other;
     }
 }
 
@@ -263,15 +257,16 @@ public class Edge
 {
     public Node from;
     public Node to;
-    public int traversions = 0;
+    public int numOfTravels;
+    public int recursiveLimit;
 
-    public Edge(Node from, Node to)
+    public Edge(Node from, Node to, int recursiveLimit, int numOfTravels)
     {
         this.from = from;
         this.to = to;
+        this.recursiveLimit = recursiveLimit;
+        this.numOfTravels = numOfTravels;
     }
 
     public bool traversed = false;
 }
-
-
