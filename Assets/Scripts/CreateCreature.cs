@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class CreateCreature : MonoBehaviour
 {
-    public List<Node> nodes, finalNodes;
+    public List<Node> nodes;
     List<int> nodeOrder;
     Stack<Node> nodeStack;
     Stack<Node> recurssionStack;
@@ -18,7 +18,6 @@ public class CreateCreature : MonoBehaviour
         numOfNodes = Random.Range(1, 11);
         startPosition = Vector3.zero;
         nodes = new List<Node>();
-        finalNodes = new List<Node>();
         recurssionStack = new Stack<Node>();
         nodeOrder = new List<int>();
         nodeStack = new Stack<Node>();
@@ -36,11 +35,9 @@ public class CreateCreature : MonoBehaviour
         {
             for (int y = 0; y < nodes[x].numOfChildren; y++)
             {
-                nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)], Random.Range(0,4),0));
+                nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)], Random.Range(0, 4), 0));
             }
         }
-
-        finalNodes = nodes;
 
         //Root Node def.
         nodeStack.Push(nodes[0]);
@@ -139,7 +136,7 @@ public class CreateCreature : MonoBehaviour
 
             for (int i = 0; i < currentNode.edges.Count; i++)
             {
-                if(currentNode.edges[i].to.Equals(currentNode.edges[i].from) 
+                if (currentNode.edges[i].to.Equals(currentNode.edges[i].from)
                     && currentNode.edges[i].numOfTravels < currentNode.edges[i].recursiveLimit)
                 {
                     currentNode.edges[i].numOfTravels++;
@@ -160,99 +157,131 @@ public class CreateCreature : MonoBehaviour
 
             recurssionStack.Pop();
 
-
-            }
         }
 
-        //Redo graph traversal on now complete tree creating all geometry
+        Node rootNode = nodes[0];
+        ResetTree(ref rootNode);
+        CreateGeometry(rootNode);
+
+        }
+
+
+    private void ResetTree(ref Node node)
+    {
+        foreach (Edge e in node.edges)
+        {
+            if (e.traversed)
+            {
+                e.traversed = false;
+                e.numOfTravels = 0;
+                ResetTree(ref e.to);
+            }
+        }
     }
 
-    //public void CopyTree(Node root)
-    //{
-    //    Stack<Node> nodeStack = new Stack<Node>();
-    //    List<int> nodeOrder = new List<int>();
+    private void CreateGeometry(Node root)
+    {
+        //Root Node def.
+        Queue<Node> nodeQueue = new Queue<Node>();
+        nodeQueue.Enqueue(root);
 
-    //    nodeStack.Push(root);
-    //    nodeOrder.Add(root.id);
-    //    root.stacked = true;
+        while (nodeQueue.Count > 0)
+        {
+            Node currentNode = nodeQueue.Peek();
+            bool startOver = false;
 
-    //    while (nodeStack.Count > 0)
-    //    {
-    //        Node currentNode = nodeStack.Peek();
-    //        bool startOver = false;
+            if (currentNode.edges.Count == 0)
+            {
+                nodeQueue.Dequeue();
+                continue;
+            }
 
-    //        if (currentNode.edges.Count == 0)
-    //        {
-    //            nodeStack.Pop();
-    //            currentNode.stacked = false;
-    //            continue;
-    //        }
+            foreach (Edge edge in currentNode.edges)
+            {
+                //If all are traversed we are finished with this node
+                if (!edge.traversed)
+                {
+                    startOver = false;
+                    break;
+                }
+                else
+                    startOver = true;
+            }
 
-    //        foreach (Edge edge in currentNode.edges)
-    //        {
-    //            //If all are traversed we are finished with this node
-    //            if (!edge.traversed)
-    //            {
-    //                startOver = false;
-    //                break;
-    //            }
-    //            else
-    //                startOver = true;
-    //        }
+            //Pop and start over
+            if (startOver)
+            {
+                nodeQueue.Dequeue();
+                continue;
+            }
 
-    //        //Pop and start over
-    //        if (startOver)
-    //        {
-    //            nodeStack.Pop();
-    //            currentNode.stacked = false;
-    //            continue;
-    //        }
+            List<Node> tempNodes = new List<Node>();
+            foreach (Edge e in currentNode.edges)
+            {
+                tempNodes.Add(e.to);
+            }
 
-    //        foreach (Edge edge in currentNode.edges)
-    //        {
-    //            //If not already traversed and not a recursive edge
-    //            if (!edge.traversed && edge.to != currentNode && !edge.to.visited)
-    //            {
-    //                Node newNode = new Node(edge.to.recursiveLimit)
-    //                //If not already in stack i.e. edge is not a backwards edge
-    //                if (!edge.to.stacked)
-    //                {
-    //                    edge.to.stacked = true;
-    //                    nodeStack.Push(edge.to);
-    //                    nodeOrder.Add(edge.to.id);
-    //                }
+            var myhash = new HashSet<Node>();
+            var mylist = tempNodes;
+            var duplicates = mylist.Where(item => !myhash.Add(item)).Distinct().ToList();
 
-    //                edge.traversed = true;
-    //                break;
-    //            }
-    //        }
+            List<int> occurences = new List<int>();
+            for (int i = 0; i < duplicates.Count; i++)
+            {
+                foreach (Node m in tempNodes)
+                {
+                    if (duplicates[i].Equals(m))
+                    {
+                        occurences[i]++;
+                    }
+                }
+            }
 
-    //        foreach (Edge edge in currentNode.edges)
-    //        {
-    //            if (!edge.traversed && edge.to == currentNode)
-    //            {
-    //                //If not already in stack i.e. edge is not a backwards edge
-    //                recurssionStack.Push(edge.to);
-    //                nodeOrder.Add(edge.to.id);
+            for (int i = 0; i < duplicates.Count; i++)
+            {
+                for (int j = 0; j < occurences[i]; j++)
+                {
+                    //Skapa denna så många gånar på något utspritt sett runt om föräldranoden 
+                    duplicates[i].
+                }
+            }
 
-    //                edge.traversed = true;
-    //                break;
-    //            }
-    //        }
-    //    }
 
-//    }
-//}
+
+
+
+
+            for (int i = 0; i < currentNode.edges.Count; i++)
+            {
+                if (!currentNode.edges[i].traversed)
+                {
+                    currentNode.edges[i].traversed = true;
+
+                    nodeQueue.Enqueue(currentNode.edges[i].to);
+
+                    break;
+                }
+            }
+        }
+}
+
+
 
 public class Node
 {
-    //GameObject segment = GameObject.CreatePrimitive(PrimitiveType.Cube);
-    public bool visited = false;
+        //GameObject segment = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        bool created = false;
+    PrimitiveType Cube;
+    float scale;
+    Vector3 position;
+    Transform Rotation;
+    bool symmetry;
+    bool terminalOnly;
+
     public int numOfChildren = Random.Range(0, 5);
     public bool stacked;
     public int id;
 
-    //public List<Node> children = new List<Node>();
     public List<Edge> edges = new List<Edge>();
 
     public Node(Node other)
@@ -274,20 +303,21 @@ public class Node
     }
 }
 
-public class Edge
-{
-    public Node from;
-    public Node to;
-    public int numOfTravels;
-    public int recursiveLimit;
-
-    public Edge(Node from, Node to, int recursiveLimit, int numOfTravels)
+    public class Edge
     {
-        this.from = from;
-        this.to = to;
-        this.recursiveLimit = recursiveLimit;
-        this.numOfTravels = numOfTravels;
-    }
+        public Node from;
+        public Node to;
+        public int numOfTravels;
+        public int recursiveLimit;
 
-    public bool traversed = false;
+        public Edge(Node from, Node to, int recursiveLimit, int numOfTravels)
+        {
+            this.from = from;
+            this.to = to;
+            this.recursiveLimit = recursiveLimit;
+            this.numOfTravels = numOfTravels;
+        }
+
+        public bool traversed = false;
+    }
 }
