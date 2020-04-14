@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class CreateCreature : MonoBehaviour
 {
+    List<GameObject> geometry;
     public List<Node> nodes;
     List<int> nodeOrder;
     Stack<Node> nodeStack;
@@ -15,6 +16,7 @@ public class CreateCreature : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        geometry = new List<GameObject>();
         numOfNodes = Random.Range(1, 11);
         startPosition = Vector3.zero;
         nodes = new List<Node>();
@@ -161,7 +163,7 @@ public class CreateCreature : MonoBehaviour
 
         Node rootNode = nodes[0];
         ResetTree(ref rootNode);
-        CreateGeometry(rootNode);
+        InterpretTree(rootNode);
 
         }
 
@@ -179,11 +181,13 @@ public class CreateCreature : MonoBehaviour
         }
     }
 
-    private void CreateGeometry(Node root)
+    private void InterpretTree(Node root)
     {
         //Root Node def.
         Queue<Node> nodeQueue = new Queue<Node>();
         nodeQueue.Enqueue(root);
+
+        CreateGeometry(root);
 
         while (nodeQueue.Count > 0)
         {
@@ -225,6 +229,8 @@ public class CreateCreature : MonoBehaviour
             var mylist = tempNodes;
             var duplicates = mylist.Where(item => !myhash.Add(item)).Distinct().ToList();
 
+
+            //Region for multiple edges to one node
             List<int> occurences = new List<int>();
             for (int i = 0; i < duplicates.Count; i++)
             {
@@ -241,16 +247,19 @@ public class CreateCreature : MonoBehaviour
             {
                 for (int j = 0; j < occurences[i]; j++)
                 {
-                    //Skapa denna så många gånar på något utspritt sett runt om föräldranoden 
-                    duplicates[i].
+                    //Jämn spegling runt ett plan
+                    if (occurences[i] % 2 == 0)
+                    {
+                        //duplicates[i].
+                    }
+                    else //Ojämnt vilket betyder att vi tar en och riktar den i ett annat plan och speglar de tidigare jämna som vanligt 
+                    {
+
+                    }
                 }
             }
 
-
-
-
-
-
+            //Creating normal children
             for (int i = 0; i < currentNode.edges.Count; i++)
             {
                 if (!currentNode.edges[i].traversed)
@@ -263,14 +272,31 @@ public class CreateCreature : MonoBehaviour
                 }
             }
         }
+    }
+
+    public void CreateGeometry(Node node, Node parent = null)
+    {
+        GameObject segment = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        segment.AddComponent<Rigidbody>();
+        
+        node.created = true;
+        geometry.Add(segment);
+
+    }
+
+    public void CreateJoint()
+    {
+
+    }
+
 }
+
 
 
 
 public class Node
 {
-        //GameObject segment = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        bool created = false;
+    public bool created = false;
     PrimitiveType Cube;
     float scale;
     Vector3 position;
@@ -303,21 +329,21 @@ public class Node
     }
 }
 
-    public class Edge
+public class Edge
+{
+    public Node from;
+    public Node to;
+    public int numOfTravels;
+    public int recursiveLimit;
+
+    public Edge(Node from, Node to, int recursiveLimit, int numOfTravels)
     {
-        public Node from;
-        public Node to;
-        public int numOfTravels;
-        public int recursiveLimit;
-
-        public Edge(Node from, Node to, int recursiveLimit, int numOfTravels)
-        {
-            this.from = from;
-            this.to = to;
-            this.recursiveLimit = recursiveLimit;
-            this.numOfTravels = numOfTravels;
-        }
-
-        public bool traversed = false;
+        this.from = from;
+        this.to = to;
+        this.recursiveLimit = recursiveLimit;
+        this.numOfTravels = numOfTravels;
     }
+
+    public bool traversed = false;
 }
+
