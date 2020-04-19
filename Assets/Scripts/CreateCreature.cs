@@ -187,7 +187,7 @@ public class CreateCreature : MonoBehaviour
         Queue<Node> nodeQueue = new Queue<Node>();
         nodeQueue.Enqueue(root);
 
-        CreateGeometry(root);
+        CreateRootGeometry(root);
 
         while (nodeQueue.Count > 0)
         {
@@ -229,11 +229,24 @@ public class CreateCreature : MonoBehaviour
             var mylist = tempNodes;
             var duplicates = mylist.Where(item => !myhash.Add(item)).Distinct().ToList();
 
+            foreach (Edge e in currentNode.edges)
+            {
+                foreach (Node n in duplicates)
+                {
+                    if (e.to == n)
+                    {
+                        e.traversed = true;
+                    }
+                }
+            }
 
             //Region for multiple edges to one node
-            List<int> occurences = new List<int>();
+            //Occurences contain the number of times a duplicate exists stored 
+            //as an integer in indexing corresponding to duplicates indexing
+            List<int> occurences = new List<int>(duplicates.Count);
             for (int i = 0; i < duplicates.Count; i++)
             {
+                occurences.Add(0);
                 foreach (Node m in tempNodes)
                 {
                     if (duplicates[i].Equals(m))
@@ -243,10 +256,12 @@ public class CreateCreature : MonoBehaviour
                 }
             }
 
+            //Handle duplicates and mark them as traversed
             for (int i = 0; i < duplicates.Count; i++)
             {
                 for (int j = 0; j < occurences[i]; j++)
                 {
+
                     //Jämn spegling runt ett plan
                     if (occurences[i] % 2 == 0)
                     {
@@ -257,38 +272,135 @@ public class CreateCreature : MonoBehaviour
 
                     }
                 }
+
+                nodeQueue.Enqueue(duplicates[i]);
             }
 
-            //Creating normal children
+            //Creating all not already traversed normal children/nodes
             for (int i = 0; i < currentNode.edges.Count; i++)
             {
                 if (!currentNode.edges[i].traversed)
                 {
                     currentNode.edges[i].traversed = true;
 
-                    nodeQueue.Enqueue(currentNode.edges[i].to);
+                    CreateSingleEdgeGeometry(currentNode.edges[i].to, currentNode);
 
-                    break;
+                    nodeQueue.Enqueue(currentNode.edges[i].to);
                 }
             }
         }
     }
 
-    public void CreateGeometry(Node node, Node parent = null)
+
+    public void CreateRootGeometry(Node node)
     {
         GameObject segment = GameObject.CreatePrimitive(PrimitiveType.Cube);
         segment.AddComponent<Rigidbody>();
-        
+        segment.GetComponent<Rigidbody>().isKinematic = true;
+        segment.GetComponent<Rigidbody>().useGravity = false;
+        //segment.GetComponent<BoxCollider>().isTrigger = true;
+        segment.transform.position = new Vector3(0, 10, 0);
+        segment.transform.localScale = new Vector3(1, 1, 1);
+        segment.transform.rotation = Quaternion.identity;
         node.created = true;
+        node.gameObjects.Add(segment);
         geometry.Add(segment);
-
     }
 
-    public void CreateJoint()
+    //Detta är en metod för att skapa single edge geometry 
+    public void CreateSingleEdgeGeometry(Node node, Node parent)
     {
+        if (parent.gameObjects.Count == 0)
+        {
+            return;
+        }
+        GameObject parentGeometry = parent.gameObjects[0];
+        BoxCollider parentBoxCollider = parentGeometry.GetComponent<BoxCollider>();
+        Rigidbody parentRigidBody = parentGeometry.GetComponent<Rigidbody>();
+
+        Vector3 parentBoundPoint = parentRigidBody.ClosestPointOnBounds(new Vector3(Random.Range(parentBoxCollider.bounds.min.x, parentBoxCollider.bounds.max.x),
+            Random.Range(parentBoxCollider.bounds.min.y, parentBoxCollider.bounds.max.y), Random.Range(parentBoxCollider.bounds.min.z, parentBoxCollider.bounds.max.z)));
+
+        Vector3 direction = parentBoundPoint.normalized;
+
+        parentBoundPoint += parentGeometry.transform.position;
+
+        GameObject currentGeometry = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Rigidbody rigidBody = currentGeometry.AddComponent<Rigidbody>();
+        BoxCollider boxCollider = currentGeometry.GetComponent<BoxCollider>();
+
+        currentGeometry.GetComponent<Rigidbody>().isKinematic = true;
+        currentGeometry.GetComponent<Rigidbody>().useGravity = false;
+        //currentGeometry.GetComponent<BoxCollider>().isTrigger = true;
+        currentGeometry.transform.position = parentBoundPoint;
+        currentGeometry.transform.localScale = node.scale;
+
+        int counter = 0;
+        bool contains = false;
+
+        contains = ColliderContainsPoint(boxCollider.transform, parentBoundPoint, parentGeometry.transform.localScale, true);
+        while (contains)
+        {
+            
+            counter++;
+            if (counter > 10000)
+            {
+                break;
+            }
+            
+            currentGeometry.transform.position += direction * 0.1f;
+            boxCollider = currentGeometry.GetComponent<BoxCollider>();
+
+            contains = ColliderContainsPoint(boxCollider.transform, parentBoundPoint, (parentGeometry.transform.localScale + Vector3.one), true);
+        }
+
+        
+
+
+       
+        //segment.transform.position = spawnPoint;
+        //segment.transform.localScale = node.scale;
+        //segment.transform.rotation = node.rotation;
+
+
+
+        //foreach (GameObject g in parent.gameObjects)
+        //{
+        //    if (parent == node)
+        //    {
+
+        //    }
+
+        //    node.created = true;
+        //    node.gameObjects.Add(currentGeometry);
+        //    geometry.Add(currentGeometry);
+
+
+
+
+        //    //Transform temp = node.transform;
+        //    //node.transform = parent.transform * temp;
+        //    //segment.transform. = node.transform;
+
+
+        //}
+
+
+
+    //public void CreateJoint()
+    //{
 
     }
 
+    bool ColliderContainsPoint(Transform ColliderTransform, Vector3 Point, Vector3 scale, bool Enabled)
+    {
+        //Gör om punkten till transformens local space
+        Vector3 localPos = ColliderTransform.InverseTransformPoint(Point);
+        if (Enabled && Mathf.Abs(localPos.x) < scale.x/2f && Mathf.Abs(localPos.y) < scale.y / 2f && Mathf.Abs(localPos.z) < scale.z / 2f)
+            return true;
+        else
+            return false;
+    }
 }
 
 
@@ -298,11 +410,11 @@ public class Node
 {
     public bool created = false;
     PrimitiveType Cube;
-    float scale;
-    Vector3 position;
-    Transform Rotation;
     bool symmetry;
     bool terminalOnly;
+    public Vector3 scale = new Vector3(Random.Range(0.1f, 2f), Random.Range(0.1f, 2f), Random.Range(0.1f, 2f));
+    public Quaternion rotation;
+    public List<GameObject> gameObjects = new List<GameObject>();
 
     public int numOfChildren = Random.Range(0, 5);
     public bool stacked;
@@ -323,9 +435,16 @@ public class Node
         }
     }
 
-    public Node()
-    {
+    public Node(){}
 
+    public Transform GetTransform(GameObject gameObject)
+    {
+        Transform transform = gameObject.transform;
+        //transform.position = this.position;
+        transform.localScale = this.scale;
+        transform.rotation = this.rotation;
+
+        return transform;
     }
 }
 

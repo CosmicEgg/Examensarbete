@@ -25,9 +25,11 @@ public class AddForce : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
+        hJoint.useMotor = false;
         Debug.DrawRay(tr.position, tr.forward);
         //Left joint 
-         if (Input.GetKey(KeyCode.X))
+        
+         if (Input.GetKeyDown(KeyCode.X))
         {
             hJoint.useMotor = true;
             motor.targetVelocity = targetVelocity;
@@ -35,12 +37,13 @@ public class AddForce : MonoBehaviour
             hJoint.motor = motor;
         }
 
-        if (Input.GetKey(KeyCode.C))
+        if (Input.GetKeyDown(KeyCode.C))
         {
             hJoint.useMotor = true;
             motor.targetVelocity = -targetVelocity;
             motor.force = force;
             hJoint.motor = motor;
+
         }
     }
 }
