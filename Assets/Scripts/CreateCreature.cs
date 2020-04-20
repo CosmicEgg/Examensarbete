@@ -295,17 +295,10 @@ public class CreateCreature : MonoBehaviour
 
     public void CreateRootGeometry(Node node)
     {
-        //GameObject segment = GameObject.CreatePrimitive(PrimitiveType.Cube);
         GameObject segment = Instantiate(prefab, new Vector3(0, 10, 0), Quaternion.identity);
         GeometryInfo info = segment.GetComponent<GeometryInfo>();
         info.SetID(node.id);
-        //segment.AddComponent<Rigidbody>();
-        //segment.GetComponent<Rigidbody>().isKinematic = true;
-        //segment.GetComponent<Rigidbody>().useGravity = false;
-        //segment.GetComponent<BoxCollider>().isTrigger = true;
-        //segment.transform.position = new Vector3(0, 10, 0);
         segment.transform.localScale = new Vector3(1, 1, 1);
-        //segment.transform.rotation = Quaternion.identity;
         node.created = true;
         node.gameObjects.Add(segment);
         geometry.Add(segment);
@@ -318,106 +311,53 @@ public class CreateCreature : MonoBehaviour
         {
             return;
         }
+
+        //Förälder Geo information
         GameObject parentGeometry = parent.gameObjects[0];
         BoxCollider parentBoxCollider = parentGeometry.GetComponent<BoxCollider>();
         Rigidbody parentRigidBody = parentGeometry.GetComponent<Rigidbody>();
 
-        Vector3 parentBoundPoint = parentRigidBody.ClosestPointOnBounds(new Vector3(Random.Range(parentBoxCollider.bounds.min.x, parentBoxCollider.bounds.max.x),
-            Random.Range(parentBoxCollider.bounds.min.y, parentBoxCollider.bounds.max.y), Random.Range(parentBoxCollider.bounds.min.z, parentBoxCollider.bounds.max.z)));
+        //Random punkt på förälder
+        Vector3 randomPoint = new Vector3(Random.Range(parentBoxCollider.bounds.min.x, parentBoxCollider.bounds.max.x),
+            Random.Range(parentBoxCollider.bounds.min.y, parentBoxCollider.bounds.max.y), Random.Range(parentBoxCollider.bounds.min.z, parentBoxCollider.bounds.max.z));
 
-        Vector3 direction = (parentBoundPoint - parentGeometry.transform.position).normalized;
+        Vector3 randomPlacementDirection = (randomPoint - parentGeometry.transform.position).normalized;
+        randomPoint = randomPoint + (randomPlacementDirection * 5f);
 
-        GameObject currentGeometry = Instantiate(prefab, parentBoundPoint, Quaternion.identity);
+        Vector3 parentBoundPoint = parentBoxCollider.ClosestPoint(randomPoint);
+
+        GameObject currentGeometry = Instantiate(prefab, parentBoundPoint, Quaternion.identity);  
         GeometryInfo info = currentGeometry.GetComponent<GeometryInfo>();
         info.SetID(node.id);
         info.SetParentID(parent.id);
-        ////GameObject currentGeometry = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        currentGeometry.transform.localScale = node.scale;
         Rigidbody rigidBody = currentGeometry.GetComponent<Rigidbody>();
         BoxCollider boxCollider = currentGeometry.GetComponent<BoxCollider>();
+        boxCollider.transform.localScale = currentGeometry.transform.localScale;
 
-        ////currentGeometry.GetComponent<Rigidbody>().isKinematic = true;
-        ////currentGeometry.GetComponent<Rigidbody>().useGravity = false;
-        //////currentGeometry.GetComponent<BoxCollider>().isTrigger = true;
-        ////currentGeometry.transform.position = parentBoundPoint;
-        currentGeometry.transform.localScale = node.scale;
+        //Max Distance från förälder
+        Vector3 parentPlacementDirection = (parentBoundPoint - parentGeometry.transform.position).normalized;
 
-        //Bounds parentBounds = parentGeometry.GetComponent<Renderer>().bounds;
-        //Bounds currentBounds = currentGeometry.GetComponent<Renderer>().bounds;
+        float largetAxis = Mathf.Max(node.scale.x, node.scale.y, node.scale.z);
+        Vector3 maxDistanceToParent = parentBoundPoint + (parentPlacementDirection * largetAxis);
 
-        int counter = 0;
-        bool contains = false;
+        currentGeometry.transform.position = maxDistanceToParent;
 
-        //Denna går inte in i loopen överhuvudtaget
-        //contains = boxCollider.bounds.Contains(parentBoundPoint);
+        //Närmaste punkten på nya geometrin från förälder punkten
+        Vector3 closestPointOnCurrent = rigidBody.ClosestPointOnBounds(parentBoundPoint);
 
+        GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        sphere.transform.position = closestPointOnCurrent;
+        sphere.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
 
-        contains = ColliderContainsPoint(currentGeometry.transform, parentBoundPoint, boxCollider.transform.localScale, true);
-        while (contains)
-        {
-            
-            counter++;
-            if (counter > 10000)
-            {
-                break;
-            }
+        //GameObject sphereParent = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        //sphereParent.transform.position = parentBoundPoint;
+        //sphereParent.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
 
-            currentGeometry.transform.Translate(direction * 0.1f);
-            rigidBody.MovePosition(currentGeometry.transform.position);
-            boxCollider.transform.position = currentGeometry.transform.position;
+        //Flytta Current i den rikting den distansen
+        Vector3 distPointToPoint = parentBoundPoint - closestPointOnCurrent;
 
-
-            //contains = boxCollider.bounds.Contains(parentBoundPoint);
-
-            //boxCollider.bounds = boxCollider.bounds;
-            contains = ColliderContainsPoint(currentGeometry.transform, parentBoundPoint, boxCollider.transform.localScale, true);
-        }
-
-        
-
-
-       
-        //segment.transform.position = spawnPoint;
-        //segment.transform.localScale = node.scale;
-        //segment.transform.rotation = node.rotation;
-
-
-
-        //foreach (GameObject g in parent.gameObjects)
-        //{
-        //    if (parent == node)
-        //    {
-
-        //    }
-
-        //    node.created = true;
-        //    node.gameObjects.Add(currentGeometry);
-        //    geometry.Add(currentGeometry);
-
-
-
-
-        //    //Transform temp = node.transform;
-        //    //node.transform = parent.transform * temp;
-        //    //segment.transform. = node.transform;
-
-
-        //}
-
-
-
-    //public void CreateJoint()
-    //{
-
-    }
-
-    bool ColliderContainsPoint(Transform ColliderTransform, Vector3 Point, Vector3 scale, bool Enabled)
-    {
-        //Gör om punkten till transformens local space
-        Vector3 localPos = ColliderTransform.InverseTransformPoint(Point);
-        if (Enabled && Mathf.Abs(localPos.x) < scale.x/2f && Mathf.Abs(localPos.y) < scale.y / 2f && Mathf.Abs(localPos.z) < scale.z / 2f)
-            return true;
-        else
-            return false;
+        //currentGeometry.transform.position += distPointToPoint;
     }
 }
 
@@ -430,7 +370,7 @@ public class Node
     PrimitiveType Cube;
     bool symmetry;
     bool terminalOnly;
-    public Vector3 scale = new Vector3(Random.Range(0.1f, 2f), Random.Range(0.1f, 2f), Random.Range(0.1f, 2f));
+    public Vector3 scale = Vector3.one * 3f/* new Vector3(Random.Range(0.1f, 2f), Random.Range(0.1f, 2f), Random.Range(0.1f, 2f))*/;
     public Quaternion rotation;
     public List<GameObject> gameObjects = new List<GameObject>();
 
