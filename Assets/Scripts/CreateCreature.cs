@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class CreateCreature : MonoBehaviour
 {
+    public GameObject prefab;
     List<GameObject> geometry;
     public List<Node> nodes;
     List<int> nodeOrder;
@@ -294,14 +295,17 @@ public class CreateCreature : MonoBehaviour
 
     public void CreateRootGeometry(Node node)
     {
-        GameObject segment = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        segment.AddComponent<Rigidbody>();
-        segment.GetComponent<Rigidbody>().isKinematic = true;
-        segment.GetComponent<Rigidbody>().useGravity = false;
+        //GameObject segment = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        GameObject segment = Instantiate(prefab, new Vector3(0, 10, 0), Quaternion.identity);
+        GeometryInfo info = segment.GetComponent<GeometryInfo>();
+        info.SetID(node.id);
+        //segment.AddComponent<Rigidbody>();
+        //segment.GetComponent<Rigidbody>().isKinematic = true;
+        //segment.GetComponent<Rigidbody>().useGravity = false;
         //segment.GetComponent<BoxCollider>().isTrigger = true;
-        segment.transform.position = new Vector3(0, 10, 0);
+        //segment.transform.position = new Vector3(0, 10, 0);
         segment.transform.localScale = new Vector3(1, 1, 1);
-        segment.transform.rotation = Quaternion.identity;
+        //segment.transform.rotation = Quaternion.identity;
         node.created = true;
         node.gameObjects.Add(segment);
         geometry.Add(segment);
@@ -321,24 +325,33 @@ public class CreateCreature : MonoBehaviour
         Vector3 parentBoundPoint = parentRigidBody.ClosestPointOnBounds(new Vector3(Random.Range(parentBoxCollider.bounds.min.x, parentBoxCollider.bounds.max.x),
             Random.Range(parentBoxCollider.bounds.min.y, parentBoxCollider.bounds.max.y), Random.Range(parentBoxCollider.bounds.min.z, parentBoxCollider.bounds.max.z)));
 
-        Vector3 direction = parentBoundPoint.normalized;
+        Vector3 direction = (parentBoundPoint - parentGeometry.transform.position).normalized;
 
-        parentBoundPoint += parentGeometry.transform.position;
-
-        GameObject currentGeometry = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        Rigidbody rigidBody = currentGeometry.AddComponent<Rigidbody>();
+        GameObject currentGeometry = Instantiate(prefab, parentBoundPoint, Quaternion.identity);
+        GeometryInfo info = currentGeometry.GetComponent<GeometryInfo>();
+        info.SetID(node.id);
+        info.SetParentID(parent.id);
+        ////GameObject currentGeometry = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Rigidbody rigidBody = currentGeometry.GetComponent<Rigidbody>();
         BoxCollider boxCollider = currentGeometry.GetComponent<BoxCollider>();
 
-        currentGeometry.GetComponent<Rigidbody>().isKinematic = true;
-        currentGeometry.GetComponent<Rigidbody>().useGravity = false;
-        //currentGeometry.GetComponent<BoxCollider>().isTrigger = true;
-        currentGeometry.transform.position = parentBoundPoint;
+        ////currentGeometry.GetComponent<Rigidbody>().isKinematic = true;
+        ////currentGeometry.GetComponent<Rigidbody>().useGravity = false;
+        //////currentGeometry.GetComponent<BoxCollider>().isTrigger = true;
+        ////currentGeometry.transform.position = parentBoundPoint;
         currentGeometry.transform.localScale = node.scale;
+
+        //Bounds parentBounds = parentGeometry.GetComponent<Renderer>().bounds;
+        //Bounds currentBounds = currentGeometry.GetComponent<Renderer>().bounds;
 
         int counter = 0;
         bool contains = false;
 
-        contains = ColliderContainsPoint(boxCollider.transform, parentBoundPoint, parentGeometry.transform.localScale, true);
+        //Denna går inte in i loopen överhuvudtaget
+        //contains = boxCollider.bounds.Contains(parentBoundPoint);
+
+
+        contains = ColliderContainsPoint(currentGeometry.transform, parentBoundPoint, boxCollider.transform.localScale, true);
         while (contains)
         {
             
@@ -347,11 +360,16 @@ public class CreateCreature : MonoBehaviour
             {
                 break;
             }
-            
-            currentGeometry.transform.position += direction * 0.1f;
-            boxCollider = currentGeometry.GetComponent<BoxCollider>();
 
-            contains = ColliderContainsPoint(boxCollider.transform, parentBoundPoint, (parentGeometry.transform.localScale + Vector3.one), true);
+            currentGeometry.transform.Translate(direction * 0.1f);
+            rigidBody.MovePosition(currentGeometry.transform.position);
+            boxCollider.transform.position = currentGeometry.transform.position;
+
+
+            //contains = boxCollider.bounds.Contains(parentBoundPoint);
+
+            //boxCollider.bounds = boxCollider.bounds;
+            contains = ColliderContainsPoint(currentGeometry.transform, parentBoundPoint, boxCollider.transform.localScale, true);
         }
 
         
