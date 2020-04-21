@@ -304,13 +304,33 @@ public class CreateCreature : MonoBehaviour
 
     public void CreateRootGeometry(Node node)
     {
-        GameObject segment = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        int primitiveRand = Random.Range(0, 3);
+        PrimitiveType primitiveType;
+        Vector3 scale;
+        switch (primitiveRand)
+        {
+            case 0:
+                primitiveType = PrimitiveType.Cube;
+                break;
+            case 1:
+                primitiveType = PrimitiveType.Capsule;
+                break;
+            case 2:
+                primitiveType = PrimitiveType.Sphere;
+                break;
+            default:
+                primitiveType = PrimitiveType.Cube;
+                break;
+        }
+
+        GameObject segment = GameObject.CreatePrimitive(primitiveType);
         segment.transform.position = new Vector3(0, 10, 0);
         Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
         segment.transform.rotation = Quaternion.Euler(rotation);
         segment.transform.localScale = new Vector3(Random.Range(0.2f, 2), Random.Range(0.2f, 2), Random.Range(0.2f, 2));
         segment.AddComponent<Rigidbody>();
         Rigidbody rb = segment.GetComponent<Rigidbody>();
+
         rb.isKinematic = true;
         rb.useGravity = false;
         node.created = true;
@@ -329,7 +349,7 @@ public class CreateCreature : MonoBehaviour
         GameObject currentGeometry;
         //Förälder Geo information
         GameObject parentGeometry = parent.gameObjects[0];
-        BoxCollider parentBoxCollider = parentGeometry.GetComponent<BoxCollider>();
+        Collider parentCollider = parentGeometry.GetComponent<Collider>();
         Rigidbody parentRigidBody = parentGeometry.GetComponent<Rigidbody>();
 
         bool created = false;
@@ -344,11 +364,28 @@ public class CreateCreature : MonoBehaviour
             }
             created = true;
             //Random punkt på förälder
-            Vector3 randomPoint = new Vector3(Random.Range(parentBoxCollider.bounds.min.x, parentBoxCollider.bounds.max.x),
-                Random.Range(parentBoxCollider.bounds.min.y, parentBoxCollider.bounds.max.y), Random.Range(parentBoxCollider.bounds.min.z, parentBoxCollider.bounds.max.z));
+            Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
+                Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
 
+            int primitiveRand = Random.Range(0, 3);
+            PrimitiveType primitiveType;
+            switch (primitiveRand)
+            {
+                case 0:
+                    primitiveType = PrimitiveType.Cube;
+                    break;
+                case 1:
+                    primitiveType = PrimitiveType.Capsule;
+                    break;
+                case 2:
+                    primitiveType = PrimitiveType.Sphere;
+                    break;
+                default:
+                    primitiveType = PrimitiveType.Cube;
+                    break;
+            }
+            currentGeometry = GameObject.CreatePrimitive(primitiveType);
 
-            currentGeometry = GameObject.CreatePrimitive(PrimitiveType.Cube);
             currentGeometry.transform.position = randomPoint;
             Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
             currentGeometry.transform.rotation = Quaternion.Euler(rotation);
@@ -357,15 +394,15 @@ public class CreateCreature : MonoBehaviour
             Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
             rb.isKinematic = true;
             rb.useGravity = false;
-            BoxCollider boxCollider = currentGeometry.GetComponent<BoxCollider>();
+            Collider collider = currentGeometry.GetComponent<Collider>();
             //boxCollider.transform.localScale = currentGeometry.transform.localScale;
 
             Vector3 directionToMove;
             float distance = 0;
 
 
-            if (Physics.ComputePenetration(boxCollider, boxCollider.transform.position, boxCollider.transform.rotation,
-                parentBoxCollider, parentBoxCollider.transform.position, parentBoxCollider.transform.rotation, out directionToMove, out distance))
+            if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
             {
                 currentGeometry.transform.position += (directionToMove * (distance));
             }
@@ -373,10 +410,10 @@ public class CreateCreature : MonoBehaviour
 
             foreach (GameObject g in geometry)
             {
-                BoxCollider gBoxCollider = g.GetComponent<BoxCollider>();
+                Collider gCollider = g.GetComponent<Collider>();
 
-                if (Physics.ComputePenetration(boxCollider, boxCollider.transform.position, boxCollider.transform.rotation,
-                gBoxCollider, gBoxCollider.transform.position, gBoxCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry)
+                if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                gCollider, gCollider.transform.position, gCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry)
                 {
                     Destroy(currentGeometry);
                     created = false;
