@@ -13,6 +13,8 @@ public class CreateCreature : MonoBehaviour
     Stack<Node> recurssionStack;
     int numOfNodes;
     Vector3 startPosition;
+    Node root;
+    bool generated = false;
 
     // Start is called before the first frame update
     void Start()
@@ -162,9 +164,8 @@ public class CreateCreature : MonoBehaviour
 
         }
 
-        Node rootNode = nodes[0];
-        ResetTree(ref rootNode);
-        InterpretTree(rootNode);
+        root = nodes[0];
+        ResetTree(ref root);
 
         }
 
@@ -292,13 +293,26 @@ public class CreateCreature : MonoBehaviour
         }
     }
 
+    public void FixedUpdate()
+    {
+        if (!generated)
+        {
+            generated = true;
+            InterpretTree(root);
+        }
+    }
 
     public void CreateRootGeometry(Node node)
     {
-        GameObject segment = Instantiate(prefab, new Vector3(0, 10, 0), Quaternion.identity);
-        GeometryInfo info = segment.GetComponent<GeometryInfo>();
-        info.SetID(node.id);
-        segment.transform.localScale = new Vector3(1, 1, 1);
+        GameObject segment = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        segment.transform.position = new Vector3(0, 10, 0);
+        Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
+        segment.transform.rotation = Quaternion.Euler(rotation);
+        segment.transform.localScale = new Vector3(Random.Range(0.2f, 2), Random.Range(0.2f, 2), Random.Range(0.2f, 2));
+        segment.AddComponent<Rigidbody>();
+        Rigidbody rb = segment.GetComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity = false;
         node.created = true;
         node.gameObjects.Add(segment);
         geometry.Add(segment);
@@ -307,55 +321,91 @@ public class CreateCreature : MonoBehaviour
     //Detta är en metod för att skapa single edge geometry 
     public void CreateSingleEdgeGeometry(Node node, Node parent)
     {
-        if (parent.gameObjects.Count == 0)
+        if (parent == node || parent.gameObjects.Count == 0)
         {
             return;
         }
 
+        GameObject currentGeometry;
         //Förälder Geo information
         GameObject parentGeometry = parent.gameObjects[0];
         BoxCollider parentBoxCollider = parentGeometry.GetComponent<BoxCollider>();
         Rigidbody parentRigidBody = parentGeometry.GetComponent<Rigidbody>();
 
-        //Random punkt på förälder
-        Vector3 randomPoint = new Vector3(Random.Range(parentBoxCollider.bounds.min.x, parentBoxCollider.bounds.max.x),
-            Random.Range(parentBoxCollider.bounds.min.y, parentBoxCollider.bounds.max.y), Random.Range(parentBoxCollider.bounds.min.z, parentBoxCollider.bounds.max.z));
+        bool created = false;
+        int tries = 0;
+        while (!created)
+        {
+            tries++;
+            if (tries > 100)
+            {
+                Debug.Log("To many tries");
+                break;
+            }
+            created = true;
+            //Random punkt på förälder
+            Vector3 randomPoint = new Vector3(Random.Range(parentBoxCollider.bounds.min.x, parentBoxCollider.bounds.max.x),
+                Random.Range(parentBoxCollider.bounds.min.y, parentBoxCollider.bounds.max.y), Random.Range(parentBoxCollider.bounds.min.z, parentBoxCollider.bounds.max.z));
 
-        Vector3 randomPlacementDirection = (randomPoint - parentGeometry.transform.position).normalized;
-        randomPoint = randomPoint + (randomPlacementDirection * 5f);
 
-        Vector3 parentBoundPoint = parentBoxCollider.ClosestPoint(randomPoint);
+            currentGeometry = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            currentGeometry.transform.position = randomPoint;
+            Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
+            currentGeometry.transform.rotation = Quaternion.Euler(rotation);
+            currentGeometry.transform.localScale = new Vector3(Random.Range(0.2f, 2), Random.Range(0.2f, 2), Random.Range(0.2f, 2));
+            currentGeometry.AddComponent<Rigidbody>();
+            Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
+            rb.isKinematic = true;
+            rb.useGravity = false;
+            BoxCollider boxCollider = currentGeometry.GetComponent<BoxCollider>();
+            //boxCollider.transform.localScale = currentGeometry.transform.localScale;
 
-        GameObject currentGeometry = Instantiate(prefab, parentBoundPoint, Quaternion.identity);  
-        GeometryInfo info = currentGeometry.GetComponent<GeometryInfo>();
-        info.SetID(node.id);
-        info.SetParentID(parent.id);
-        currentGeometry.transform.localScale = node.scale;
-        Rigidbody rigidBody = currentGeometry.GetComponent<Rigidbody>();
-        BoxCollider boxCollider = currentGeometry.GetComponent<BoxCollider>();
-        boxCollider.transform.localScale = currentGeometry.transform.localScale;
+            Vector3 directionToMove;
+            float distance = 0;
 
-        //Max Distance från förälder
-        Vector3 parentPlacementDirection = (parentBoundPoint - parentGeometry.transform.position).normalized;
 
-        float largetAxis = Mathf.Max(node.scale.x, node.scale.y, node.scale.z);
-        Vector3 maxDistanceToParent = parentBoundPoint + (parentPlacementDirection * largetAxis);
+            if (Physics.ComputePenetration(boxCollider, boxCollider.transform.position, boxCollider.transform.rotation,
+                parentBoxCollider, parentBoxCollider.transform.position, parentBoxCollider.transform.rotation, out directionToMove, out distance))
+            {
+                currentGeometry.transform.position += (directionToMove * (distance));
+            }
 
-        currentGeometry.transform.position = maxDistanceToParent;
 
-        //Närmaste punkten på nya geometrin från förälder punkten
-        Vector3 closestPointOnCurrent = rigidBody.ClosestPointOnBounds(parentBoundPoint);
+            foreach (GameObject g in geometry)
+            {
+                BoxCollider gBoxCollider = g.GetComponent<BoxCollider>();
 
-        GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        sphere.transform.position = closestPointOnCurrent;
-        sphere.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
+                if (Physics.ComputePenetration(boxCollider, boxCollider.transform.position, boxCollider.transform.rotation,
+                gBoxCollider, gBoxCollider.transform.position, gBoxCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry)
+                {
+                    Destroy(currentGeometry);
+                    created = false;
+                    break;
+                }
+            }
+
+            if (created)
+            {
+                node.gameObjects.Add(currentGeometry);
+                geometry.Add(currentGeometry);
+            }
+        }
+       
+
+
+
+
+
+        //GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        //sphere.transform.position = closestPointOnCurrent;
+        //sphere.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
 
         //GameObject sphereParent = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         //sphereParent.transform.position = parentBoundPoint;
         //sphereParent.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
 
         //Flytta Current i den rikting den distansen
-        Vector3 distPointToPoint = parentBoundPoint - closestPointOnCurrent;
+        // Vector3 distPointToPoint = randomPoint - closestPointOnCurrent;
 
         //currentGeometry.transform.position += distPointToPoint;
     }
@@ -370,7 +420,7 @@ public class Node
     PrimitiveType Cube;
     bool symmetry;
     bool terminalOnly;
-    public Vector3 scale = Vector3.one * 3f/* new Vector3(Random.Range(0.1f, 2f), Random.Range(0.1f, 2f), Random.Range(0.1f, 2f))*/;
+    public Vector3 scale = Vector3.one * 3;/* new Vector3(Random.Range(0.1f, 2f), Random.Range(0.1f, 2f), Random.Range(0.1f, 2f))*/
     public Quaternion rotation;
     public List<GameObject> gameObjects = new List<GameObject>();
 
