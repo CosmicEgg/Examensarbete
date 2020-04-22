@@ -5,7 +5,6 @@ using UnityEngine;
 
 public class CreateCreature : MonoBehaviour
 {
-    public GameObject prefab;
     List<GameObject> geometry;
     public List<Node> nodes;
     List<int> nodeOrder;
@@ -15,6 +14,9 @@ public class CreateCreature : MonoBehaviour
     Vector3 startPosition;
     Node root;
     bool generated = false;
+
+    int primitiveRand;
+    float minScale, maxScale;
 
     // Start is called before the first frame update
     void Start()
@@ -27,11 +29,15 @@ public class CreateCreature : MonoBehaviour
         nodeOrder = new List<int>();
         nodeStack = new Stack<Node>();
 
+        minScale = 0.2f;
+        maxScale = 2f;
+
         //Spawn Nodes
         for (int i = 0; i < numOfNodes; i++)
         {
-            Node node = new Node();
-            node.id = i;
+            primitiveRand = Random.Range(0, 3);
+            Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
+            Node node = new Node(primitiveRand, minScale, maxScale, rotation, i);
             nodes.Add(node);
         }
 
@@ -125,7 +131,6 @@ public class CreateCreature : MonoBehaviour
             Debug.Log(id);
         }
 
-
         //Begin adding recursive nodes to graph
         //Tror vi måste göra en DFS från varje recursiv nod för att hitta alla barnen och skapa en helt ny gren nedåt
         while (recurssionStack.Count > 0)
@@ -166,8 +171,7 @@ public class CreateCreature : MonoBehaviour
 
         root = nodes[0];
         ResetTree(ref root);
-
-        }
+    }
 
 
     private void ResetTree(ref Node node)
@@ -188,10 +192,9 @@ public class CreateCreature : MonoBehaviour
         //Root Node def.
         Queue<Node> nodeQueue = new Queue<Node>();
         nodeQueue.Enqueue(root);
-
         CreateRootGeometry(root);
 
-        while (nodeQueue.Count > 0)
+        while (nodeQueue.Count > 0 || nodeQueue.Count < 1000)
         {
             Node currentNode = nodeQueue.Peek();
             bool startOver = false;
@@ -205,7 +208,7 @@ public class CreateCreature : MonoBehaviour
             foreach (Edge edge in currentNode.edges)
             {
                 //If all are traversed we are finished with this node
-                if (!edge.traversed)
+                if (!edge.to.created)
                 {
                     startOver = false;
                     break;
@@ -224,7 +227,8 @@ public class CreateCreature : MonoBehaviour
             List<Node> tempNodes = new List<Node>();
             foreach (Edge e in currentNode.edges)
             {
-                tempNodes.Add(e.to);
+                if(currentNode != e.to)
+                    tempNodes.Add(e.to);
             }
 
             var myhash = new HashSet<Node>();
@@ -249,9 +253,9 @@ public class CreateCreature : MonoBehaviour
             for (int i = 0; i < duplicates.Count; i++)
             {
                 occurences.Add(0);
-                foreach (Node m in tempNodes)
+                foreach (Node n in tempNodes)
                 {
-                    if (duplicates[i].Equals(m))
+                    if (duplicates[i].Equals(n))
                     {
                         occurences[i]++;
                     }
@@ -274,19 +278,18 @@ public class CreateCreature : MonoBehaviour
 
                     }
                 }
-
-                nodeQueue.Enqueue(duplicates[i]);
             }
 
             //Creating all not already traversed normal children/nodes
             for (int i = 0; i < currentNode.edges.Count; i++)
             {
-                if (!currentNode.edges[i].traversed)
+                if (!currentNode.edges[i].traversed && !currentNode.edges[i].to.created)
                 {
                     currentNode.edges[i].traversed = true;
 
                     CreateSingleEdgeGeometry(currentNode.edges[i].to, currentNode);
 
+                    currentNode.edges[i].to.created = true;
                     nodeQueue.Enqueue(currentNode.edges[i].to);
                 }
             }
@@ -304,30 +307,10 @@ public class CreateCreature : MonoBehaviour
 
     public void CreateRootGeometry(Node node)
     {
-        int primitiveRand = Random.Range(0, 3);
-        PrimitiveType primitiveType;
-        Vector3 scale;
-        switch (primitiveRand)
-        {
-            case 0:
-                primitiveType = PrimitiveType.Cube;
-                break;
-            case 1:
-                primitiveType = PrimitiveType.Capsule;
-                break;
-            case 2:
-                primitiveType = PrimitiveType.Sphere;
-                break;
-            default:
-                primitiveType = PrimitiveType.Cube;
-                break;
-        }
-
-        GameObject segment = GameObject.CreatePrimitive(primitiveType);
+        GameObject segment = GameObject.CreatePrimitive(node.primitiveType);
         segment.transform.position = new Vector3(0, 10, 0);
-        Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
-        segment.transform.rotation = Quaternion.Euler(rotation);
-        segment.transform.localScale = new Vector3(Random.Range(0.2f, 2), Random.Range(0.2f, 2), Random.Range(0.2f, 2));
+        segment.transform.rotation = Quaternion.Euler(node.rotation);
+        segment.transform.localScale = node.scale;
         segment.AddComponent<Rigidbody>();
         Rigidbody rb = segment.GetComponent<Rigidbody>();
 
@@ -346,121 +329,81 @@ public class CreateCreature : MonoBehaviour
             return;
         }
 
-        GameObject currentGeometry;
-        //Förälder Geo information
-        GameObject parentGeometry = parent.gameObjects[0];
-        Collider parentCollider = parentGeometry.GetComponent<Collider>();
-        Rigidbody parentRigidBody = parentGeometry.GetComponent<Rigidbody>();
-
-        bool created = false;
-        int tries = 0;
-        while (!created)
+        foreach(GameObject pg in parent.gameObjects)
         {
-            tries++;
-            if (tries > 100)
+            GameObject currentGeometry;
+
+            //Förälder Geo information
+            GameObject parentGeometry = pg;
+            Collider parentCollider = parentGeometry.GetComponent<Collider>();
+            Rigidbody parentRigidBody = parentGeometry.GetComponent<Rigidbody>();
+
+            bool created = false;
+            int tries = 0;
+            while (!created)
             {
-                Debug.Log("To many tries");
-                break;
-            }
-            created = true;
-            //Random punkt på förälder
-            Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
-                Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
-
-            int primitiveRand = Random.Range(0, 3);
-            PrimitiveType primitiveType;
-            switch (primitiveRand)
-            {
-                case 0:
-                    primitiveType = PrimitiveType.Cube;
-                    break;
-                case 1:
-                    primitiveType = PrimitiveType.Capsule;
-                    break;
-                case 2:
-                    primitiveType = PrimitiveType.Sphere;
-                    break;
-                default:
-                    primitiveType = PrimitiveType.Cube;
-                    break;
-            }
-            currentGeometry = GameObject.CreatePrimitive(primitiveType);
-
-            currentGeometry.transform.position = randomPoint;
-            Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
-            currentGeometry.transform.rotation = Quaternion.Euler(rotation);
-            currentGeometry.transform.localScale = new Vector3(Random.Range(0.2f, 2), Random.Range(0.2f, 2), Random.Range(0.2f, 2));
-            currentGeometry.AddComponent<Rigidbody>();
-            Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
-            rb.isKinematic = true;
-            rb.useGravity = false;
-            Collider collider = currentGeometry.GetComponent<Collider>();
-            //boxCollider.transform.localScale = currentGeometry.transform.localScale;
-
-            Vector3 directionToMove;
-            float distance = 0;
-
-
-            if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
-                parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
-            {
-                currentGeometry.transform.position += (directionToMove * (distance));
-            }
-
-
-            foreach (GameObject g in geometry)
-            {
-                Collider gCollider = g.GetComponent<Collider>();
-
-                if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
-                gCollider, gCollider.transform.position, gCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry)
+                tries++;
+                if (tries > 100)
                 {
-                    Destroy(currentGeometry);
-                    created = false;
+                    Debug.Log("To many tries");
                     break;
                 }
-            }
+                created = true;
+                //Random punkt på förälder
+                Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
+                    Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
 
-            if (created)
-            {
-                node.gameObjects.Add(currentGeometry);
-                geometry.Add(currentGeometry);
+                currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
+                currentGeometry.transform.position = randomPoint;
+                currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
+                currentGeometry.transform.localScale = node.scale;
+                currentGeometry.AddComponent<Rigidbody>();
+                Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
+                rb.isKinematic = true;
+                rb.useGravity = false;
+                Collider collider = currentGeometry.GetComponent<Collider>();
+
+                Vector3 directionToMove;
+                float distance = 0;
+
+                if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                    parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
+                {
+                    currentGeometry.transform.position += (directionToMove * (distance));
+                }
+
+                foreach (GameObject g in geometry)
+                {
+                    Collider gCollider = g.GetComponent<Collider>();
+
+                    if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                    gCollider, gCollider.transform.position, gCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry)
+                    {
+                        Destroy(currentGeometry);
+                        created = false;
+                        break;
+                    }
+                }
+
+                if (created)
+                {
+                    node.gameObjects.Add(currentGeometry);
+                    geometry.Add(currentGeometry);
+                }
             }
         }
-       
-
-
-
-
-
-        //GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        //sphere.transform.position = closestPointOnCurrent;
-        //sphere.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
-
-        //GameObject sphereParent = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        //sphereParent.transform.position = parentBoundPoint;
-        //sphereParent.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
-
-        //Flytta Current i den rikting den distansen
-        // Vector3 distPointToPoint = randomPoint - closestPointOnCurrent;
-
-        //currentGeometry.transform.position += distPointToPoint;
     }
 }
 
-
-
-
 public class Node
 {
-    public bool created = false;
-    PrimitiveType Cube;
-    bool symmetry;
-    bool terminalOnly;
-    public Vector3 scale = Vector3.one * 3;/* new Vector3(Random.Range(0.1f, 2f), Random.Range(0.1f, 2f), Random.Range(0.1f, 2f))*/
-    public Quaternion rotation;
-    public List<GameObject> gameObjects = new List<GameObject>();
+    float randUniScale;
 
+    public bool created = false;
+    public PrimitiveType primitiveType;
+    public Vector3 scale;
+    public Vector3 rotation;
+    public List<GameObject> gameObjects = new List<GameObject>();
     public int numOfChildren = Random.Range(0, 5);
     public bool stacked;
     public int id;
@@ -470,6 +413,9 @@ public class Node
     public Node(Node other)
     {
         id = other.id;
+        scale = other.scale;
+        rotation = other.rotation;
+        primitiveType = other.primitiveType;
 
         foreach(Edge e in other.edges)
         {
@@ -482,14 +428,33 @@ public class Node
 
     public Node(){}
 
-    public Transform GetTransform(GameObject gameObject)
+    public Node(int primitiveRand,float minScale, float maxScale, Vector3 rotation, int id)
     {
-        Transform transform = gameObject.transform;
-        //transform.position = this.position;
-        transform.localScale = this.scale;
-        transform.rotation = this.rotation;
+        switch (primitiveRand)
+        {
+            case 0:
+                primitiveType = PrimitiveType.Cube;
+                scale = new Vector3(Random.Range(minScale, maxScale), Random.Range(minScale, maxScale), Random.Range(minScale, maxScale));
+                break;
+            case 1:
+                primitiveType = PrimitiveType.Capsule;
+                randUniScale = Random.Range(minScale, maxScale);
+                scale = new Vector3(randUniScale, randUniScale, randUniScale);
+                break;
+            case 2:
+                primitiveType = PrimitiveType.Sphere;
+                randUniScale = Random.Range(minScale, maxScale);
+                scale = new Vector3(randUniScale, randUniScale, randUniScale);
+                break;
+            default:
+                primitiveType = PrimitiveType.Cube;
+                scale = new Vector3(Random.Range(minScale, maxScale), Random.Range(minScale, maxScale), Random.Range(minScale, maxScale));
+                break;
+        }
 
-        return transform;
+        this.rotation = rotation;
+        this.id = id;
+    
     }
 }
 
