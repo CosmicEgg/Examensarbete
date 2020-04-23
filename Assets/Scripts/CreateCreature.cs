@@ -28,7 +28,7 @@ public class CreateCreature : MonoBehaviour
         recurssionStack = new Stack<Node>();
         nodeOrder = new List<int>();
         nodeStack = new Stack<Node>();
-
+        
         minScale = 0.2f;
         maxScale = 2f;
 
@@ -49,6 +49,7 @@ public class CreateCreature : MonoBehaviour
                 nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)], Random.Range(0, 4), 0));
             }
         }
+
 
         //Root Node def.
         nodeStack.Push(nodes[0]);
@@ -91,7 +92,8 @@ public class CreateCreature : MonoBehaviour
 
             for (int i = 0; i < currentNode.edges.Count; i++)
             {
-                if (!currentNode.edges[i].traversed && !currentNode.edges[i].to.Equals(currentNode))
+                //If not yet traveled and not looking at ourselves
+                if (!currentNode.edges[i].traversed && !ReferenceEquals(currentNode, currentNode.edges[i].to))
                 {
                     //If not already in stack i.e. edge is not a backwards edge
                     currentNode.edges[i].traversed = true;
@@ -104,9 +106,9 @@ public class CreateCreature : MonoBehaviour
                     }
                     else //Remove backwards edge
                     {
+                        Debug.Log("Removing edge from " + currentNode.id + " to " + currentNode.edges[i].to.id);
                         currentNode.edges.RemoveAt(i);
                     }
-
 
                     break;
                 }
@@ -114,7 +116,7 @@ public class CreateCreature : MonoBehaviour
 
             foreach (Edge edge in currentNode.edges)
             {
-                if (!edge.traversed && edge.to.Equals(currentNode))
+                if (!edge.traversed && ReferenceEquals(currentNode, edge.to))
                 {
                     //If not already in stack i.e. edge is not a backwards edge
                     recurssionStack.Push(edge.to);
@@ -124,11 +126,6 @@ public class CreateCreature : MonoBehaviour
                     break;
                 }
             }
-        }
-
-        foreach (int id in nodeOrder)
-        {
-            Debug.Log(id);
         }
 
         //Begin adding recursive nodes to graph
@@ -146,11 +143,23 @@ public class CreateCreature : MonoBehaviour
 
             for (int i = 0; i < currentNode.edges.Count; i++)
             {
-                if (currentNode.edges[i].to.Equals(currentNode.edges[i].from)
+                if (ReferenceEquals(currentNode.edges[i].to,currentNode.edges[i].from)
                     && currentNode.edges[i].numOfTravels < currentNode.edges[i].recursiveLimit)
                 {
                     currentNode.edges[i].numOfTravels++;
                     Node newNode = new Node(currentNode);
+                    if (ReferenceEquals(newNode, currentNode))
+                    {
+
+                    }
+
+                    //Om vi har nått denna plats för sista gången se till att ta bort den nya nodens 
+                    //koppling till själv nu då det annars inte kommer hända
+                    if (currentNode.edges[i].numOfTravels >= currentNode.edges[i].recursiveLimit)
+                    {
+                        newNode.edges.RemoveAt(i);
+                    }
+
                     nodes.Add(newNode);
                     currentNode.edges.Add(new Edge(currentNode, newNode, currentNode.edges[i].recursiveLimit, currentNode.edges[i].numOfTravels));
                     recurssionStack.Push(newNode);
@@ -194,7 +203,7 @@ public class CreateCreature : MonoBehaviour
         nodeQueue.Enqueue(root);
         CreateRootGeometry(root);
 
-        while (nodeQueue.Count > 0 || nodeQueue.Count < 1000)
+        while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
         {
             Node currentNode = nodeQueue.Peek();
             bool startOver = false;
@@ -207,8 +216,16 @@ public class CreateCreature : MonoBehaviour
 
             foreach (Edge edge in currentNode.edges)
             {
-                //If all are traversed we are finished with this node
-                if (!edge.to.created)
+                //If there is any node net yet created we still have work to do and continue
+                //if (!edge.to.created)
+                //{
+                //    startOver = false;
+                //    break;
+                //}
+                //else
+                //    startOver = true;
+
+                if (!edge.traversed)
                 {
                     startOver = false;
                     break;
@@ -227,6 +244,10 @@ public class CreateCreature : MonoBehaviour
             List<Node> tempNodes = new List<Node>();
             foreach (Edge e in currentNode.edges)
             {
+                if (Object.ReferenceEquals(currentNode, e.to))
+                {
+
+                }
                 if(currentNode != e.to)
                     tempNodes.Add(e.to);
             }
@@ -239,7 +260,7 @@ public class CreateCreature : MonoBehaviour
             {
                 foreach (Node n in duplicates)
                 {
-                    if (e.to == n)
+                    if (ReferenceEquals(e.to,n))
                     {
                         e.traversed = true;
                     }
@@ -283,7 +304,7 @@ public class CreateCreature : MonoBehaviour
             //Creating all not already traversed normal children/nodes
             for (int i = 0; i < currentNode.edges.Count; i++)
             {
-                if (!currentNode.edges[i].traversed && !currentNode.edges[i].to.created)
+                if (!currentNode.edges[i].traversed /*&& !currentNode.edges[i].to.created*/)
                 {
                     currentNode.edges[i].traversed = true;
 
@@ -324,7 +345,7 @@ public class CreateCreature : MonoBehaviour
     //Detta är en metod för att skapa single edge geometry 
     public void CreateSingleEdgeGeometry(Node node, Node parent)
     {
-        if (parent == node || parent.gameObjects.Count == 0)
+        if (ReferenceEquals(parent, node)|| parent.gameObjects.Count == 0)
         {
             return;
         }
@@ -413,22 +434,26 @@ public class Node
     public Node(Node other)
     {
         id = other.id;
+
+        //tror shallow copying uppstår här
         scale = other.scale;
+
+        //och här
         rotation = other.rotation;
         primitiveType = other.primitiveType;
 
         foreach(Edge e in other.edges)
         {
-            if (!e.to.Equals(e.from))
+            if (!ReferenceEquals(e.to, e.from))
                 edges.Add(new Edge(this, new Node(e.to), e.recursiveLimit, e.numOfTravels));
-            if (e.to.Equals(e.from))
-                edges.Add(new Edge(this, this, e.recursiveLimit, e.numOfTravels));
+            if (ReferenceEquals(e.to, e.from))
+                edges.Add(new Edge(this, new Node(this), e.recursiveLimit, e.numOfTravels));
         }
     }
 
     public Node(){}
 
-    public Node(int primitiveRand,float minScale, float maxScale, Vector3 rotation, int id)
+    public Node(int primitiveRand, float minScale, float maxScale, Vector3 rotation, int id)
     {
         switch (primitiveRand)
         {
