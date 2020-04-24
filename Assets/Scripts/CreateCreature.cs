@@ -10,6 +10,7 @@ public class CreateCreature : MonoBehaviour
     List<int> nodeOrder;
     Stack<Node> nodeStack;
     Stack<Node> recurssionStack;
+    Stack<Node> symmetryStack;
     int numOfNodes;
     Vector3 startPosition;
     Node root;
@@ -26,6 +27,7 @@ public class CreateCreature : MonoBehaviour
         startPosition = Vector3.zero;
         nodes = new List<Node>();
         recurssionStack = new Stack<Node>();
+        symmetryStack = new Stack<Node>();
         nodeOrder = new List<int>();
         nodeStack = new Stack<Node>();
         
@@ -119,7 +121,7 @@ public class CreateCreature : MonoBehaviour
                 if (!edge.traversed && ReferenceEquals(currentNode, edge.to))
                 {
                     //If not already in stack i.e. edge is not a backwards edge
-                    recurssionStack.Push(edge.to);
+                    //recurssionStack.Push(edge.to);
                     nodeOrder.Add(edge.to.id);
 
                     edge.traversed = true;
@@ -203,6 +205,7 @@ public class CreateCreature : MonoBehaviour
         nodeQueue.Enqueue(root);
         CreateRootGeometry(root);
 
+        //Interpret tree in a BFS-like fashion
         while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
         {
             Node currentNode = nodeQueue.Peek();
@@ -241,62 +244,28 @@ public class CreateCreature : MonoBehaviour
                 continue;
             }
 
+            //Make deepCopy of currentNodes to prevent deletion of nodes in original list
             List<Node> tempNodes = new List<Node>();
             foreach (Edge e in currentNode.edges)
             {
-                if (Object.ReferenceEquals(currentNode, e.to))
-                {
-
-                }
-                if(currentNode != e.to)
-                    tempNodes.Add(e.to);
+                tempNodes.Add(e.to);
             }
 
             var myhash = new HashSet<Node>();
             var mylist = tempNodes;
             var duplicates = mylist.Where(item => !myhash.Add(item)).Distinct().ToList();
 
-            foreach (Edge e in currentNode.edges)
-            {
-                foreach (Node n in duplicates)
-                {
-                    if (ReferenceEquals(e.to,n))
-                    {
-                        e.traversed = true;
-                    }
-                }
-            }
-
             //Region for multiple edges to one node
             //Occurences contain the number of times a duplicate exists stored 
             //as an integer in indexing corresponding to duplicates indexing
-            List<int> occurences = new List<int>(duplicates.Count);
             for (int i = 0; i < duplicates.Count; i++)
             {
-                occurences.Add(0);
                 foreach (Node n in tempNodes)
                 {
                     if (duplicates[i].Equals(n))
                     {
-                        occurences[i]++;
-                    }
-                }
-            }
-
-            //Handle duplicates and mark them as traversed
-            for (int i = 0; i < duplicates.Count; i++)
-            {
-                for (int j = 0; j < occurences[i]; j++)
-                {
-
-                    //Jämn spegling runt ett plan
-                    if (occurences[i] % 2 == 0)
-                    {
-                        //duplicates[i].
-                    }
-                    else //Ojämnt vilket betyder att vi tar en och riktar den i ett annat plan och speglar de tidigare jämna som vanligt 
-                    {
-
+                        n.symmetry = true;
+                        n.occurence++;
                     }
                 }
             }
@@ -308,12 +277,19 @@ public class CreateCreature : MonoBehaviour
                 {
                     currentNode.edges[i].traversed = true;
 
-                    CreateSingleEdgeGeometry(currentNode.edges[i].to, currentNode);
+                    if (currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.created)
+                    {
+                        CreateSymmetricalGeometry(currentNode.edges[i].to, currentNode);
+                    }
+                    else
+                    {
+                        CreateSingleEdgeGeometry(currentNode.edges[i].to, currentNode);
+                    }
 
                     currentNode.edges[i].to.created = true;
                     nodeQueue.Enqueue(currentNode.edges[i].to);
                 }
-            }
+            }        
         }
     }
 
@@ -341,6 +317,129 @@ public class CreateCreature : MonoBehaviour
         node.gameObjects.Add(segment);
         geometry.Add(segment);
     }
+
+    public void CreateSymmetricalGeometry(Node node, Node parent)
+    {
+        if (ReferenceEquals(parent, node) || parent.gameObjects.Count == 0)
+        {
+            return;
+        }
+
+        bool restart = false;
+
+        while (!restart)
+        {
+
+            //foreach (GameObject pg in parent.gameObjects)
+            //{
+                GameObject parentGeometry = parent.gameObjects[0];
+                Collider parentCollider = parentGeometry.GetComponent<Collider>();
+                Rigidbody parentRigidBody = parentGeometry.GetComponent<Rigidbody>();
+
+                Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
+                          Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
+
+                GameObject currentGeometry = new GameObject();
+
+                bool created = false;
+                int tries = 0;
+
+                while (!created)
+                {
+                    tries++;
+                    if (tries > 100)
+                    {
+                        Debug.Log("To many tries");
+                        break;
+                    }
+                    created = true;
+
+                    currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
+                    currentGeometry.transform.position = randomPoint;
+                    currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
+                    currentGeometry.transform.position = randomPoint;     
+                    currentGeometry.transform.localScale = node.scale;
+                    currentGeometry.AddComponent<Rigidbody>();
+                    Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
+                    rb.isKinematic = true;
+                    rb.useGravity = false;
+                    Collider collider = currentGeometry.GetComponent<Collider>();
+
+                    Vector3 directionToMove;
+                    float distance = 0;
+
+                    if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                        parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
+                    {
+                        currentGeometry.transform.position += (directionToMove * (distance));
+                    }
+
+                    foreach (GameObject g in geometry)
+                    {
+                        Collider gCollider = g.GetComponent<Collider>();
+
+                        if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                        gCollider, gCollider.transform.position, gCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry)
+                        {
+                            Destroy(currentGeometry);
+                            created = false;
+                            break;
+                        }
+                    }
+
+                    if (created)
+                    {
+                        node.posRelativeToParent = currentGeometry.transform.position;
+                        node.gameObjects.Add(currentGeometry);
+                        geometry.Add(currentGeometry);
+                    }
+                }
+
+            for (int i = 1; i < node.occurence; i++)
+            {
+                Quaternion mirrorRot = currentGeometry.transform.rotation;
+                if (i == 1)
+                {
+                    //Quaternion mirrorRot = new Quaternion(currentGeometry.transform.localRotation.x * -1.0f,
+                    //                        currentGeometry.transform.localRotation.y,
+                    //                        currentGeometry.transform.localRotation.z,
+                    //                        currentGeometry.transform.localRotation.w * - 1.0f);
+
+                    Vector3.Reflect(currentGeometry.transform.InverseTransformPoint, 
+                    node.gameObjects.Add(reflection);
+                    geometry.Add(reflection);
+                }
+
+                //else if (i == 2)
+                //{
+                //    //Quaternion mirrorRot = new Quaternion(currentGeometry.transform.localRotation.x *-1.0f,
+                //    //                       currentGeometry.transform.localRotation.y,
+                //    //                       currentGeometry.transform.localRotation.z,
+                //    //                       currentGeometry.transform.localRotation.w * -1.0f);
+
+                //    Vector3 mirrorPos = Vector3.Reflect(node.posRelativeToParent, parentGeometry.transform.up);
+                //    GameObject reflection = Instantiate(currentGeometry, mirrorPos, mirrorRot);
+                //    node.gameObjects.Add(reflection);
+                //    geometry.Add(reflection);
+                //}
+                //else if (i == 3)
+                //{
+                //    //Quaternion mirrorRot = new Quaternion(currentGeometry.transform.localRotation.x *-1.0f,
+                //    //                       currentGeometry.transform.localRotation.y,
+                //    //                       currentGeometry.transform.localRotation.z,
+                //    //                       currentGeometry.transform.localRotation.w * -1.0f);
+
+                //    Vector3 mirrorPos = Vector3.Reflect(node.posRelativeToParent, -parentGeometry.transform.forward);
+                //    GameObject reflection = Instantiate(currentGeometry, mirrorPos, mirrorRot);
+                //    node.gameObjects.Add(reflection);
+                //    geometry.Add(reflection);
+                //}
+            }
+
+            restart = true;
+        }
+    }
+
 
     //Detta är en metod för att skapa single edge geometry 
     public void CreateSingleEdgeGeometry(Node node, Node parent)
@@ -419,8 +518,10 @@ public class CreateCreature : MonoBehaviour
 public class Node
 {
     float randUniScale;
-
+    public Vector3 posRelativeToParent;
     public bool created = false;
+    public bool symmetry = false;
+    public int occurence = 1;
     public PrimitiveType primitiveType;
     public Vector3 scale;
     public Vector3 rotation;
