@@ -15,6 +15,10 @@ public class CreateCreature : MonoBehaviour
     Vector3 startPosition;
     Node root;
     bool generated = false;
+    
+
+    public enum TypeOfGeneration { random, symmetry, recursion };
+    public TypeOfGeneration typeOfGeneration;
 
     int primitiveRand;
     float minScale, maxScale;
@@ -34,29 +38,21 @@ public class CreateCreature : MonoBehaviour
         minScale = 0.2f;
         maxScale = 2f;
 
-        //Spawn Nodes
-        for (int i = 0; i < numOfNodes; i++)
+        switch (typeOfGeneration)
         {
-            primitiveRand = Random.Range(0, 3);
-            Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
-            Node node = new Node(primitiveRand, minScale, maxScale, rotation, i);
-            nodes.Add(node);
+            case TypeOfGeneration.random:
+                CreateRandomNodes();
+                break;
+            case TypeOfGeneration.symmetry:
+                CreateSymmetryTest();
+                break;
+            case TypeOfGeneration.recursion:
+                CreateRecursionTest();
+                break;
+            default:
+                break;
         }
 
-        //Add Children
-        for (int x = 0; x < nodes.Count; x++)
-        {
-            for (int y = 0; y < nodes[x].numOfChildren; y++)
-            {
-                nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)], Random.Range(0, 4), 0));
-            }
-        }
-
-
-        //Root Node def.
-        nodeStack.Push(nodes[0]);
-        nodeOrder.Add(nodes[0].id);
-        nodes[0].stacked = true;
 
         //Start DFS to find all recursive nodes
         while (nodeStack.Count > 0)
@@ -121,9 +117,8 @@ public class CreateCreature : MonoBehaviour
                 if (!edge.traversed && ReferenceEquals(currentNode, edge.to))
                 {
                     //If not already in stack i.e. edge is not a backwards edge
-                    //recurssionStack.Push(edge.to);
+                    recurssionStack.Push(edge.to);
                     nodeOrder.Add(edge.to.id);
-
                     edge.traversed = true;
                     break;
                 }
@@ -281,10 +276,11 @@ public class CreateCreature : MonoBehaviour
                     {
                         CreateSymmetricalGeometry(currentNode.edges[i].to, currentNode);
                     }
-                    else
+                    else if (!currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.created)
                     {
                         CreateSingleEdgeGeometry(currentNode.edges[i].to, currentNode);
                     }
+
 
                     currentNode.edges[i].to.created = true;
                     nodeQueue.Enqueue(currentNode.edges[i].to);
@@ -339,8 +335,9 @@ public class CreateCreature : MonoBehaviour
                 Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
                           Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
 
-                GameObject currentGeometry = new GameObject();
+                GameObject currentGeometry;
 
+                int currentGeoIndex = 0; 
                 bool created = false;
                 int tries = 0;
 
@@ -350,14 +347,14 @@ public class CreateCreature : MonoBehaviour
                     if (tries > 100)
                     {
                         Debug.Log("To many tries");
+                        restart = true;
                         break;
                     }
                     created = true;
 
                     currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
                     currentGeometry.transform.position = randomPoint;
-                    currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
-                    currentGeometry.transform.position = randomPoint;     
+                    currentGeometry.transform.rotation = Quaternion.Euler(node.rotation); 
                     currentGeometry.transform.localScale = node.scale;
                     currentGeometry.AddComponent<Rigidbody>();
                     Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
@@ -389,67 +386,73 @@ public class CreateCreature : MonoBehaviour
 
                     if (created)
                     {
+                        currentGeoIndex++;
                         node.posRelativeToParent = currentGeometry.transform.position;
                         node.gameObjects.Add(currentGeometry);
                         geometry.Add(currentGeometry);
                     }
                 }
 
-            for (int i = 1; i < node.occurence; i++)
+            if (restart)
             {
-                Quaternion mirrorRot = currentGeometry.transform.rotation;
-                if (i == 1)
-                {
-                    //Quaternion mirrorRot = new Quaternion(currentGeometry.transform.localRotation.x * -1.0f,
-                    //                        currentGeometry.transform.localRotation.y,
-                    //                        currentGeometry.transform.localRotation.z,
-                    //                        currentGeometry.transform.localRotation.w * - 1.0f);
+                continue;
+            }
+            currentGeometry = node.gameObjects[currentGeoIndex - 1];
 
-                    Vector3.Reflect(currentGeometry.transform.InverseTransformPoint, 
-                    node.gameObjects.Add(reflection);
-                    geometry.Add(reflection);
+            int random = Random.Range(0, 3);
+
+            for (int i = 0; i < node.occurence; i++)
+            {
+               Quaternion mirrorRot = currentGeometry.transform.rotation;
+               Vector3 axis = new Vector3();
+
+                if (i % 2 == 0)
+                {
+                    random = Random.Range(0, 3);
+
+                    switch (random)
+                    {
+                        case 0:
+                            axis = parentGeometry.transform.forward;
+                            break;
+                        case 1:
+                            axis = parentGeometry.transform.up;
+                            break;
+                        case 2:
+                            axis = parentGeometry.transform.right;
+                            break;
+                        default:
+                            axis = parentGeometry.transform.forward;
+                            break;
+                    }
                 }
 
-                //else if (i == 2)
-                //{
-                //    //Quaternion mirrorRot = new Quaternion(currentGeometry.transform.localRotation.x *-1.0f,
-                //    //                       currentGeometry.transform.localRotation.y,
-                //    //                       currentGeometry.transform.localRotation.z,
-                //    //                       currentGeometry.transform.localRotation.w * -1.0f);
+                Quaternion objectQuat = currentGeometry.transform.rotation;// from world rotation
+                Quaternion mirrorNormalQuat = new Quaternion(axis.x, axis.y, axis.z, 0);
 
-                //    Vector3 mirrorPos = Vector3.Reflect(node.posRelativeToParent, parentGeometry.transform.up);
-                //    GameObject reflection = Instantiate(currentGeometry, mirrorPos, mirrorRot);
-                //    node.gameObjects.Add(reflection);
-                //    geometry.Add(reflection);
-                //}
-                //else if (i == 3)
-                //{
-                //    //Quaternion mirrorRot = new Quaternion(currentGeometry.transform.localRotation.x *-1.0f,
-                //    //                       currentGeometry.transform.localRotation.y,
-                //    //                       currentGeometry.transform.localRotation.z,
-                //    //                       currentGeometry.transform.localRotation.w * -1.0f);
+                Quaternion reflectedQuat = mirrorNormalQuat * objectQuat;
+                mirrorRot = reflectedQuat;
 
-                //    Vector3 mirrorPos = Vector3.Reflect(node.posRelativeToParent, -parentGeometry.transform.forward);
-                //    GameObject reflection = Instantiate(currentGeometry, mirrorPos, mirrorRot);
-                //    node.gameObjects.Add(reflection);
-                //    geometry.Add(reflection);
-                //}
+                Vector3 mirrorPos = Vector3.Reflect(currentGeometry.transform.position - parentGeometry.transform.position, axis) + parentGeometry.transform.position;
+
+
+                GameObject refChild = Instantiate(currentGeometry, mirrorPos, mirrorRot);
+                node.gameObjects.Add(refChild);
+                geometry.Add(refChild);
             }
-
             restart = true;
         }
     }
 
-
     //Detta är en metod för att skapa single edge geometry 
     public void CreateSingleEdgeGeometry(Node node, Node parent)
     {
-        if (ReferenceEquals(parent, node)|| parent.gameObjects.Count == 0)
+        if (ReferenceEquals(parent, node) || parent.gameObjects.Count == 0)
         {
             return;
         }
 
-        foreach(GameObject pg in parent.gameObjects)
+        foreach (GameObject pg in parent.gameObjects)
         {
             GameObject currentGeometry;
 
@@ -513,6 +516,72 @@ public class CreateCreature : MonoBehaviour
             }
         }
     }
+
+    private void CreateRandomNodes()
+    {
+        //Spawn Nodes
+        for (int i = 0; i < numOfNodes; i++)
+        {
+            primitiveRand = Random.Range(0, 3);
+            Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
+            Node node = new Node(primitiveRand, minScale, maxScale, rotation, i);
+            nodes.Add(node);
+        }
+
+        //Add Children
+        for (int x = 0; x < nodes.Count; x++)
+        {
+            for (int y = 0; y < nodes[x].numOfChildren; y++)
+            {
+                nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)], Random.Range(0, 4), 0));
+            }
+        }
+
+        //Root Node def.
+        nodeStack.Push(nodes[0]);
+        nodeOrder.Add(nodes[0].id);
+        nodes[0].stacked = true;
+    }
+
+    //For testing symmetry
+    private void CreateSymmetryTest()
+    {
+        //Spawn Nodes
+        for (int i = 0; i < 3; i++)
+        {
+            primitiveRand = Random.Range(0, 3);
+            Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
+            Node node = new Node(primitiveRand, minScale, maxScale, rotation, i);
+            nodes.Add(node);
+        }
+
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
+        nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
+        nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
+
+        //Root Node def.
+        nodeStack.Push(nodes[0]);
+        nodeOrder.Add(nodes[0].id);
+        nodes[0].stacked = true;
+    }
+
+    private void CreateRecursionTest()
+    {
+
+        primitiveRand = Random.Range(0, 3);
+        Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
+        Node node = new Node(primitiveRand, minScale, maxScale, rotation, 0);
+        nodes.Add(node);
+
+            
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 4, 0));
+                    
+
+        nodeStack.Push(nodes[0]);
+        nodeOrder.Add(nodes[0].id);
+        nodes[0].stacked = true;
+    }
 }
 
 public class Node
@@ -521,7 +590,7 @@ public class Node
     public Vector3 posRelativeToParent;
     public bool created = false;
     public bool symmetry = false;
-    public int occurence = 1;
+    public int occurence = 0;
     public PrimitiveType primitiveType;
     public Vector3 scale;
     public Vector3 rotation;
@@ -556,6 +625,7 @@ public class Node
 
     public Node(int primitiveRand, float minScale, float maxScale, Vector3 rotation, int id)
     {
+        primitiveRand = 0;
         switch (primitiveRand)
         {
             case 0:
