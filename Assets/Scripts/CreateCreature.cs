@@ -14,10 +14,9 @@ public class CreateCreature : MonoBehaviour
     int numOfNodes;
     Vector3 startPosition;
     Node root;
-    bool generated = false;
-    
+    bool generated = false; 
 
-    public enum TypeOfGeneration { random, symmetry, recursion };
+    public enum TypeOfGeneration { random, symmetry, recursion, symplussin };
     public TypeOfGeneration typeOfGeneration;
 
     int primitiveRand;
@@ -48,6 +47,9 @@ public class CreateCreature : MonoBehaviour
                 break;
             case TypeOfGeneration.recursion:
                 CreateRecursionTest();
+                break;
+            case TypeOfGeneration.symplussin:
+                CreateSymmetryPlusSingleTest();
                 break;
             default:
                 break;
@@ -401,46 +403,102 @@ public class CreateCreature : MonoBehaviour
 
             int random = Random.Range(0, 3);
 
-            for (int i = 0; i < node.occurence; i++)
-            {
-               Quaternion mirrorRot = currentGeometry.transform.rotation;
-               Vector3 axis = new Vector3();
-
-                if (i % 2 == 0)
+                for (int i = 0; i < node.occurence; i++)
                 {
-                    random = Random.Range(0, 3);
+                    Quaternion mirrorRot = currentGeometry.transform.rotation;
+                    Vector3 axis = new Vector3();
 
-                    switch (random)
+                    if (i % 2 == 0)
                     {
-                        case 0:
-                            axis = parentGeometry.transform.forward;
-                            break;
-                        case 1:
-                            axis = parentGeometry.transform.up;
-                            break;
-                        case 2:
-                            axis = parentGeometry.transform.right;
-                            break;
-                        default:
-                            axis = parentGeometry.transform.forward;
-                            break;
+                        random = Random.Range(0, 3);
+
+                        switch (random)
+                        {
+                            case 0:
+                                axis = parentGeometry.transform.forward;
+                                break;
+                            case 1:
+                                axis = parentGeometry.transform.up;
+                                break;
+                            case 2:
+                                axis = parentGeometry.transform.right;
+                                break;
+                            default:
+                                axis = parentGeometry.transform.forward;
+                                break;
+                        }
                     }
-                }
+                    bool newAxis = true;
+                    int testAxis = 0;
 
-                Quaternion objectQuat = currentGeometry.transform.rotation;// from world rotation
-                Quaternion mirrorNormalQuat = new Quaternion(axis.x, axis.y, axis.z, 0);
+                    while (newAxis)
+                    {
+                        newAxis = false;
 
-                Quaternion reflectedQuat = mirrorNormalQuat * objectQuat;
-                mirrorRot = reflectedQuat;
+                        if (testAxis > 0)
+                        {
+                            random = Random.Range(0, 3);
 
-                Vector3 mirrorPos = Vector3.Reflect(currentGeometry.transform.position - parentGeometry.transform.position, axis) + parentGeometry.transform.position;
+                            switch (random)
+                            {
+                                case 0:
+                                    axis = parentGeometry.transform.forward;
+                                    break;
+                                case 1:
+                                    axis = parentGeometry.transform.up;
+                                    break;
+                                case 2:
+                                    axis = parentGeometry.transform.right;
+                                    break;
+                                default:
+                                    axis = parentGeometry.transform.forward;
+                                    break;
+                            }
+                        }
 
+                        Quaternion objectQuat = currentGeometry.transform.rotation;
+                        Quaternion mirrorNormalQuat = new Quaternion(axis.x, axis.y, axis.z, 0);
 
-                GameObject refChild = Instantiate(currentGeometry, mirrorPos, mirrorRot);
-                node.gameObjects.Add(refChild);
-                geometry.Add(refChild);
+                        Quaternion reflectedQuat = mirrorNormalQuat * objectQuat;
+                        mirrorRot = reflectedQuat;
+
+                        Vector3 mirrorPos = Vector3.Reflect(currentGeometry.transform.position - parentGeometry.transform.position, axis) + parentGeometry.transform.position;
+
+                        GameObject refChild = Instantiate(currentGeometry, mirrorPos, mirrorRot);
+                        Collider collider = refChild.GetComponent<Collider>();
+                        Vector3 directionToMove;
+                        float distance = 0;
+
+                        foreach (GameObject g in geometry)
+                        {
+                            Collider gCollider = g.GetComponent<Collider>();
+
+                            if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                            gCollider, gCollider.transform.position, gCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry)
+                            {
+                                Destroy(refChild);
+                                newAxis = true;
+                                testAxis++;
+                                Debug.Log("Test");
+                                break;
+                            }
+                        }
+
+                        if (!newAxis)
+                        {
+                            node.gameObjects.Add(refChild);
+                            geometry.Add(refChild);
+                            restart = true;
+                        }
+
+                        if (testAxis > 10)
+                        {
+                            restart = false;
+                            break;
+                        }
+                    }
+                //}
             }
-            restart = true;
         }
     }
 
@@ -451,6 +509,8 @@ public class CreateCreature : MonoBehaviour
         {
             return;
         }
+        bool firstGeo = true;
+        Vector3 pointOnParent = new Vector3();
 
         foreach (GameObject pg in parent.gameObjects)
         {
@@ -473,11 +533,18 @@ public class CreateCreature : MonoBehaviour
                 }
                 created = true;
                 //Random punkt på förälder
-                Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
-                    Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
+                
+                if (firstGeo)
+                {
+                    Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
+                         Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
+
+                    pointOnParent = randomPoint - pg.transform.position;
+                }
+
 
                 currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
-                currentGeometry.transform.position = randomPoint;
+                currentGeometry.transform.position = pointOnParent + pg.transform.position;
                 currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
                 currentGeometry.transform.localScale = node.scale;
                 currentGeometry.AddComponent<Rigidbody>();
@@ -512,6 +579,7 @@ public class CreateCreature : MonoBehaviour
                 {
                     node.gameObjects.Add(currentGeometry);
                     geometry.Add(currentGeometry);
+                    firstGeo = false;
                 }
             }
         }
@@ -565,6 +633,26 @@ public class CreateCreature : MonoBehaviour
         nodeOrder.Add(nodes[0].id);
         nodes[0].stacked = true;
     }
+    private void CreateSymmetryPlusSingleTest()
+    {
+        //Spawn Nodes
+        for (int i = 0; i < 3; i++)
+        {
+            primitiveRand = Random.Range(0, 3);
+            Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
+            Node node = new Node(primitiveRand, minScale, maxScale, rotation, i);
+            nodes.Add(node);
+        }
+
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
+        nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
+
+        //Root Node def.
+        nodeStack.Push(nodes[0]);
+        nodeOrder.Add(nodes[0].id);
+        nodes[0].stacked = true;
+    }
 
     private void CreateRecursionTest()
     {
@@ -573,10 +661,8 @@ public class CreateCreature : MonoBehaviour
         Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
         Node node = new Node(primitiveRand, minScale, maxScale, rotation, 0);
         nodes.Add(node);
-
             
         nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 4, 0));
-                    
 
         nodeStack.Push(nodes[0]);
         nodeOrder.Add(nodes[0].id);
