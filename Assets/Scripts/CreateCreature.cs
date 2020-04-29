@@ -147,10 +147,6 @@ public class CreateCreature : MonoBehaviour
                 {
                     currentNode.edges[i].numOfTravels++;
                     Node newNode = new Node(currentNode);
-                    if (ReferenceEquals(newNode, currentNode))
-                    {
-
-                    }
 
                     //Om vi har nått denna plats för sista gången se till att ta bort den nya nodens 
                     //koppling till själv nu då det annars inte kommer hända
@@ -208,11 +204,12 @@ public class CreateCreature : MonoBehaviour
             Node currentNode = nodeQueue.Peek();
             bool startOver = false;
 
-            if (currentNode.edges.Count == 0)
+            if (currentNode.edges.Count == 0 || currentNode.gameObjects.Count == 0)
             {
                 nodeQueue.Dequeue();
                 continue;
             }
+
 
             foreach (Edge edge in currentNode.edges)
             {
@@ -308,6 +305,7 @@ public class CreateCreature : MonoBehaviour
         segment.transform.localScale = node.scale;
         segment.AddComponent<Rigidbody>();
         Rigidbody rb = segment.GetComponent<Rigidbody>();
+        segment.AddComponent<GeoInfo>();
 
         rb.isKinematic = true;
         rb.useGravity = false;
@@ -325,90 +323,120 @@ public class CreateCreature : MonoBehaviour
 
         bool restart = false;
 
+
         while (!restart)
         {
+            List<GameObject> copyGeoList = new List<GameObject>();
 
-            //foreach (GameObject pg in parent.gameObjects)
-            //{
-                GameObject parentGeometry = parent.gameObjects[0];
-                Collider parentCollider = parentGeometry.GetComponent<Collider>();
-                Rigidbody parentRigidBody = parentGeometry.GetComponent<Rigidbody>();
+            GameObject parentGeometry = parent.gameObjects[0];
+            Collider parentCollider = parentGeometry.GetComponent<Collider>();
+            Rigidbody parentRigidBody = parentGeometry.GetComponent<Rigidbody>();
+
+            GameObject currentGeometry;
+
+            int currentGeoIndex = 0;
+            bool created = false;
+            int tries = 0;
+
+            while (!created)
+            {
+                tries++;
+                if (tries > 100)
+                {
+                    Debug.Log("To many tries");
+                    restart = true;
+                    break;
+                }
+                created = true;
 
                 Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
-                          Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
+                      Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
 
-                GameObject currentGeometry;
+                currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
+                currentGeometry.transform.position = randomPoint;
+                currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
+                currentGeometry.transform.localScale = node.scale;
+                currentGeometry.AddComponent<Rigidbody>();
+                currentGeometry.AddComponent<GeoInfo>();
+                Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
+                rb.isKinematic = true;
+                rb.useGravity = false;
+                Collider collider = currentGeometry.GetComponent<Collider>();
 
-                int currentGeoIndex = 0; 
-                bool created = false;
-                int tries = 0;
+                Vector3 directionToMove;
+                float distance = 0;
 
-                while (!created)
+                if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                    parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
                 {
-                    tries++;
-                    if (tries > 100)
-                    {
-                        Debug.Log("To many tries");
-                        restart = true;
-                        break;
-                    }
-                    created = true;
+                    currentGeometry.transform.position += (directionToMove * (distance));
+                }
 
-                    currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
-                    currentGeometry.transform.position = randomPoint;
-                    currentGeometry.transform.rotation = Quaternion.Euler(node.rotation); 
-                    currentGeometry.transform.localScale = node.scale;
-                    currentGeometry.AddComponent<Rigidbody>();
-                    Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
-                    rb.isKinematic = true;
-                    rb.useGravity = false;
-                    Collider collider = currentGeometry.GetComponent<Collider>();
-
-                    Vector3 directionToMove;
-                    float distance = 0;
+                foreach (GameObject g in geometry)
+                {
+                    Collider gCollider = g.GetComponent<Collider>();
 
                     if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
-                        parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
+                    gCollider, gCollider.transform.position, gCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry)
                     {
-                        currentGeometry.transform.position += (directionToMove * (distance));
-                    }
-
-                    foreach (GameObject g in geometry)
-                    {
-                        Collider gCollider = g.GetComponent<Collider>();
-
-                        if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
-                        gCollider, gCollider.transform.position, gCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry)
-                        {
-                            Destroy(currentGeometry);
-                            created = false;
-                            break;
-                        }
-                    }
-
-                    if (created)
-                    {
-                        currentGeoIndex++;
-                        node.posRelativeToParent = currentGeometry.transform.position;
-                        node.gameObjects.Add(currentGeometry);
-                        geometry.Add(currentGeometry);
+                        Destroy(currentGeometry);
+                        created = false;
+                        break;
                     }
                 }
+
+                if (created)
+                {
+                    currentGeoIndex++;
+                    node.posRelativeToParent = currentGeometry.transform.position;
+                    node.gameObjects.Add(currentGeometry);
+                    currentGeometry.name = node.id.ToString();
+                    geometry.Add(currentGeometry);
+                }
+            }
 
             if (restart)
             {
                 continue;
             }
+
             currentGeometry = node.gameObjects[currentGeoIndex - 1];
 
             int random = Random.Range(0, 3);
 
-                for (int i = 0; i < node.occurence; i++)
-                {
-                    Quaternion mirrorRot = currentGeometry.transform.rotation;
-                    Vector3 axis = new Vector3();
+            for (int i = 1; i < node.occurence; i++)
+            {
+                Quaternion mirrorRot = currentGeometry.transform.rotation;
+                Vector3 axis = new Vector3();
 
-                    if (i % 2 == 0)
+                if (i % 2 == 0)
+                {
+                    random = Random.Range(0, 3);
+
+                    switch (random)
+                    {
+                        case 0:
+                            axis = parentGeometry.transform.forward;
+                            break;
+                        case 1:
+                            axis = parentGeometry.transform.up;
+                            break;
+                        case 2:
+                            axis = parentGeometry.transform.right;
+                            break;
+                        default:
+                            axis = parentGeometry.transform.forward;
+                            break;
+                    }
+                }
+                bool newAxis = true;
+                int testAxis = 0;
+
+                while (newAxis)
+                {
+                    newAxis = false;
+
+                    if (testAxis > 0)
                     {
                         random = Random.Range(0, 3);
 
@@ -428,76 +456,76 @@ public class CreateCreature : MonoBehaviour
                                 break;
                         }
                     }
-                    bool newAxis = true;
-                    int testAxis = 0;
 
-                    while (newAxis)
+                    Quaternion objectQuat = currentGeometry.transform.rotation;
+                    Quaternion mirrorNormalQuat = new Quaternion(axis.x, axis.y, axis.z, 0);
+
+                    Quaternion reflectedQuat = mirrorNormalQuat * objectQuat;
+                    mirrorRot = reflectedQuat;
+
+                    Vector3 mirrorPos = Vector3.Reflect(currentGeometry.transform.position - parentGeometry.transform.position, axis) + parentGeometry.transform.position;
+
+                    GameObject refChild = Instantiate(currentGeometry, mirrorPos, mirrorRot);
+                    Collider collider = refChild.GetComponent<Collider>();
+                    refChild.AddComponent<GeoInfo>();
+                    GeoInfo refGeoInfo = refChild.GetComponent<GeoInfo>();
+
+                    Vector3 directionToMove;
+                    float distance = 0;
+
+                    foreach (GameObject g in geometry)
                     {
-                        newAxis = false;
+                        Collider gCollider = g.GetComponent<Collider>();
 
-                        if (testAxis > 0)
+                        if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                        gCollider, gCollider.transform.position, gCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry)
                         {
-                            random = Random.Range(0, 3);
-
-                            switch (random)
-                            {
-                                case 0:
-                                    axis = parentGeometry.transform.forward;
-                                    break;
-                                case 1:
-                                    axis = parentGeometry.transform.up;
-                                    break;
-                                case 2:
-                                    axis = parentGeometry.transform.right;
-                                    break;
-                                default:
-                                    axis = parentGeometry.transform.forward;
-                                    break;
-                            }
-                        }
-
-                        Quaternion objectQuat = currentGeometry.transform.rotation;
-                        Quaternion mirrorNormalQuat = new Quaternion(axis.x, axis.y, axis.z, 0);
-
-                        Quaternion reflectedQuat = mirrorNormalQuat * objectQuat;
-                        mirrorRot = reflectedQuat;
-
-                        Vector3 mirrorPos = Vector3.Reflect(currentGeometry.transform.position - parentGeometry.transform.position, axis) + parentGeometry.transform.position;
-
-                        GameObject refChild = Instantiate(currentGeometry, mirrorPos, mirrorRot);
-                        Collider collider = refChild.GetComponent<Collider>();
-                        Vector3 directionToMove;
-                        float distance = 0;
-
-                        foreach (GameObject g in geometry)
-                        {
-                            Collider gCollider = g.GetComponent<Collider>();
-
-                            if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
-                            gCollider, gCollider.transform.position, gCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry)
-                            {
-                                Destroy(refChild);
-                                newAxis = true;
-                                testAxis++;
-                                Debug.Log("Test");
-                                break;
-                            }
-                        }
-
-                        if (!newAxis)
-                        {
-                            node.gameObjects.Add(refChild);
-                            geometry.Add(refChild);
-                            restart = true;
-                        }
-
-                        if (testAxis > 10)
-                        {
-                            restart = false;
+                            Destroy(refChild);
+                            newAxis = true;
+                            testAxis++;
+                            Debug.Log("Test");
                             break;
                         }
                     }
-                //}
+
+                    if (!newAxis)
+                    {
+                        node.gameObjects.Add(refChild);
+                        geometry.Add(refChild);
+                        refChild.name = node.id.ToString();
+                        refGeoInfo.RefAxis = axis;
+                        refGeoInfo.PosRelParent = parentGeometry.transform.position;
+                        restart = true;
+                    }
+
+                    if (testAxis > 10 && newAxis)
+                    {
+                        restart = false;
+                        Debug.Log("restarting");
+                        foreach (GameObject geo in node.gameObjects)
+                        {
+                            Destroy(geo);
+                        }
+                        node.gameObjects.Clear();
+                        break;
+                    }
+                }
+            }
+
+            foreach (GameObject copy in node.gameObjects)
+            {
+                copyGeoList.Add(copy);
+            }
+
+            //spegla all befintlig geometri för varje symetri
+            for (int i = 0; i < copyGeoList.Count; i++)
+            {
+                if (!CreateRefGeometry(copyGeoList[i], node, parent))
+                {
+                    restart = false;
+
+                    break;
+                }
             }
         }
     }
@@ -533,21 +561,32 @@ public class CreateCreature : MonoBehaviour
                 }
                 created = true;
                 //Random punkt på förälder
-                
+                currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
+
                 if (firstGeo)
                 {
                     Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
                          Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
 
-                    pointOnParent = randomPoint - pg.transform.position;
+                    currentGeometry.transform.position = randomPoint;
+                    currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
                 }
 
+                if (!firstGeo)
+                {
+                    Vector3 axis = pg.GetComponent<GeoInfo>().RefAxis;
+                    Quaternion objectQuat = Quaternion.Euler(node.rotation);
+                    Quaternion mirrorNormalQuat = new Quaternion(axis.x, axis.y, axis.z, 0);
 
-                currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
-                currentGeometry.transform.position = pointOnParent + pg.transform.position;
-                currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
+                    Quaternion reflectedQuat = mirrorNormalQuat * objectQuat;
+                    currentGeometry.transform.rotation = reflectedQuat;
+
+                    currentGeometry.transform.position = Vector3.Reflect(pointOnParent- parentGeometry.GetComponent<GeoInfo>().PosRelParent, axis) + parentGeometry.GetComponent<GeoInfo>().PosRelParent;
+                }
+
                 currentGeometry.transform.localScale = node.scale;
                 currentGeometry.AddComponent<Rigidbody>();
+                currentGeometry.AddComponent<GeoInfo>();
                 Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
                 rb.isKinematic = true;
                 rb.useGravity = false;
@@ -556,11 +595,99 @@ public class CreateCreature : MonoBehaviour
                 Vector3 directionToMove;
                 float distance = 0;
 
+
                 if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
-                    parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
+                    parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance) && firstGeo)
                 {
                     currentGeometry.transform.position += (directionToMove * (distance));
                 }
+
+                node.gameObjects.Add(currentGeometry);
+
+                foreach (GameObject g in geometry)
+                {
+                    Collider gCollider = g.GetComponent<Collider>();
+
+                    if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                    gCollider, gCollider.transform.position, gCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry )
+                    {
+                        foreach(GameObject geo in node.gameObjects)
+                        {
+                            Destroy(geo);
+
+                        }
+                        node.gameObjects.Clear();
+                        node.scale *= 0.9f;
+                        created = false;
+                        firstGeo = true;
+                        break;
+                    }
+                }
+
+                if (created)
+                {
+                    geometry.Add(currentGeometry);
+                    currentGeometry.name = node.id.ToString();
+                    if (firstGeo)
+                    {
+                        pointOnParent = currentGeometry.transform.position;
+                    }
+
+                    firstGeo = false;
+                }
+            }
+
+        }
+    }
+
+    public bool CreateRefGeometry(GameObject currentGeo,Node node, Node parent)
+    {
+        Vector3 pointOnParent = currentGeo.transform.position;
+
+        for (int i = 1; i < parent.gameObjects.Count; i++)
+        {
+            GameObject currentGeometry;
+
+            //Förälder Geo information
+            GameObject parentGeometry = parent.gameObjects[i];
+            Collider parentCollider = parentGeometry.GetComponent<Collider>();
+            Rigidbody parentRigidBody = parentGeometry.GetComponent<Rigidbody>();
+
+            bool created = false;
+            int tries = 0;
+            while (!created)
+            {
+                tries++;
+                if (tries > 100)
+                {
+                    Debug.Log("To many tries");
+                    break;
+                }
+                created = true;
+                //Random punkt på förälder
+                currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
+
+                Vector3 axis = parentGeometry.GetComponent<GeoInfo>().RefAxis;
+                Quaternion objectQuat = currentGeo.transform.rotation;
+                Quaternion mirrorNormalQuat = new Quaternion(axis.x, axis.y, axis.z, 0);
+
+                Quaternion reflectedQuat = mirrorNormalQuat * objectQuat;
+                currentGeometry.transform.rotation = reflectedQuat;
+
+                currentGeometry.transform.position = Vector3.Reflect(pointOnParent - parentGeometry.GetComponent<GeoInfo>().PosRelParent, axis) + parentGeometry.GetComponent<GeoInfo>().PosRelParent;
+
+                currentGeometry.transform.localScale = currentGeo.transform.localScale;
+                currentGeometry.AddComponent<Rigidbody>();
+                currentGeometry.AddComponent<GeoInfo>();
+                Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
+                rb.isKinematic = true;
+                rb.useGravity = false;
+                Collider collider = currentGeometry.GetComponent<Collider>();
+
+                Vector3 directionToMove;
+                float distance = 0;
+
+                node.gameObjects.Add(currentGeometry);
 
                 foreach (GameObject g in geometry)
                 {
@@ -569,23 +696,29 @@ public class CreateCreature : MonoBehaviour
                     if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
                     gCollider, gCollider.transform.position, gCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry)
                     {
-                        Destroy(currentGeometry);
+                        foreach (GameObject geo in node.gameObjects)
+                        {
+                            Destroy(geo);
+                        }
+                        node.gameObjects.Clear();
+                        node.scale *= 0.9f;
                         created = false;
-                        break;
+                        return false;
                     }
                 }
 
                 if (created)
                 {
-                    node.gameObjects.Add(currentGeometry);
                     geometry.Add(currentGeometry);
-                    firstGeo = false;
+                    currentGeometry.name = node.id.ToString();
                 }
             }
         }
+        return true;
     }
 
-    private void CreateRandomNodes()
+#region CreationType
+private void CreateRandomNodes()
     {
         //Spawn Nodes
         for (int i = 0; i < numOfNodes; i++)
@@ -633,6 +766,7 @@ public class CreateCreature : MonoBehaviour
         nodeOrder.Add(nodes[0].id);
         nodes[0].stacked = true;
     }
+
     private void CreateSymmetryPlusSingleTest()
     {
         //Spawn Nodes
@@ -668,6 +802,7 @@ public class CreateCreature : MonoBehaviour
         nodeOrder.Add(nodes[0].id);
         nodes[0].stacked = true;
     }
+    #endregion
 }
 
 public class Node
@@ -679,7 +814,7 @@ public class Node
     public int occurence = 0;
     public PrimitiveType primitiveType;
     public Vector3 scale;
-    public Vector3 rotation;
+    public Vector3 rotation; 
     public List<GameObject> gameObjects = new List<GameObject>();
     public int numOfChildren = Random.Range(0, 5);
     public bool stacked;
@@ -692,7 +827,7 @@ public class Node
         id = other.id;
 
         //tror shallow copying uppstår här
-        scale = other.scale;
+        scale = other.scale *0.75f;
 
         //och här
         rotation = other.rotation;
