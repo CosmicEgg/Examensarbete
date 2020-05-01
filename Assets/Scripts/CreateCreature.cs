@@ -429,6 +429,7 @@ public class CreateCreature : MonoBehaviour
                             break;
                     }
                 }
+
                 bool newAxis = true;
                 int testAxis = 0;
 
@@ -523,7 +524,6 @@ public class CreateCreature : MonoBehaviour
                 if (!CreateRefGeometry(copyGeoList[i], node, parent))
                 {
                     restart = false;
-
                     break;
                 }
             }
@@ -614,8 +614,8 @@ public class CreateCreature : MonoBehaviour
                         foreach(GameObject geo in node.gameObjects)
                         {
                             Destroy(geo);
-
                         }
+
                         node.gameObjects.Clear();
                         node.scale *= 0.9f;
                         created = false;
@@ -636,12 +636,15 @@ public class CreateCreature : MonoBehaviour
                     firstGeo = false;
                 }
             }
-
         }
     }
 
-    public bool CreateRefGeometry(GameObject currentGeo,Node node, Node parent)
+    public bool CreateRefGeometry(GameObject currentGeo, Node node, Node parent)
     {
+        if (ReferenceEquals(parent, node) || parent.gameObjects.Count == 0)
+        {
+            return false;
+        }
         Vector3 pointOnParent = currentGeo.transform.position;
 
         for (int i = 1; i < parent.gameObjects.Count; i++)
@@ -666,6 +669,7 @@ public class CreateCreature : MonoBehaviour
                 created = true;
                 //Random punkt på förälder
                 currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
+                currentGeometry.name = node.id.ToString();
 
                 Vector3 axis = parentGeometry.GetComponent<GeoInfo>().RefAxis;
                 Quaternion objectQuat = currentGeo.transform.rotation;
@@ -718,7 +722,8 @@ public class CreateCreature : MonoBehaviour
     }
 
 #region CreationType
-private void CreateRandomNodes()
+
+    private void CreateRandomNodes()
     {
         //Spawn Nodes
         for (int i = 0; i < numOfNodes; i++)
@@ -748,7 +753,7 @@ private void CreateRandomNodes()
     private void CreateSymmetryTest()
     {
         //Spawn Nodes
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 4; i++)
         {
             primitiveRand = Random.Range(0, 3);
             Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
@@ -756,10 +761,13 @@ private void CreateRandomNodes()
             nodes.Add(node);
         }
 
+        //symmetry + symmetry + single
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
         nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
+        nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
+
 
         //Root Node def.
         nodeStack.Push(nodes[0]);
@@ -770,7 +778,7 @@ private void CreateRandomNodes()
     private void CreateSymmetryPlusSingleTest()
     {
         //Spawn Nodes
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 4; i++)
         {
             primitiveRand = Random.Range(0, 3);
             Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
@@ -778,9 +786,12 @@ private void CreateRandomNodes()
             nodes.Add(node);
         }
 
+        //symmetry + single + symmetry 
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
+        //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
+        //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
 
         //Root Node def.
         nodeStack.Push(nodes[0]);
