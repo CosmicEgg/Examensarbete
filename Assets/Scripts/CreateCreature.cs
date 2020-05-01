@@ -26,7 +26,7 @@ public class CreateCreature : MonoBehaviour
     void Start()
     {
         geometry = new List<GameObject>();
-        numOfNodes = Random.Range(1, 11);
+        numOfNodes = Random.Range(1, 5);
         startPosition = Vector3.zero;
         nodes = new List<Node>();
         recurssionStack = new Stack<Node>();
@@ -146,14 +146,15 @@ public class CreateCreature : MonoBehaviour
                     && currentNode.edges[i].numOfTravels < currentNode.edges[i].recursiveLimit)
                 {
                     currentNode.edges[i].numOfTravels++;
+
                     Node newNode = new Node(currentNode);
 
                     //Om vi har nått denna plats för sista gången se till att ta bort den nya nodens 
                     //koppling till själv nu då det annars inte kommer hända
-                    if (currentNode.edges[i].numOfTravels >= currentNode.edges[i].recursiveLimit)
-                    {
-                        newNode.edges.RemoveAt(i);
-                    }
+                    //if (currentNode.edges[i].numOfTravels >= currentNode.edges[i].recursiveLimit)
+                    //{
+                    //    newNode.edges.RemoveAt(i);
+                    //}
 
                     nodes.Add(newNode);
                     currentNode.edges.Add(new Edge(currentNode, newNode, currentNode.edges[i].recursiveLimit, currentNode.edges[i].numOfTravels));
@@ -242,7 +243,10 @@ public class CreateCreature : MonoBehaviour
             List<Node> tempNodes = new List<Node>();
             foreach (Edge e in currentNode.edges)
             {
-                tempNodes.Add(e.to);
+                if (!ReferenceEquals(currentNode, e.to))
+                    tempNodes.Add(e.to);
+                else
+                    Debug.Log("hi");
             }
 
             var myhash = new HashSet<Node>();
@@ -848,8 +852,8 @@ public class Node
         {
             if (!ReferenceEquals(e.to, e.from))
                 edges.Add(new Edge(this, new Node(e.to), e.recursiveLimit, e.numOfTravels));
-            if (ReferenceEquals(e.to, e.from))
-                edges.Add(new Edge(this, new Node(this), e.recursiveLimit, e.numOfTravels));
+            if (ReferenceEquals(e.to, e.from) && e.recursiveLimit > e.numOfTravels)
+                edges.Add(new Edge(this, this, e.recursiveLimit, e.numOfTravels));
         }
     }
 
