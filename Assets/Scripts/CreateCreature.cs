@@ -199,7 +199,16 @@ public class CreateCreature : MonoBehaviour
         while (recurssionQueue.Count > 0)
         {
             Node currentNode = recurssionQueue.Peek();
-            List<Node> newAddedNodes = new List<Node>();
+            //List<Node> newAddedNodes = new List<Node>();
+            List<Edge> edgesToAdd = new List<Edge>();
+            int selfEdges = 0;
+            foreach (Edge e in currentNode.edges)
+            {
+                if (ReferenceEquals(e.to, e.from))
+                {
+                    selfEdges++;
+                }
+            }
 
             for (int i = 0; i < currentNode.edges.Count; i++)
             {
@@ -207,22 +216,33 @@ public class CreateCreature : MonoBehaviour
                 {
                     CopyNodeTree(currentNode, out Node temp);
 
-                    foreach (Edge e in currentNode.edges)
+                    if (currentNode.edges[i].numOfTravels < currentNode.edges[i].recursiveLimit)
                     {
-                        if (ReferenceEquals(e.to, e.from) && e.numOfTravels <= e.recursiveLimit)
+                        for (int j = 0; j < selfEdges; j++)
                         {
-                            temp.edges.Add(new Edge(temp, temp, e.recursiveLimit, e.numOfTravels + 1));
+                            temp.edges.Add(new Edge(temp, temp, currentNode.edges[i].recursiveLimit, currentNode.edges[i].numOfTravels + 1));
                         }
                     }
+
+
+                    //foreach (Edge e in currentNode.edges)
+                    //{
+                    //    if (ReferenceEquals(e.to, e.from) && e.numOfTravels <= e.recursiveLimit)
+                    //    {
+                    //        temp.edges.Add(new Edge(temp, temp, e.recursiveLimit, e.numOfTravels + 1));
+                    //    }
+                    //}
 
                     recurssionQueue.Enqueue(temp);
 
                     currentNode.edges.RemoveAt(i);
-                    currentNode.edges.Add(new Edge(currentNode, temp, 4, 4));
-                    i--;
+                    edgesToAdd.Add(new Edge(currentNode, temp, 4, 4));
+                    //currentNode.edges.Add(new Edge(currentNode, temp, 4, 4));
+                    i = -1;
                 }
             }
 
+            currentNode.edges.AddRange(edgesToAdd);
             recurssionQueue.Dequeue();
         }
         root = nodes[0];
@@ -782,6 +802,7 @@ public class CreateCreature : MonoBehaviour
         Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id);
         newOriNode.created = true;
         copyNodeEdge.Add(oriNode, newOriNode);
+        List<Node> toReset = new List<Node>();
 
         while (copyStack.Count > 0)
         {
@@ -797,6 +818,7 @@ public class CreateCreature : MonoBehaviour
                     copyStack.Push(e.to);
                     copyNodeEdge.Add(e.to, newNode);
                     e.to.created = true;
+                    toReset.Add(e.to);
                     nextNode = true;
                     break;
                 }
@@ -806,6 +828,11 @@ public class CreateCreature : MonoBehaviour
                 continue;
 
             copyStack.Pop();
+        }
+
+        foreach (Node n in toReset)
+        {
+            n.created = false;
         }
 
         foreach (KeyValuePair<Node, Node> pair in copyNodeEdge)
@@ -867,8 +894,8 @@ public class CreateCreature : MonoBehaviour
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
-        nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
-        nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
+        //nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
+        //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
 
 
         //Root Node def.
@@ -912,11 +939,20 @@ public class CreateCreature : MonoBehaviour
         Vector3 sinRotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
         Node sinNode = new Node(primitiveRand, minScale, maxScale, sinRotation, 1);
 
+        primitiveRand = Random.Range(0, 3);
+        Vector3 rotation2 = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
+        Node node2 = new Node(primitiveRand, minScale, maxScale, rotation2, 2);
+
         nodes.Add(node);
         nodes.Add(sinNode);
+        //nodes.Add(node2);
 
         nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
-        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[1], 3, 0));
+        //nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[1], 3, 0));
+        //nodes[1].edges.Add(new Edge(nodes[1], nodes[2], 3, 0));
+
 
         nodeStack.Push(nodes[0]);
         nodeOrder.Add(nodes[0].id);
