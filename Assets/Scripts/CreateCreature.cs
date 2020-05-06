@@ -176,7 +176,8 @@ public class CreateCreature : MonoBehaviour
                     {
                         CopyNodeTree(currentNode, out Node temp);
 
-                        if (currentNode.edges[i].numOfTravels < currentNode.edges[i].recursiveLimit)
+                        //-1 för att vi skapat en kopia redan och borde egenltigen redan höjt numOfTravels
+                        if (currentNode.edges[i].numOfTravels < currentNode.edges[i].recursiveLimit - 1)
                         {
                             for (int j = 0; j < selfEdges; j++)
                             {
@@ -292,18 +293,18 @@ public class CreateCreature : MonoBehaviour
                     {
                         CreateSymmetricalGeometry(currentNode.edges[i].to, currentNode);
                     }
-                    else if (!currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo/* && currentNode.edges[i].recursiveNumber == -1*/)
+                    else if (!currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo && currentNode.referenceNode == null)
                     {
                         CreateSingleEdgeGeometry(currentNode.edges[i].to, currentNode);
                         numbofgeo++;
                         Debug.Log(numbofgeo);
                     }
-                    //else if(!currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo && currentNode.edges[i].recursiveNumber > -1)
-                    //{
-                    //    CreateRecurssionGeometry();
-                    //}
+                    else if (!currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo && currentNode.referenceNode != null)
+                    {
+                       // CreateRecurssionGeometry();
+                    }
 
-                    if(!currentNode.edges[i].to.createdGeo)
+                    if (!currentNode.edges[i].to.createdGeo)
                     {
                         nodeQueue.Enqueue(currentNode.edges[i].to);
                         currentNode.edges[i].to.createdGeo = true;
@@ -413,7 +414,6 @@ public class CreateCreature : MonoBehaviour
                 if (created)
                 {
                     currentGeoIndex++;
-                    node.posRelativeToParent = currentGeometry.transform.position;
                     node.gameObjects.Add(currentGeometry);
                     currentGeometry.name = node.id.ToString();
                     geometry.Add(currentGeometry);
@@ -596,13 +596,17 @@ public class CreateCreature : MonoBehaviour
                     //Random punkt på förälder
                     currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
 
-                    if (firstGeo)
+                    if (firstGeo && node.referenceNode == null)
                     {
                         Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
                              Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
 
                         currentGeometry.transform.position = randomPoint;
                         currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
+                    }
+                    else if (firstGeo && node.referenceNode != null)
+                    {
+
                     }
 
                     if (!firstGeo)
@@ -663,6 +667,7 @@ public class CreateCreature : MonoBehaviour
 
                     if (created)
                     {
+                        currentGeometry.GetComponent<GeoInfo>();
                         geometry.Add(currentGeometry);
                         currentGeometry.name = node.id.ToString();
                         if (firstGeo)
@@ -773,7 +778,7 @@ public class CreateCreature : MonoBehaviour
         copyStack.Push(oriNode);
         Dictionary<Node, Node> copyNodeEdge = new Dictionary<Node, Node>();
         bool nextNode = false;
-        Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id);
+        Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id, oriNode);
         //newOriNode.created = true;
         //toReset.Add(newOriNode);
         copyNodeEdge.Add(oriNode, newOriNode);
@@ -788,7 +793,7 @@ public class CreateCreature : MonoBehaviour
             {
                 if (!e.to.created && !ReferenceEquals(e.to, e.from))
                 {
-                    Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id);
+                    Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to);
                     copyStack.Push(e.to);
                     copyNodeEdge.Add(e.to, newNode);
                     e.to.created = true;
@@ -938,9 +943,9 @@ public class CreateCreature : MonoBehaviour
         //nodes.Add(node4);
         //nodes.Add(node5);
 
-        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 2, 0));
-        nodes[0].edges.Add(new Edge(nodes[0], nodes[1], 3, 0));
-        nodes[1].edges.Add(new Edge(nodes[1], nodes[1], 3, 0));
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 4, 0));
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 4, 0));
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[1], 4, 0));
         //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], 4, 0));
         //nodes[3].edges.Add(new Edge(nodes[3], nodes[4], 3, 0));
         //nodes[4].edges.Add(new Edge(nodes[4], nodes[5], 3, 0));
@@ -955,7 +960,7 @@ public class CreateCreature : MonoBehaviour
 public class Node
 {
     float randUniScale;
-    public Vector3 posRelativeToParent;
+    public Node referenceNode = null;
     public bool createdGeo = false; 
     public bool created = false;
     public bool symmetry = false;
@@ -970,12 +975,13 @@ public class Node
 
     public List<Edge> edges = new List<Edge>();
 
-    public Node(PrimitiveType primitiveType, Vector3 scale, Vector3 rotation, int id)
+    public Node(PrimitiveType primitiveType, Vector3 scale, Vector3 rotation, int id, Node referenceNode)
     {
         this.primitiveType = primitiveType;
         this.scale = scale;
         this.rotation = rotation;
         this.id = id;
+        this.referenceNode = referenceNode;
     }
 
     public Node(){}
