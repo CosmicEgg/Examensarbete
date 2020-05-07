@@ -34,7 +34,7 @@ public class CreateCreature : MonoBehaviour
         nodeOrder = new List<int>();
         nodeStack = new Stack<Node>();
         
-        minScale = 0.2f;
+        minScale = 1f;
         maxScale = 2f;
 
         switch (typeOfGeneration)
@@ -130,6 +130,7 @@ public class CreateCreature : MonoBehaviour
                     if (addNode)
                     {
                         recurssionStack.Push(edge.to);
+                        edge.to.startOfRecurssion = true;
                         nodeOrder.Add(edge.to.id);
                     }
                     edge.traversed = true;
@@ -154,8 +155,8 @@ public class CreateCreature : MonoBehaviour
             Node originalRecursiveNode = recurssionQueue.Peek();
 
             Queue<Node> currentNodeRecurssion = new Queue<Node>();
-            currentNodeRecurssion.Enqueue(originalRecursiveNode);
-            
+            currentNodeRecurssion.Enqueue(originalRecursiveNode);                   
+
             while(currentNodeRecurssion.Count > 0)
             {
                 Node currentNode = currentNodeRecurssion.Peek();
@@ -170,25 +171,27 @@ public class CreateCreature : MonoBehaviour
                     }
                 }
 
+                int counter = -1;
+
                 for (int i = 0; i < currentNode.edges.Count; i++)
                 {
                     if (ReferenceEquals(currentNode.edges[i].to, currentNode.edges[i].from))
                     {
                         CopyNodeTree(currentNode, out Node temp);
-
+                        counter++;
                         //-1 för att vi skapat en kopia redan och borde egenltigen redan höjt numOfTravels
                         if (currentNode.edges[i].numOfTravels < currentNode.edges[i].recursiveLimit - 1)
                         {
                             for (int j = 0; j < selfEdges; j++)
                             {
-                                temp.edges.Add(new Edge(temp, temp, currentNode.edges[i].recursiveLimit, currentNode.edges[i].numOfTravels + 1, j));
+                                temp.edges.Add(new Edge(temp, temp, currentNode.edges[i].recursiveLimit, currentNode.edges[i].numOfTravels + 1, j, new Vector3(1, 0, 0)));
                             }
                         }
 
                         currentNodeRecurssion.Enqueue(temp);
 
                         currentNode.edges.RemoveAt(i);
-                        edgesToAdd.Add(new Edge(currentNode, temp, 4, 4));
+                        edgesToAdd.Add(new Edge(currentNode, temp, 4, 4, counter, new Vector3(0,0,1)));
                         i = -1;
                     }
                 }
@@ -224,12 +227,18 @@ public class CreateCreature : MonoBehaviour
         nodeQueue.Enqueue(root);
         CreateRootGeometry(root);
         int numbofgeo = 1;
+        Node startOfRecurssionNode = new Node();
 
         //Interpret tree in a BFS-like fashion
         while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
         {
             Node currentNode = nodeQueue.Peek();
             bool startOver = false;
+
+            if (currentNode.startOfRecurssion)
+            {
+                startOfRecurssionNode = currentNode;
+            }
 
             if (currentNode.edges.Count == 0 || currentNode.gameObjects.Count == 0)
             {
@@ -293,16 +302,16 @@ public class CreateCreature : MonoBehaviour
                     {
                         CreateSymmetricalGeometry(currentNode.edges[i].to, currentNode);
                     }
-                    else if (!currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo && currentNode.referenceNode == null)
+                    else if (!currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo /*&& currentNode.edges[i].recursiveNumb == -1*/)
                     {
-                        CreateSingleEdgeGeometry(currentNode.edges[i].to, currentNode);
+                        CreateSingleEdgeGeometry(currentNode.edges[i].to, currentNode, currentNode.edges[i], startOfRecurssionNode);
                         numbofgeo++;
                         Debug.Log(numbofgeo);
                     }
-                    else if (!currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo && currentNode.referenceNode != null)
-                    {
-                       // CreateRecurssionGeometry();
-                    }
+                    //else if (!currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo && currentNode.edges[i].recursiveNumb > -1)
+                    //{
+                    //    CreateRecurssionGeometry();
+                    //}
 
                     if (!currentNode.edges[i].to.createdGeo)
                     {
@@ -374,12 +383,18 @@ public class CreateCreature : MonoBehaviour
                     break;
                 }
                 created = true;
-
-                Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
-                      Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
-
                 currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
-                currentGeometry.transform.position = randomPoint;
+
+                //if (parent.referenceNode == null)
+                //{
+                currentGeometry.transform.position = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
+                    Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
+                //}
+                //else if(parent.referenceNode != null)
+                //{
+                //    currentGeometry.transform.position = parentGeometry.transform.position - node.referenceNode.parentToChildDir;
+                //}
+
                 currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
                 currentGeometry.transform.localScale = node.scale;
                 currentGeometry.AddComponent<Rigidbody>();
@@ -417,6 +432,7 @@ public class CreateCreature : MonoBehaviour
                     node.gameObjects.Add(currentGeometry);
                     currentGeometry.name = node.id.ToString();
                     geometry.Add(currentGeometry);
+                    currentGeometry.GetComponent<GeoInfo>().ParentToChildDir = currentGeometry.transform.position - parentGeometry.transform.position;
                 }
             }
 
@@ -426,8 +442,9 @@ public class CreateCreature : MonoBehaviour
             }
 
             currentGeometry = node.gameObjects[currentGeoIndex - 1];
+            
 
-            int random = Random.Range(0, 3);
+            int random;
 
             for (int i = 1; i < node.occurence; i++)
             {
@@ -436,22 +453,29 @@ public class CreateCreature : MonoBehaviour
 
                 if (i % 2 == 0)
                 {
-                    random = Random.Range(0, 3);
-
-                    switch (random)
+                    if (parent.referenceNode != null)
                     {
-                        case 0:
-                            axis = parentGeometry.transform.forward;
-                            break;
-                        case 1:
-                            axis = parentGeometry.transform.up;
-                            break;
-                        case 2:
-                            axis = parentGeometry.transform.right;
-                            break;
-                        default:
-                            axis = parentGeometry.transform.forward;
-                            break;
+                        axis = node.referenceNode.axisList.Dequeue();
+                    }
+                    else
+                    {
+                        random = Random.Range(0, 3);
+
+                        switch (random)
+                        {
+                            case 0:
+                                axis = parentGeometry.transform.forward;
+                                break;
+                            case 1:
+                                axis = parentGeometry.transform.up;
+                                break;
+                            case 2:
+                                axis = parentGeometry.transform.right;
+                                break;
+                            default:
+                                axis = parentGeometry.transform.forward;
+                                break;
+                        }
                     }
                 }
 
@@ -462,7 +486,7 @@ public class CreateCreature : MonoBehaviour
                 {
                     newAxis = false;
 
-                    if (testAxis > 0)
+                    if (testAxis > 0/* && parent.referenceNode == null*/)
                     {
                         random = Random.Range(0, 3);
 
@@ -520,6 +544,8 @@ public class CreateCreature : MonoBehaviour
                         geometry.Add(refChild);
                         refChild.name = node.id.ToString();
                         refGeoInfo.RefAxis = axis;
+                        refGeoInfo.ParentToChildDir = refChild.transform.position - parentGeometry.transform.position;
+                        node.axisList.Enqueue(axis);
                         refGeoInfo.PosRelParent = parentGeometry.transform.position;
                         restart = true;
                     }
@@ -555,7 +581,7 @@ public class CreateCreature : MonoBehaviour
         }
     }
 
-    public void CreateSingleEdgeGeometry(Node node, Node parent)
+    public void CreateSingleEdgeGeometry(Node node, Node parent, Edge currentEdge, Node recurssionNode)
     {
         if (ReferenceEquals(parent, node) || parent.gameObjects.Count == 0)
         {
@@ -571,7 +597,11 @@ public class CreateCreature : MonoBehaviour
         {
             startOver = false;
             if(maxNumbOfTries > 100)
+            {
+                Debug.Log("nope");
                 break;
+            }
+
 
             foreach (GameObject pg in parent.gameObjects)
             {
@@ -596,7 +626,15 @@ public class CreateCreature : MonoBehaviour
                     //Random punkt på förälder
                     currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
 
-                    if (firstGeo && node.referenceNode == null)
+                    if (firstGeo && parent.startOfRecurssion)
+                    {
+                        Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
+                             Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
+
+                        currentGeometry.transform.position = randomPoint;
+                        currentGeometry.transform.rotation = Quaternion.Euler(new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360)));
+                    }
+                    else if (firstGeo && currentEdge.recursiveNumb == -1)
                     {
                         Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
                              Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
@@ -604,12 +642,211 @@ public class CreateCreature : MonoBehaviour
                         currentGeometry.transform.position = randomPoint;
                         currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
                     }
-                    else if (firstGeo && node.referenceNode != null)
+                    else if(firstGeo && !parent.startOfRecurssion && currentEdge.recursiveNumb > -1)
                     {
-
+                        foreach(Edge e in recurssionNode.edges)
+                        {
+                            if(e.recursiveNumb == currentEdge.recursiveNumb)
+                            {
+                                foreach(GameObject g in e.to.gameObjects)
+                                {
+                                    if (g.GetComponent<GeoInfo>().recursiveNumb == currentEdge.recursiveNumb)
+                                    {
+                                        Vector3 matchDirection = g.GetComponent<GeoInfo>().ParentToChildDir;
+                                        currentGeometry.transform.position = parentGeometry.transform.position + matchDirection;
+                                    }
+                                }
+                            }
+                        }
+                        currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
                     }
+                    //else if (firstGeo && !parent.startOfRecurssion && currentEdge.recursiveNumb == 0)
+                    //{
+                    //    currentGeometry.transform.position = parentGeometry.transform.position + node.referenceNode.parentToChildDir;
+                    //    currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
+                    //}
+                    //else if (firstGeo && parent.referenceNode != null && currentEdge.recursiveNumb > 0)
+                    //{
+                    //    Vector3 axis = currentEdge.axis;
+                    //    Quaternion objectQuat = Quaternion.Euler(node.rotation);
+                    //    Quaternion mirrorNormalQuat = new Quaternion(axis.x, axis.y, axis.z, 0);
+
+                    //    Quaternion reflectedQuat = mirrorNormalQuat * objectQuat;
+                    //    currentGeometry.transform.rotation = reflectedQuat;
+
+                    //    currentGeometry.transform.position = Vector3.Reflect(parent.gameObjects[0].transform.position - parentGeometry.GetComponent<GeoInfo>().PosRelParent, axis) + parentGeometry.GetComponent<GeoInfo>().PosRelParent;
+                    //}
+                    //else if (firstGeo && parent.referenceNode == null && currentEdge.recursiveNumb > 0)
+                    //{
+                    //    Vector3 axis = currentEdge.axis;
+                    //    Quaternion objectQuat = Quaternion.Euler(node.rotation);
+                    //    Quaternion mirrorNormalQuat = new Quaternion(axis.x, axis.y, axis.z, 0);
+
+                    //    Quaternion reflectedQuat = mirrorNormalQuat * objectQuat;
+                    //    currentGeometry.transform.rotation = reflectedQuat;
+
+                    //    currentGeometry.transform.position = Vector3.Reflect(parent.gameObjects[0].transform.position - parentGeometry.GetComponent<GeoInfo>().PosRelParent, axis) + parentGeometry.GetComponent<GeoInfo>().PosRelParent;
+                    //}
 
                     if (!firstGeo)
+                    {
+                        Vector3 axis = pg.GetComponent<GeoInfo>().RefAxis;
+                        Quaternion objectQuat = Quaternion.Euler(node.rotation);
+                        Quaternion mirrorNormalQuat = new Quaternion(axis.x, axis.y, axis.z, 0);
+
+                        Quaternion reflectedQuat = mirrorNormalQuat * objectQuat;
+                        currentGeometry.transform.rotation = reflectedQuat;
+                      
+                        currentGeometry.transform.position = Vector3.Reflect(pointOnParent - parentGeometry.GetComponent<GeoInfo>().PosRelParent, axis) + parentGeometry.GetComponent<GeoInfo>().PosRelParent;
+                    }
+
+
+                    currentGeometry.transform.localScale = node.scale;
+                    currentGeometry.AddComponent<Rigidbody>();
+                    currentGeometry.AddComponent<GeoInfo>();
+                    Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
+                    rb.isKinematic = true;
+                    rb.useGravity = false;
+                    Collider collider = currentGeometry.GetComponent<Collider>();
+
+                    Vector3 directionToMove;
+                    float distance = 0;
+
+                    if (firstGeo/* && parent.referenceNode != null*/)
+                    {
+                        //int counter = 0;
+
+                        //while (!Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                        //parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
+                        //{
+                        //    if (currentEdge.recursiveNumb <= 0)
+                        //        currentGeometry.transform.position -= 0.05f * node.referenceNode.parentToChildDir.normalized;
+                        //    else if (currentEdge.recursiveNumb > 0)
+                        //        currentGeometry.transform.position += 0.05f * (parentGeometry.transform.position - currentGeometry.transform.position).normalized;
+
+                        //    counter++;
+                        //    if (counter > 100)
+                        //        break;
+                        //}
+
+                        if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                            parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
+                        {
+                            currentGeometry.transform.position += (directionToMove * (distance));
+                        }
+                    }
+
+                    if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                        parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance) && firstGeo
+                        && parent.referenceNode == null)
+                    {
+                        currentGeometry.transform.position += (directionToMove * (distance));
+                    }
+
+                    node.gameObjects.Add(currentGeometry);
+
+                    //foreach (GameObject g in geometry)
+                    //{
+                    //    Collider gCollider = g.GetComponent<Collider>();
+
+                    //    if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                    //    gCollider, gCollider.transform.position, gCollider.transform.rotation, out directionToMove, out distance) && g != parentGeometry)
+                    //    {
+                    //        foreach (GameObject geo in node.gameObjects)
+                    //        {
+                    //            Destroy(geo);
+                    //        }
+
+                    //        node.gameObjects.Clear();
+                    //        created = false;
+                    //        firstGeo = true;
+                    //        startOver = true;
+                    //        break;
+                    //    }
+                    //}
+
+                    if (startOver)
+                        break;
+
+                    if (created)
+                    {
+                        geometry.Add(currentGeometry);
+                        currentGeometry.GetComponent<GeoInfo>().recursiveNumb = currentEdge.recursiveNumb;
+                        currentGeometry.name = node.id.ToString();
+                        if (firstGeo)
+                        {
+                            pointOnParent = currentGeometry.transform.position;
+                            currentGeometry.GetComponent<GeoInfo>().ParentToChildDir = currentGeometry.transform.position - parentGeometry.transform.position;
+                        }
+
+                        firstGeo = false;
+                    }
+                }
+                if (startOver)
+                    break;
+            }
+            if (startOver)
+            {
+                maxNumbOfTries++;
+                continue;
+            }
+        }
+    }
+
+    public void CreateRecurssionGeometry(Node node, Node parent, Edge currentEdge)
+    {
+        if (ReferenceEquals(parent, node) || parent.gameObjects.Count == 0)
+        {
+            return;
+        }
+        bool firstGeo = true;
+        Vector3 pointOnParent = new Vector3();
+
+        bool startOver = true;
+        int maxNumbOfTries = 0;
+
+        while (startOver)
+        {
+            startOver = false;
+            if (maxNumbOfTries > 100)
+            {
+                Debug.Log("nope");
+                break;
+            }
+
+
+            foreach (GameObject pg in parent.gameObjects)
+            {
+                GameObject currentGeometry;
+
+                //Förälder Geo information
+                GameObject parentGeometry = pg;
+                Collider parentCollider = parentGeometry.GetComponent<Collider>();
+                Rigidbody parentRigidBody = parentGeometry.GetComponent<Rigidbody>();
+
+                bool created = false;
+                int tries = 0;
+                while (!created)
+                {
+                    tries++;
+                    if (tries > 100)
+                    {
+                        Debug.Log("To many tries");
+                        break;
+                    }
+                    created = true;
+                    //Random punkt på förälder
+                    currentGeometry = GameObject.CreatePrimitive(node.primitiveType);
+
+                    if (firstGeo && parent.startOfRecurssion)
+                    {
+                        Vector3 randomPoint = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
+                             Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
+
+                        currentGeometry.transform.position = randomPoint;
+                        currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
+                    }
+                    else if (!firstGeo && parent.startOfRecurssion)
                     {
                         Vector3 axis = pg.GetComponent<GeoInfo>().RefAxis;
                         Quaternion objectQuat = Quaternion.Euler(node.rotation);
@@ -632,9 +869,9 @@ public class CreateCreature : MonoBehaviour
                     Vector3 directionToMove;
                     float distance = 0;
 
-
                     if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
-                        parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance) && firstGeo)
+                        parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance) && firstGeo
+                        && parent.startOfRecurssion)
                     {
                         currentGeometry.transform.position += (directionToMove * (distance));
                     }
@@ -654,7 +891,6 @@ public class CreateCreature : MonoBehaviour
                             }
 
                             node.gameObjects.Clear();
-                            node.scale *= 0.9f;
                             created = false;
                             firstGeo = true;
                             startOver = true;
@@ -667,12 +903,12 @@ public class CreateCreature : MonoBehaviour
 
                     if (created)
                     {
-                        currentGeometry.GetComponent<GeoInfo>();
                         geometry.Add(currentGeometry);
                         currentGeometry.name = node.id.ToString();
                         if (firstGeo)
                         {
                             pointOnParent = currentGeometry.transform.position;
+                            node.parentToChildDir = currentGeometry.transform.position - parentGeometry.transform.position;
                         }
 
                         firstGeo = false;
@@ -831,6 +1067,35 @@ public class CreateCreature : MonoBehaviour
         outNode = newOriNode;
     }
 
+    public Vector3 RayCastDistance(GameObject parentGeometry, GameObject currentGeometry)
+    {
+        RaycastHit hitParent;
+        RaycastHit hitChild;
+        Vector3 hitChildOnBound = new Vector3();
+        Vector3 hitParentOnBound = new Vector3();
+
+        parentGeometry.layer = 2;
+
+        if (Physics.Raycast(parentGeometry.transform.position, (currentGeometry.transform.position - parentGeometry.transform.position).normalized, out hitChild))
+        {
+            hitChildOnBound = hitChild.point;
+        }
+
+        parentGeometry.layer = 0;
+        currentGeometry.layer = 2;
+
+        if (Physics.Raycast(hitChildOnBound, (parentGeometry.transform.position - currentGeometry.transform.position).normalized, out hitParent))
+        {
+            hitParentOnBound = hitParent.point;
+        }
+
+        currentGeometry.layer = 0;
+
+        Vector3 distance = hitParentOnBound - hitChildOnBound;
+
+        return distance;
+    }
+
     #region CreationType
 
     private void CreateRandomNodes()
@@ -943,9 +1208,9 @@ public class CreateCreature : MonoBehaviour
         //nodes.Add(node4);
         //nodes.Add(node5);
 
-        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 4, 0));
-        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 4, 0));
-        nodes[0].edges.Add(new Edge(nodes[0], nodes[1], 4, 0));
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
+        //nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
         //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], 4, 0));
         //nodes[3].edges.Add(new Edge(nodes[3], nodes[4], 3, 0));
         //nodes[4].edges.Add(new Edge(nodes[4], nodes[5], 3, 0));
@@ -960,6 +1225,7 @@ public class CreateCreature : MonoBehaviour
 public class Node
 {
     float randUniScale;
+    public bool startOfRecurssion = false;
     public Node referenceNode = null;
     public bool createdGeo = false; 
     public bool created = false;
@@ -967,8 +1233,10 @@ public class Node
     public int occurence = 0;
     public PrimitiveType primitiveType;
     public Vector3 scale;
-    public Vector3 rotation; 
+    public Vector3 rotation;
+    public Vector3 parentToChildDir;
     public List<GameObject> gameObjects = new List<GameObject>();
+    public Queue<Vector3> axisList = new Queue<Vector3>();
     public int numOfChildren = Random.Range(0, 5);
     public bool stacked;
     public int id;
@@ -988,7 +1256,7 @@ public class Node
 
     public Node(int primitiveRand, float minScale, float maxScale, Vector3 rotation, int id)
     {
-        primitiveRand = 0;
+        //primitiveRand = 0;
         switch (primitiveRand)
         {
             case 0:
@@ -1024,7 +1292,8 @@ public class Edge
     public int numOfTravels;
     public int recursiveLimit;
     public bool traversed = false;
-    public int recursiveNumber = -1;
+    public int recursiveNumb = -1;
+    public Vector3 axis;
 
     public Edge(Node from, Node to, int recursiveLimit, int numOfTravels)
     {
@@ -1033,13 +1302,14 @@ public class Edge
         this.recursiveLimit = recursiveLimit;
         this.numOfTravels = numOfTravels;
     }
-    public Edge(Node from, Node to, int recursiveLimit, int numOfTravels, int recursiveNumber)
+    public Edge(Node from, Node to, int recursiveLimit, int numOfTravels, int recursiveNumb, Vector3 axis)
     {
-        this.recursiveNumber = recursiveNumber;
         this.from = from;
         this.to = to;
         this.recursiveLimit = recursiveLimit;
         this.numOfTravels = numOfTravels;
+        this.recursiveNumb = recursiveNumb;
+        this.axis = axis;
     }
 }
 

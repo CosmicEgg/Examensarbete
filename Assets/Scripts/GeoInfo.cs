@@ -6,6 +6,8 @@ public class GeoInfo : MonoBehaviour
 {
     private Vector3 refAxis;
     private Vector3 posRelParent;
+    private Vector3 parentToChildDir;
+    public int recursiveNumb = -1; 
 
     // Start is called before the first frame update
     void Start()
@@ -28,5 +30,11 @@ public class GeoInfo : MonoBehaviour
     {
         get { return posRelParent; }
         set { posRelParent = value; }
+    }
+
+    public Vector3 ParentToChildDir
+    {
+        get { return parentToChildDir; }
+        set { parentToChildDir = value; }
     }
 }
