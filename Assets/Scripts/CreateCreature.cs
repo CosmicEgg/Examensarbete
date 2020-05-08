@@ -14,7 +14,9 @@ public class CreateCreature : MonoBehaviour
     int numOfNodes;
     Vector3 startPosition;
     Node root;
-    bool generated = false; 
+    bool generated = false;
+
+    GameObject rootGameObject;
 
     public enum TypeOfGeneration { random, symmetry, recursion, symplussin };
     public TypeOfGeneration typeOfGeneration;
@@ -334,19 +336,20 @@ public class CreateCreature : MonoBehaviour
 
     public void CreateRootGeometry(Node node)
     {
-        GameObject segment = GameObject.CreatePrimitive(node.primitiveType);
-        segment.transform.position = new Vector3(0, 10, 0);
-        segment.transform.rotation = Quaternion.Euler(node.rotation);
-        segment.transform.localScale = node.scale;
-        segment.AddComponent<Rigidbody>();
-        Rigidbody rb = segment.GetComponent<Rigidbody>();
-        segment.AddComponent<GeoInfo>();
+        rootGameObject = GameObject.CreatePrimitive(node.primitiveType);
+        rootGameObject.transform.position = new Vector3(0, 10, 0);
+        rootGameObject.transform.rotation = Quaternion.Euler(node.rotation);
+        rootGameObject.transform.localScale = node.scale;
+        rootGameObject.AddComponent<Rigidbody>();
+        Rigidbody rb = rootGameObject.GetComponent<Rigidbody>();
+        rootGameObject.AddComponent<GeoInfo>();
+
 
         rb.isKinematic = true;
         rb.useGravity = false;
         node.created = true;
-        node.gameObjects.Add(segment);
-        geometry.Add(segment);
+        node.gameObjects.Add(rootGameObject);
+        geometry.Add(rootGameObject);
     }
 
     public void CreateSymmetricalGeometry(Node node, Node parent)
@@ -632,7 +635,9 @@ public class CreateCreature : MonoBehaviour
                              Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
 
                         currentGeometry.transform.position = randomPoint;
-                        currentGeometry.transform.rotation = Quaternion.Euler(new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360)));
+                        //node.rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
+                        currentGeometry.transform.rotation = Quaternion.Euler(node.rotation);
+                        
                     }
                     else if (firstGeo && currentEdge.recursiveNumb == -1)
                     {
@@ -654,6 +659,7 @@ public class CreateCreature : MonoBehaviour
                                     {
                                         Vector3 matchDirection = g.GetComponent<GeoInfo>().ParentToChildDir;
                                         currentGeometry.transform.position = parentGeometry.transform.position + matchDirection;
+                                        //currentGeometry.transform.SetParent(g.transform);
                                     }
                                 }
                             }
@@ -1209,8 +1215,7 @@ public class CreateCreature : MonoBehaviour
         //nodes.Add(node5);
 
         nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
-        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
-        //nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));    
         //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], 4, 0));
         //nodes[3].edges.Add(new Edge(nodes[3], nodes[4], 3, 0));
         //nodes[4].edges.Add(new Edge(nodes[4], nodes[5], 3, 0));
