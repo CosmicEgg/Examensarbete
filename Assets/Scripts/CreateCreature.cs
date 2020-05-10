@@ -422,8 +422,8 @@ public class CreateCreature : MonoBehaviour
                     currentGeometry.AddComponent<Rigidbody>();
                     currentGeometry.AddComponent<GeoInfo>();
                     Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
-                    rb.isKinematic = true;
-                    rb.useGravity = false;
+                    //rb.isKinematic = true;
+                    //rb.useGravity = false;
                     Collider collider = currentGeometry.GetComponent<Collider>();
 
                     Vector3 directionToMove;
@@ -489,6 +489,8 @@ public class CreateCreature : MonoBehaviour
 
                     if (created)
                     {
+                        JointManager joint = parentGeometry.AddComponent<JointManager>();
+                        joint.AddRandomJoint(currentGeometry);
                         geometry.Add(currentGeometry);
                         currentGeometry.GetComponent<GeoInfo>().recursiveNumb = currentEdge.recursiveNumb;
                         currentGeometry.name = node.id.ToString();
@@ -525,8 +527,8 @@ public class CreateCreature : MonoBehaviour
         rootGameObject.AddComponent<GeoInfo>();
 
 
-        rb.isKinematic = true;
-        rb.useGravity = false;
+        //rb.isKinematic = true;
+        //rb.useGravity = false;
         node.created = true;
         node.gameObjects.Add(rootGameObject);
         geometry.Add(rootGameObject);
@@ -583,8 +585,8 @@ public class CreateCreature : MonoBehaviour
                 currentGeometry.AddComponent<Rigidbody>();
                 currentGeometry.AddComponent<GeoInfo>();
                 Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
-                rb.isKinematic = true;
-                rb.useGravity = false;
+                //rb.isKinematic = true;
+                //rb.useGravity = false;
                 Collider collider = currentGeometry.GetComponent<Collider>();
 
                 Vector3 directionToMove;
@@ -611,6 +613,8 @@ public class CreateCreature : MonoBehaviour
 
                 if (created)
                 {
+                    JointManager joint = parentGeometry.AddComponent<JointManager>();
+                    joint.AddRandomJoint(currentGeometry);
                     currentGeoIndex++;
                     node.gameObjects.Add(currentGeometry);
                     currentGeometry.name = node.id.ToString();
@@ -723,6 +727,8 @@ public class CreateCreature : MonoBehaviour
 
                     if (!newAxis)
                     {
+                        JointManager joint = parentGeometry.AddComponent<JointManager>();
+                        joint.AddRandomJoint(currentGeometry);
                         node.gameObjects.Add(refChild);
                         geometry.Add(refChild);
                         refChild.name = node.id.ToString();
@@ -836,11 +842,12 @@ public class CreateCreature : MonoBehaviour
                     currentGeometry.AddComponent<Rigidbody>();
                     currentGeometry.AddComponent<GeoInfo>();
                     Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
-                    rb.isKinematic = true;
-                    rb.useGravity = false;
+                    //rb.isKinematic = true;
+                    //rb.useGravity = false;
                     Collider collider = currentGeometry.GetComponent<Collider>();
 
                     Vector3 directionToMove;
+                    Vector3 anchorPoint = new Vector3();
                     float distance = 0;
 
                     if (firstGeo)
@@ -850,6 +857,8 @@ public class CreateCreature : MonoBehaviour
                         {
                             currentGeometry.transform.position += (directionToMove * (distance));
                         }
+
+                        
                     }
 
                     node.gameObjects.Add(currentGeometry);
@@ -879,7 +888,10 @@ public class CreateCreature : MonoBehaviour
 
                     if (created)
                     {
+
                         geometry.Add(currentGeometry);
+                        JointManager joint = parentGeometry.AddComponent<JointManager>();
+                        joint.AddRandomJoint(currentGeometry);
                         currentGeometry.GetComponent<GeoInfo>().recursiveNumb = currentEdge.recursiveNumb;
                         currentGeometry.name = node.id.ToString();
                         if (firstGeo)
@@ -947,8 +959,8 @@ public class CreateCreature : MonoBehaviour
                 currentGeometry.AddComponent<Rigidbody>();
                 currentGeometry.AddComponent<GeoInfo>();
                 Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
-                rb.isKinematic = true;
-                rb.useGravity = false;
+                //rb.isKinematic = true;
+                //rb.useGravity = false;
                 Collider collider = currentGeometry.GetComponent<Collider>();
 
                 Vector3 directionToMove;
@@ -976,6 +988,8 @@ public class CreateCreature : MonoBehaviour
 
                 if (created)
                 {
+                    JointManager joint = parentGeometry.AddComponent<JointManager>();
+                    joint.AddRandomJoint(currentGeometry);
                     geometry.Add(currentGeometry);
                     currentGeometry.name = node.id.ToString();
                 }
@@ -1089,8 +1103,8 @@ public class CreateCreature : MonoBehaviour
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
-        //nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
-        //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
+        nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
+        nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
 
 
         //Root Node def.
