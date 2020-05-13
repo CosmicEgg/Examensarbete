@@ -17,9 +17,12 @@ public class CreateCreature : MonoBehaviour
     Vector3 startPosition;
     Node root;
     bool generated = false;
+    public int seed;
+    public float minLimbSpacing = 0, maxLimbSpacing = 0.3f;
+    float limbSpacing;
 
     GameObject rootGameObject;
-
+    public bool PhysicsOn = true;
     public enum TypeOfGeneration { random, symmetry, recursion, symplussin };
     public TypeOfGeneration typeOfGeneration;
 
@@ -29,6 +32,15 @@ public class CreateCreature : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Begin();        
+    }
+
+    private void Begin()
+    {
+        generated = false;
+        seed = Random.Range(0, 10000);
+        Random.InitState(seed);
+        limbSpacing = Random.Range(minLimbSpacing, maxLimbSpacing);
         geometry = new List<GameObject>();
         numOfNodes = Random.Range(1, 5);
         startPosition = Vector3.zero;
@@ -37,7 +49,7 @@ public class CreateCreature : MonoBehaviour
         symmetryStack = new Stack<Node>();
         nodeOrder = new List<int>();
         nodeStack = new Stack<Node>();
-        
+
         minScale = 1f;
         maxScale = 2f;
 
@@ -125,7 +137,7 @@ public class CreateCreature : MonoBehaviour
                     //If not already in stack i.e. edge is not a backwards edge
                     bool addNode = true;
 
-                    foreach  (Node n in recurssionStack)
+                    foreach (Node n in recurssionStack)
                     {
                         if (ReferenceEquals(n, edge.to))
                             addNode = false;
@@ -159,9 +171,9 @@ public class CreateCreature : MonoBehaviour
             Node originalRecursiveNode = recurssionQueue.Peek();
 
             Queue<Node> currentNodeRecurssion = new Queue<Node>();
-            currentNodeRecurssion.Enqueue(originalRecursiveNode);                   
+            currentNodeRecurssion.Enqueue(originalRecursiveNode);
 
-            while(currentNodeRecurssion.Count > 0)
+            while (currentNodeRecurssion.Count > 0)
             {
                 Node currentNode = currentNodeRecurssion.Peek();
                 //List<Node> newAddedNodes = new List<Node>();
@@ -197,7 +209,7 @@ public class CreateCreature : MonoBehaviour
                         currentNodeRecurssion.Enqueue(temp);
 
                         currentNode.edges.RemoveAt(i);
-                        edgesToAdd.Add(new Edge(currentNode, temp, 4, 4, counter, new Vector3(0,0,1)));
+                        edgesToAdd.Add(new Edge(currentNode, temp, 4, 4, counter, new Vector3(0, 0, 1)));
                         i = -1;
                     }
                 }
@@ -209,6 +221,8 @@ public class CreateCreature : MonoBehaviour
         }
         root = nodes[0];
         ResetTree(ref root);
+
+        InterpretTree(root);
     }
 
     private void ResetTree(ref Node node)
@@ -422,8 +436,9 @@ public class CreateCreature : MonoBehaviour
                     currentGeometry.AddComponent<Rigidbody>();
                     currentGeometry.AddComponent<GeoInfo>();
                     Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
-                    //rb.isKinematic = true;
-                    //rb.useGravity = false;
+                    rb.isKinematic = true;
+                    rb.useGravity = false;
+
                     Collider collider = currentGeometry.GetComponent<Collider>();
 
                     Vector3 directionToMove;
@@ -449,7 +464,7 @@ public class CreateCreature : MonoBehaviour
                         if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
                             parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
                         {
-                            currentGeometry.transform.position += (directionToMove * (distance));
+                            currentGeometry.transform.position += (directionToMove * (distance + limbSpacing));
                         }
                     }
 
@@ -457,7 +472,7 @@ public class CreateCreature : MonoBehaviour
                         parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance) && firstGeo
                         && parent.referenceNode == null)
                     {
-                        currentGeometry.transform.position += (directionToMove * (distance));
+                        currentGeometry.transform.position += (directionToMove * (distance + limbSpacing));
                     }
 
                     node.gameObjects.Add(currentGeometry);
@@ -489,8 +504,18 @@ public class CreateCreature : MonoBehaviour
 
                     if (created)
                     {
-                        JointManager joint = parentGeometry.AddComponent<JointManager>();
-                        joint.AddRandomJoint(currentGeometry);
+                        JointManager joint;
+
+                        if (currentGeometry.TryGetComponent<JointManager>(out joint))
+                        {
+                            joint.AddRandomJoint(parentGeometry);
+                        }
+                        else
+                        {
+                            joint = currentGeometry.AddComponent<JointManager>();
+                            joint.AddRandomJoint(parentGeometry);
+                        }
+
                         geometry.Add(currentGeometry);
                         currentGeometry.GetComponent<GeoInfo>().recursiveNumb = currentEdge.recursiveNumb;
                         currentGeometry.name = node.id.ToString();
@@ -512,7 +537,49 @@ public class CreateCreature : MonoBehaviour
         if (!generated)
         {
             generated = true;
-            InterpretTree(root);
+            //InterpretTree(root);
+        
+        }
+
+        if (PhysicsOn)
+        {
+            foreach (GameObject g in geometry)
+            {
+                if (g != null)
+                {
+                    if (g.TryGetComponent<Rigidbody>(out Rigidbody rb))
+                    {
+                        rb.isKinematic = false;
+                        rb.useGravity = true;
+                        rb.velocity = Vector3.zero;
+                        rb.angularVelocity = Vector3.zero;
+                        rb.interpolation = RigidbodyInterpolation.Extrapolate;
+
+                    }
+                }
+            }
+
+            PhysicsOn = false;
+        }
+
+
+
+        //Spawn new Creature
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            DestroyCurrent();
+            Begin();
+            PhysicsOn = true;
+        }
+
+
+    }
+
+    private void DestroyCurrent()
+    {
+        for (int i = 0; i < geometry.Count; i++)
+        {
+            Destroy(geometry[i]);
         }
     }
 
@@ -522,13 +589,11 @@ public class CreateCreature : MonoBehaviour
         rootGameObject.transform.position = new Vector3(0, 10, 0);
         rootGameObject.transform.rotation = Quaternion.Euler(node.rotation);
         rootGameObject.transform.localScale = node.scale;
-        rootGameObject.AddComponent<Rigidbody>();
-        Rigidbody rb = rootGameObject.GetComponent<Rigidbody>();
+        Rigidbody rb = rootGameObject.AddComponent<Rigidbody>();
         rootGameObject.AddComponent<GeoInfo>();
+        rb.isKinematic = true;
+        rb.useGravity = false;
 
-
-        //rb.isKinematic = true;
-        //rb.useGravity = false;
         node.created = true;
         node.gameObjects.Add(rootGameObject);
         geometry.Add(rootGameObject);
@@ -585,8 +650,8 @@ public class CreateCreature : MonoBehaviour
                 currentGeometry.AddComponent<Rigidbody>();
                 currentGeometry.AddComponent<GeoInfo>();
                 Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
-                //rb.isKinematic = true;
-                //rb.useGravity = false;
+                rb.isKinematic = true;
+                rb.useGravity = false;
                 Collider collider = currentGeometry.GetComponent<Collider>();
 
                 Vector3 directionToMove;
@@ -595,7 +660,7 @@ public class CreateCreature : MonoBehaviour
                 if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
                     parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
                 {
-                    currentGeometry.transform.position += (directionToMove * (distance));
+                    currentGeometry.transform.position += (directionToMove * (distance + limbSpacing));
                 }
 
                 foreach (GameObject g in geometry)
@@ -613,8 +678,17 @@ public class CreateCreature : MonoBehaviour
 
                 if (created)
                 {
-                    JointManager joint = parentGeometry.AddComponent<JointManager>();
-                    joint.AddRandomJoint(currentGeometry);
+                    JointManager joint;
+
+                    if (currentGeometry.TryGetComponent<JointManager>(out joint))
+                    {
+                        joint.AddRandomJoint(parentGeometry);
+                    }
+                    else
+                    {
+                        joint = currentGeometry.AddComponent<JointManager>();
+                        joint.AddRandomJoint(parentGeometry);
+                    }
                     currentGeoIndex++;
                     node.gameObjects.Add(currentGeometry);
                     currentGeometry.name = node.id.ToString();
@@ -633,10 +707,10 @@ public class CreateCreature : MonoBehaviour
 
             int random;
 
-            for (int i = 1; i < node.occurence; i++)
+            for (int i = 1; i < node.occurence; ++i)
             {
                 Quaternion mirrorRot = currentGeometry.transform.rotation;
-                Vector3 axis = new Vector3();
+                Vector3 axis = parentGeometry.transform.right;
 
                 if (i % 2 == 0)
                 {
@@ -694,15 +768,23 @@ public class CreateCreature : MonoBehaviour
                         }
                     }
 
-                    Quaternion objectQuat = currentGeometry.transform.rotation;
+                    Quaternion objectQuat = currentGeometry.transform.rotation;                  
                     Quaternion mirrorNormalQuat = new Quaternion(axis.x, axis.y, axis.z, 0);
 
                     Quaternion reflectedQuat = mirrorNormalQuat * objectQuat;
                     mirrorRot = reflectedQuat;
-
+                    
                     Vector3 mirrorPos = Vector3.Reflect(currentGeometry.transform.position - parentGeometry.transform.position, axis) + parentGeometry.transform.position;
 
-                    GameObject refChild = Instantiate(currentGeometry, mirrorPos, mirrorRot);
+                    //GameObject refChild = Instantiate(currentGeometry, mirrorPos, mirrorRot);
+                    GameObject refChild = GameObject.CreatePrimitive(node.primitiveType);
+                    refChild.transform.position = mirrorPos;
+                    refChild.transform.rotation = mirrorRot;
+                    refChild.transform.localScale = node.scale;
+                    Rigidbody rb = refChild.AddComponent<Rigidbody>();
+                    rb.isKinematic = true;
+                    rb.useGravity = false;
+
                     Collider collider = refChild.GetComponent<Collider>();
                     refChild.AddComponent<GeoInfo>();
                     GeoInfo refGeoInfo = refChild.GetComponent<GeoInfo>();
@@ -727,8 +809,17 @@ public class CreateCreature : MonoBehaviour
 
                     if (!newAxis)
                     {
-                        JointManager joint = parentGeometry.AddComponent<JointManager>();
-                        joint.AddRandomJoint(currentGeometry);
+                        JointManager joint;
+
+                        if (refChild.TryGetComponent<JointManager>(out joint))
+                        {
+                            joint.AddRandomJoint(parentGeometry);
+                        }
+                        else
+                        {
+                            joint = refChild.AddComponent<JointManager>();
+                            joint.AddRandomJoint(parentGeometry);
+                        }
                         node.gameObjects.Add(refChild);
                         geometry.Add(refChild);
                         refChild.name = node.id.ToString();
@@ -842,12 +933,11 @@ public class CreateCreature : MonoBehaviour
                     currentGeometry.AddComponent<Rigidbody>();
                     currentGeometry.AddComponent<GeoInfo>();
                     Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
-                    //rb.isKinematic = true;
-                    //rb.useGravity = false;
+                    rb.isKinematic = true;
+                    rb.useGravity = false;
                     Collider collider = currentGeometry.GetComponent<Collider>();
 
                     Vector3 directionToMove;
-                    Vector3 anchorPoint = new Vector3();
                     float distance = 0;
 
                     if (firstGeo)
@@ -855,10 +945,8 @@ public class CreateCreature : MonoBehaviour
                         if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
                             parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
                         {
-                            currentGeometry.transform.position += (directionToMove * (distance));
+                            currentGeometry.transform.position += (directionToMove * (distance + limbSpacing));
                         }
-
-                        
                     }
 
                     node.gameObjects.Add(currentGeometry);
@@ -888,10 +976,18 @@ public class CreateCreature : MonoBehaviour
 
                     if (created)
                     {
+                        JointManager joint;
 
+                        if (currentGeometry.TryGetComponent<JointManager>(out joint))
+                        {
+                            joint.AddRandomJoint(parentGeometry);
+                        }
+                        else
+                        {
+                            joint = currentGeometry.AddComponent<JointManager>();
+                            joint.AddRandomJoint(parentGeometry);
+                        }
                         geometry.Add(currentGeometry);
-                        JointManager joint = parentGeometry.AddComponent<JointManager>();
-                        joint.AddRandomJoint(currentGeometry);
                         currentGeometry.GetComponent<GeoInfo>().recursiveNumb = currentEdge.recursiveNumb;
                         currentGeometry.name = node.id.ToString();
                         if (firstGeo)
@@ -959,8 +1055,8 @@ public class CreateCreature : MonoBehaviour
                 currentGeometry.AddComponent<Rigidbody>();
                 currentGeometry.AddComponent<GeoInfo>();
                 Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
-                //rb.isKinematic = true;
-                //rb.useGravity = false;
+                rb.isKinematic = true;
+                rb.useGravity = false;
                 Collider collider = currentGeometry.GetComponent<Collider>();
 
                 Vector3 directionToMove;
@@ -980,7 +1076,7 @@ public class CreateCreature : MonoBehaviour
                             Destroy(geo);
                         }
                         node.gameObjects.Clear();
-                        node.scale *= 0.9f;
+                        //node.scale *= 0.9f;
                         created = false;
                         return false;
                     }
@@ -988,8 +1084,17 @@ public class CreateCreature : MonoBehaviour
 
                 if (created)
                 {
-                    JointManager joint = parentGeometry.AddComponent<JointManager>();
-                    joint.AddRandomJoint(currentGeometry);
+                    JointManager joint;
+
+                    if (currentGeometry.TryGetComponent<JointManager>(out joint))
+                    {
+                        joint.AddRandomJoint(parentGeometry);
+                    }
+                    else
+                    {
+                        joint = currentGeometry.AddComponent<JointManager>();
+                        joint.AddRandomJoint(parentGeometry);
+                    }
                     geometry.Add(currentGeometry);
                     currentGeometry.name = node.id.ToString();
                 }
@@ -1104,7 +1209,8 @@ public class CreateCreature : MonoBehaviour
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
         nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
-        nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
+        nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
+        //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
 
 
         //Root Node def.
@@ -1173,8 +1279,8 @@ public class CreateCreature : MonoBehaviour
 
         nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
         nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
-        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
-        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
+        //nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
+        //nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
         //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], 4, 0));
         //nodes[3].edges.Add(new Edge(nodes[3], nodes[4], 3, 0));
         //nodes[4].edges.Add(new Edge(nodes[4], nodes[5], 3, 0));
@@ -1276,6 +1382,116 @@ public class Edge
         this.numOfTravels = numOfTravels;
         this.recursiveNumb = recursiveNumb;
         this.axis = axis;
+    }
+
+    public class Muscle
+    {
+        Vector3 relaxationDistance, connectedAnchor, anchor;
+        ConfigurableJoint distanceJoint;
+        JointDrive jointDrive;
+        GameObject emptyParent, emptyChild;
+
+        public Muscle(GameObject parent, GameObject child)
+        {
+            jointDrive = new JointDrive();
+            jointDrive.positionSpring = 100f;
+            jointDrive.maximumForce = 3.402823e+38f;
+            jointDrive.positionDamper = 0;
+
+            Collider parentCollider = parent.GetComponent<Collider>();
+            Collider childCollider = child.GetComponent<Collider>();
+
+            anchor = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
+                    Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
+
+            GameObject placementOnParent = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            placementOnParent.transform.position = anchor;
+
+            Collider collider = placementOnParent.GetComponent<Collider>();
+
+            Vector3 directionToMove;
+            float distance;
+
+            if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
+            {
+                placementOnParent.transform.position += (directionToMove * (distance));
+            }
+
+            placementOnParent.transform.position = parentCollider.ClosestPoint(placementOnParent.transform.position);
+
+            emptyParent = new GameObject();
+            emptyParent.transform.position = placementOnParent.transform.position;
+            emptyParent.transform.parent = parent.transform;
+
+            placementOnParent.transform.parent = emptyParent.transform;
+            placementOnParent.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+
+            connectedAnchor = new Vector3(Random.Range(childCollider.bounds.min.x, childCollider.bounds.max.x),
+                    Random.Range(childCollider.bounds.min.y, childCollider.bounds.max.y), Random.Range(childCollider.bounds.min.z, childCollider.bounds.max.z));
+
+            GameObject placementOnChild = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            placementOnChild.transform.position = connectedAnchor;
+
+            collider = placementOnChild.GetComponent<Collider>();
+
+            if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
+                childCollider, childCollider.transform.position, childCollider.transform.rotation, out directionToMove, out distance))
+            {
+                placementOnChild.transform.position += (directionToMove * (distance));
+            }
+
+            placementOnChild.transform.position = childCollider.ClosestPoint(placementOnChild.transform.position);
+            emptyChild = new GameObject();
+            emptyChild.transform.position = placementOnChild.transform.position;
+            emptyChild.transform.parent = child.transform;
+
+            placementOnChild.transform.parent = emptyChild.transform;
+            placementOnChild.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+
+            anchor = emptyParent.transform.localPosition;
+            connectedAnchor = emptyChild.transform.localPosition;
+
+            distanceJoint = parent.AddComponent<ConfigurableJoint>();
+            distanceJoint.autoConfigureConnectedAnchor = false;
+            distanceJoint.connectedBody = child.GetComponent<Rigidbody>();
+            distanceJoint.anchor = anchor;
+            distanceJoint.connectedAnchor = connectedAnchor;
+            distanceJoint.xDrive = jointDrive;
+            distanceJoint.yDrive = jointDrive;
+            distanceJoint.zDrive = jointDrive;
+            distanceJoint.enableCollision = true;
+
+            relaxationDistance = placementOnChild.transform.position - placementOnParent.transform.position;
+            distanceJoint.targetPosition = relaxationDistance;
+        }
+
+        public void Contraction()
+        {
+            jointDrive.positionSpring = 100f;
+            jointDrive.maximumForce = 3.402823e+38f;
+            jointDrive.positionDamper = 0;
+            distanceJoint.xDrive = jointDrive;
+            distanceJoint.yDrive = jointDrive;
+            distanceJoint.zDrive = jointDrive;
+            distanceJoint.targetPosition = Vector3.zero;
+        }
+        public void Relaxation()
+        {
+            jointDrive.positionSpring = 1f;
+            jointDrive.maximumForce = 3.402823e+38f;
+            jointDrive.positionDamper = 0;
+            distanceJoint.xDrive = jointDrive;
+            distanceJoint.yDrive = jointDrive;
+            distanceJoint.zDrive = jointDrive;
+            distanceJoint.targetPosition = relaxationDistance;
+        }
+
+        public void DrawMuscle()
+        {
+            Debug.DrawLine(emptyChild.transform.position, emptyParent.transform.position, Color.red);
+        }
+
     }
 }
 
