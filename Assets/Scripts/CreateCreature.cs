@@ -7,7 +7,8 @@ using Random = UnityEngine.Random;
 
 public class CreateCreature : MonoBehaviour
 {
-    List<GameObject> geometry;
+    List<GameObject> geometry = new List<GameObject>();
+    List<Muscle> muscles;
     public List<Node> nodes;
     List<int> nodeOrder;
     Stack<Node> nodeStack;
@@ -32,15 +33,24 @@ public class CreateCreature : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        Begin();        
+        //Create();        
     }
 
-    private void Begin()
+    public Creature Create(int newSeed = 0)
     {
-        generated = false;
-        seed = Random.Range(0, 10000);
+        //DestroyCurrent();
+        //generated = false;
+        seed = newSeed;
+        if (seed == 0)
+        {
+            seed = Random.Range(0, 10000);
+        }
+
         Random.InitState(seed);
+
+        PhysicsOn = true;
         limbSpacing = Random.Range(minLimbSpacing, maxLimbSpacing);
+        muscles = new List<Muscle>();
         geometry = new List<GameObject>();
         numOfNodes = Random.Range(1, 5);
         startPosition = Vector3.zero;
@@ -223,6 +233,7 @@ public class CreateCreature : MonoBehaviour
         ResetTree(ref root);
 
         InterpretTree(root);
+        return new Creature(nodes, geometry, muscles, seed);
     }
 
     private void ResetTree(ref Node node)
@@ -243,8 +254,8 @@ public class CreateCreature : MonoBehaviour
     {
         //Root Node def.
         Queue<Node> nodeQueue = new Queue<Node>();
+        CreateRootGeometry(ref root);
         nodeQueue.Enqueue(root);
-        CreateRootGeometry(root);
         int numbofgeo = 1;
         Node startOfRecurssionNode = new Node();
 
@@ -446,21 +457,6 @@ public class CreateCreature : MonoBehaviour
 
                     if (firstGeo)
                     {
-                        //int counter = 0;
-
-                        //while (!Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
-                        //parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
-                        //{
-                        //    if (currentEdge.recursiveNumb <= 0)
-                        //        currentGeometry.transform.position -= 0.05f * node.referenceNode.parentToChildDir.normalized;
-                        //    else if (currentEdge.recursiveNumb > 0)
-                        //        currentGeometry.transform.position += 0.05f * (parentGeometry.transform.position - currentGeometry.transform.position).normalized;
-
-                        //    counter++;
-                        //    if (counter > 100)
-                        //        break;
-                        //}
-
                         if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
                             parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
                         {
@@ -508,13 +504,53 @@ public class CreateCreature : MonoBehaviour
 
                         if (currentGeometry.TryGetComponent<JointManager>(out joint))
                         {
-                            joint.AddRandomJoint(parentGeometry);
+                            joint.AddRecursionJoint(parentGeometry, node.recursionJointType);
                         }
                         else
                         {
                             joint = currentGeometry.AddComponent<JointManager>();
-                            joint.AddRandomJoint(parentGeometry);
+                            joint.AddRecursionJoint(parentGeometry, node.recursionJointType);
                         }
+
+
+                        if (node == recurssionNode)
+                        {
+                            MuscleManager muscles;
+                            if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                            {
+                                muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                            }
+                            else
+                            {
+                                muscles = currentGeometry.AddComponent<MuscleManager>();
+                                muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                            }
+                        }
+                        else if (node != recurssionNode)
+                        {
+                            MuscleManager muscles;
+                            if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                            {
+                                muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, recurssionNode.gameObjects[0].GetComponent<MuscleManager>().muscles);
+                            }
+                            else
+                            {
+                                List<Muscle> toCopy = new List<Muscle>();
+                                for (int i = 0; i < recurssionNode.gameObjects.Count; i++)
+                                {
+                                    if (recurssionNode.gameObjects[i] != null)
+                                    {
+                                        toCopy = recurssionNode.gameObjects[i].GetComponent<MuscleManager>().muscles;
+                                    }
+                                }
+                                muscles = currentGeometry.AddComponent<MuscleManager>();
+                                muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, toCopy);
+                            }
+                        }
+                        
+
+                        
+                        
 
                         geometry.Add(currentGeometry);
                         currentGeometry.GetComponent<GeoInfo>().recursiveNumb = currentEdge.recursiveNumb;
@@ -534,14 +570,7 @@ public class CreateCreature : MonoBehaviour
 
     public void FixedUpdate()
     {
-        if (!generated)
-        {
-            generated = true;
-            //InterpretTree(root);
-        
-        }
-
-        if (PhysicsOn)
+            if (PhysicsOn)
         {
             foreach (GameObject g in geometry)
             {
@@ -562,17 +591,21 @@ public class CreateCreature : MonoBehaviour
             PhysicsOn = false;
         }
 
+        if (!generated)
+        {
+            generated = true;
+            Create(seed);
+            //InterpretTree(root);
 
+        }
 
         //Spawn new Creature
         if (Input.GetKeyDown(KeyCode.Space))
         {
             DestroyCurrent();
-            Begin();
+            Create();
             PhysicsOn = true;
         }
-
-
     }
 
     private void DestroyCurrent()
@@ -583,10 +616,11 @@ public class CreateCreature : MonoBehaviour
         }
     }
 
-    public void CreateRootGeometry(Node node)
+    public void CreateRootGeometry(ref Node node)
     {
         rootGameObject = GameObject.CreatePrimitive(node.primitiveType);
-        rootGameObject.transform.position = new Vector3(0, 10, 0);
+        rootGameObject.transform.position = new Vector3(0, 5, 0);
+        node.rotation = Vector3.zero;
         rootGameObject.transform.rotation = Quaternion.Euler(node.rotation);
         rootGameObject.transform.localScale = node.scale;
         Rigidbody rb = rootGameObject.AddComponent<Rigidbody>();
@@ -682,12 +716,23 @@ public class CreateCreature : MonoBehaviour
 
                     if (currentGeometry.TryGetComponent<JointManager>(out joint))
                     {
-                        joint.AddRandomJoint(parentGeometry);
+                        joint.AddRandomJoint(parentGeometry, node, parent);
                     }
                     else
                     {
                         joint = currentGeometry.AddComponent<JointManager>();
-                        joint.AddRandomJoint(parentGeometry);
+                        joint.AddRandomJoint(parentGeometry, node, parent);
+                    }
+
+                    MuscleManager muscles;
+                    if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                    {
+                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                    }
+                    else
+                    {
+                        muscles = currentGeometry.AddComponent<MuscleManager>();
+                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
                     }
                     currentGeoIndex++;
                     node.gameObjects.Add(currentGeometry);
@@ -813,13 +858,25 @@ public class CreateCreature : MonoBehaviour
 
                         if (refChild.TryGetComponent<JointManager>(out joint))
                         {
-                            joint.AddRandomJoint(parentGeometry);
+                            joint.AddRandomJoint(parentGeometry, node, parent);
                         }
                         else
                         {
                             joint = refChild.AddComponent<JointManager>();
-                            joint.AddRandomJoint(parentGeometry);
+                            joint.AddRandomJoint(parentGeometry, node, parent);
                         }
+
+                        MuscleManager muscles;
+                        if (refChild.TryGetComponent<MuscleManager>(out muscles))
+                        {
+                            muscles.CreateRefMuscles(parentGeometry, refChild, currentGeometry.GetComponent<MuscleManager>().muscles, axis);
+                        }
+                        else
+                        {
+                            muscles = refChild.AddComponent<MuscleManager>();
+                            muscles.CreateRefMuscles(parentGeometry, refChild, currentGeometry.GetComponent<MuscleManager>().muscles, axis);
+                        }
+
                         node.gameObjects.Add(refChild);
                         geometry.Add(refChild);
                         refChild.name = node.id.ToString();
@@ -980,13 +1037,43 @@ public class CreateCreature : MonoBehaviour
 
                         if (currentGeometry.TryGetComponent<JointManager>(out joint))
                         {
-                            joint.AddRandomJoint(parentGeometry);
+                            joint.AddRandomJoint(parentGeometry, node, parent);
                         }
                         else
                         {
                             joint = currentGeometry.AddComponent<JointManager>();
-                            joint.AddRandomJoint(parentGeometry);
+                            joint.AddRandomJoint(parentGeometry, node, parent);
                         }
+
+                        if (firstGeo)
+                        {
+                            MuscleManager muscles;
+                            if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                            {
+                                muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                            }
+                            else
+                            {
+                                muscles = currentGeometry.AddComponent<MuscleManager>();
+                                muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                            }
+                        }
+                        else
+                        {
+                            MuscleManager muscles;
+                            if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                            {
+                                muscles.CreateRefMuscles(parentGeometry, currentGeometry, node.gameObjects[0].GetComponent<MuscleManager>().muscles, pg.GetComponent<GeoInfo>().RefAxis);
+                            }
+                            else
+                            {
+                                muscles = currentGeometry.AddComponent<MuscleManager>();
+                                muscles.CreateRefMuscles(parentGeometry, currentGeometry, node.gameObjects[0].GetComponent<MuscleManager>().muscles, pg.GetComponent<GeoInfo>().RefAxis);
+                            }
+
+                        }
+
+
                         geometry.Add(currentGeometry);
                         currentGeometry.GetComponent<GeoInfo>().recursiveNumb = currentEdge.recursiveNumb;
                         currentGeometry.name = node.id.ToString();
@@ -1076,7 +1163,6 @@ public class CreateCreature : MonoBehaviour
                             Destroy(geo);
                         }
                         node.gameObjects.Clear();
-                        //node.scale *= 0.9f;
                         created = false;
                         return false;
                     }
@@ -1088,13 +1174,25 @@ public class CreateCreature : MonoBehaviour
 
                     if (currentGeometry.TryGetComponent<JointManager>(out joint))
                     {
-                        joint.AddRandomJoint(parentGeometry);
+                        joint.AddRandomJoint(parentGeometry, node, parent);
                     }
                     else
                     {
                         joint = currentGeometry.AddComponent<JointManager>();
-                        joint.AddRandomJoint(parentGeometry);
+                        joint.AddRandomJoint(parentGeometry, node, parent);
                     }
+
+                    MuscleManager muscles;
+                    if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                    {
+                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, currentGeo.GetComponent<MuscleManager>().muscles, axis);
+                    }
+                    else
+                    {
+                        muscles = currentGeometry.AddComponent<MuscleManager>();
+                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, currentGeo.GetComponent<MuscleManager>().muscles, axis);
+                    }
+
                     geometry.Add(currentGeometry);
                     currentGeometry.name = node.id.ToString();
                 }
@@ -1110,7 +1208,7 @@ public class CreateCreature : MonoBehaviour
         copyStack.Push(oriNode);
         Dictionary<Node, Node> copyNodeEdge = new Dictionary<Node, Node>();
         bool nextNode = false;
-        Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id, oriNode);
+        Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id, oriNode, oriNode.recursionJointType);
         newOriNode.numOfRecursiveChildren = oriNode.numOfRecursiveChildren;
         //newOriNode.created = true;
         //toReset.Add(newOriNode);
@@ -1126,7 +1224,7 @@ public class CreateCreature : MonoBehaviour
             {
                 if (!e.to.created && !ReferenceEquals(e.to, e.from))
                 {
-                    Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to);
+                    Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to, e.to.recursionJointType);
                     copyStack.Push(e.to);
                     copyNodeEdge.Add(e.to, newNode);
                     e.to.created = true;
@@ -1208,8 +1306,8 @@ public class CreateCreature : MonoBehaviour
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
-        nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
-        nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
+        //nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
+        //nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
         //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
 
 
@@ -1302,6 +1400,7 @@ public class Node
     public bool created = false;
     public bool symmetry = false;
     public int occurence = 0;
+    public int recursionJointType = Random.Range(0,3);
     public PrimitiveType primitiveType;
     public Vector3 scale;
     public Vector3 rotation;
@@ -1314,7 +1413,7 @@ public class Node
 
     public List<Edge> edges = new List<Edge>();
 
-    public Node(PrimitiveType primitiveType, Vector3 scale, Vector3 rotation, int id, Node referenceNode)
+    public Node(PrimitiveType primitiveType, Vector3 scale, Vector3 rotation, int id, Node referenceNode, int recursionJointType)
     {
         this.primitiveType = primitiveType;
         this.scale = scale * 0.7f;
@@ -1322,6 +1421,7 @@ public class Node
         this.id = id;
         this.referenceNode = referenceNode;
         this.numOfRecursiveChildren = numOfRecursiveChildren;
+        this.recursionJointType = recursionJointType;
     }
 
     public Node(){}
@@ -1383,115 +1483,21 @@ public class Edge
         this.recursiveNumb = recursiveNumb;
         this.axis = axis;
     }
+}
 
-    public class Muscle
+public class Creature
+{
+    public List<Node> nodes = new List<Node>();
+    public List<GameObject> geometry = new List<GameObject>();
+    public List<Muscle> muscles = new List<Muscle>();
+    public int seed;
+
+    public Creature(List<Node> nodes, List<GameObject> geometry, List<Muscle> muscles, int seed)
     {
-        Vector3 relaxationDistance, connectedAnchor, anchor;
-        ConfigurableJoint distanceJoint;
-        JointDrive jointDrive;
-        GameObject emptyParent, emptyChild;
-
-        public Muscle(GameObject parent, GameObject child)
-        {
-            jointDrive = new JointDrive();
-            jointDrive.positionSpring = 100f;
-            jointDrive.maximumForce = 3.402823e+38f;
-            jointDrive.positionDamper = 0;
-
-            Collider parentCollider = parent.GetComponent<Collider>();
-            Collider childCollider = child.GetComponent<Collider>();
-
-            anchor = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
-                    Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
-
-            GameObject placementOnParent = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            placementOnParent.transform.position = anchor;
-
-            Collider collider = placementOnParent.GetComponent<Collider>();
-
-            Vector3 directionToMove;
-            float distance;
-
-            if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
-                parentCollider, parentCollider.transform.position, parentCollider.transform.rotation, out directionToMove, out distance))
-            {
-                placementOnParent.transform.position += (directionToMove * (distance));
-            }
-
-            placementOnParent.transform.position = parentCollider.ClosestPoint(placementOnParent.transform.position);
-
-            emptyParent = new GameObject();
-            emptyParent.transform.position = placementOnParent.transform.position;
-            emptyParent.transform.parent = parent.transform;
-
-            placementOnParent.transform.parent = emptyParent.transform;
-            placementOnParent.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
-
-            connectedAnchor = new Vector3(Random.Range(childCollider.bounds.min.x, childCollider.bounds.max.x),
-                    Random.Range(childCollider.bounds.min.y, childCollider.bounds.max.y), Random.Range(childCollider.bounds.min.z, childCollider.bounds.max.z));
-
-            GameObject placementOnChild = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            placementOnChild.transform.position = connectedAnchor;
-
-            collider = placementOnChild.GetComponent<Collider>();
-
-            if (Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation,
-                childCollider, childCollider.transform.position, childCollider.transform.rotation, out directionToMove, out distance))
-            {
-                placementOnChild.transform.position += (directionToMove * (distance));
-            }
-
-            placementOnChild.transform.position = childCollider.ClosestPoint(placementOnChild.transform.position);
-            emptyChild = new GameObject();
-            emptyChild.transform.position = placementOnChild.transform.position;
-            emptyChild.transform.parent = child.transform;
-
-            placementOnChild.transform.parent = emptyChild.transform;
-            placementOnChild.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
-
-            anchor = emptyParent.transform.localPosition;
-            connectedAnchor = emptyChild.transform.localPosition;
-
-            distanceJoint = parent.AddComponent<ConfigurableJoint>();
-            distanceJoint.autoConfigureConnectedAnchor = false;
-            distanceJoint.connectedBody = child.GetComponent<Rigidbody>();
-            distanceJoint.anchor = anchor;
-            distanceJoint.connectedAnchor = connectedAnchor;
-            distanceJoint.xDrive = jointDrive;
-            distanceJoint.yDrive = jointDrive;
-            distanceJoint.zDrive = jointDrive;
-            distanceJoint.enableCollision = true;
-
-            relaxationDistance = placementOnChild.transform.position - placementOnParent.transform.position;
-            distanceJoint.targetPosition = relaxationDistance;
-        }
-
-        public void Contraction()
-        {
-            jointDrive.positionSpring = 100f;
-            jointDrive.maximumForce = 3.402823e+38f;
-            jointDrive.positionDamper = 0;
-            distanceJoint.xDrive = jointDrive;
-            distanceJoint.yDrive = jointDrive;
-            distanceJoint.zDrive = jointDrive;
-            distanceJoint.targetPosition = Vector3.zero;
-        }
-        public void Relaxation()
-        {
-            jointDrive.positionSpring = 1f;
-            jointDrive.maximumForce = 3.402823e+38f;
-            jointDrive.positionDamper = 0;
-            distanceJoint.xDrive = jointDrive;
-            distanceJoint.yDrive = jointDrive;
-            distanceJoint.zDrive = jointDrive;
-            distanceJoint.targetPosition = relaxationDistance;
-        }
-
-        public void DrawMuscle()
-        {
-            Debug.DrawLine(emptyChild.transform.position, emptyParent.transform.position, Color.red);
-        }
-
+        this.nodes = nodes;
+        this.geometry = geometry;
+        this.muscles = muscles;
+        this.seed = seed;
     }
 }
 

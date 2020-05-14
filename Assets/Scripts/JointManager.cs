@@ -10,13 +10,42 @@ public class JointManager : MonoBehaviour
     GameObject parent;
     Transform transform, parentTransform;
 
-    public void AddRandomJoint(GameObject parent)
+    public void AddRandomJoint(GameObject parentGeometry, Node node, Node parent)
     {
-        this.parent = parent;
+        this.parent = parentGeometry;
         transform = gameObject.transform;
-        parentTransform = parent.transform;
-        int random = Random.Range(0, 3);
-        random = 2;
+        parentTransform = parentGeometry.transform;
+        int random = Random.Range(0,3);
+
+        if (node.gameObjects.Count > 0)
+        {
+            if (node.gameObjects[0].TryGetComponent<GeoInfo>(out GeoInfo geoInfo))
+            {
+                if (geoInfo.JointType == -1)
+                {
+                    geoInfo.JointType = random;
+                }
+                else
+                {
+                    random = geoInfo.JointType;
+                }
+            }
+        }
+        else if (node.gameObjects.Count == 0)
+        {
+            if (TryGetComponent<GeoInfo>(out GeoInfo geoInfo))
+            {
+                random = Random.Range(0, 3);
+                geoInfo.JointType = random;
+            }
+            else
+            {
+                geoInfo = gameObject.AddComponent<GeoInfo>();
+                random = Random.Range(0, 3);
+                geoInfo.JointType = random;
+            }
+        }
+        //random = 2;
         switch (random)
         {
             case 0:
@@ -37,18 +66,78 @@ public class JointManager : MonoBehaviour
                 SetupCharacterJoint();
                 break;
 
-            case 3:
-                //prismatic joint = no rotation and movement only along one axis (distance joint)
-                joint = gameObject.AddComponent<ConfigurableJoint>();
-                SetupPrismaticJoint();
+            //case 3:
+            //    //prismatic joint = no rotation and movement only along one axis (distance joint)
+            //    joint = gameObject.AddComponent<ConfigurableJoint>();
+            //    SetupPrismaticJoint();
+            //    break;
+
+            //case 4:
+            //    //cylindrical joint = prismatic + revolute joint
+            //    joint = gameObject.AddComponent<ConfigurableJoint>();
+            //    SetupCylindricalJoint();
+            //    break;
+
+            default:
+                break;
+        }
+    }
+
+    public void AddRecursionJoint(GameObject parentGeometry, int recursionJointType)
+    {
+        this.parent = parentGeometry;
+        transform = gameObject.transform;
+        parentTransform = parentGeometry.transform;
+        int random = Random.Range(0, 3);
+        random = recursionJointType;
+        //if (node.gameObjects.Count > 0)
+        //{
+        //    if (node.gameObjects[0].TryGetComponent<GeoInfo>(out GeoInfo geoInfo))
+        //    {
+        //        if (geoInfo.JointType == -1)
+        //        {
+        //            geoInfo.JointType = random;
+        //        }
+        //        else
+        //        {
+        //            random = geoInfo.JointType;
+        //        }
+        //    }
+        //}
+        //else if (node.gameObjects.Count == 0)
+        //{
+        //    if (TryGetComponent<GeoInfo>(out GeoInfo geoInfo))
+        //    {
+        //        random = Random.Range(0, 3);
+        //        geoInfo.JointType = random;
+        //    }
+        //    else
+        //    {
+        //        geoInfo = gameObject.AddComponent<GeoInfo>();
+        //        random = Random.Range(0, 3);
+        //        geoInfo.JointType = random;
+        //    }
+        //}
+        //random = 2;
+        switch (random)
+        {
+            case 0:
+                //Simply connects two rigidbodies. Similiar to parenting but relying on physics instead
+                joint = gameObject.AddComponent<FixedJoint>();
+                SetupFixedJoint();
                 break;
 
-            case 4:
-                //cylindrical joint = prismatic + revolute joint
-                joint = gameObject.AddComponent<ConfigurableJoint>();
-                SetupCylindricalJoint();
+            case 1:
+                //Revolute Joint
+                joint = gameObject.AddComponent<HingeJoint>();
+                SetupHingeJoint();
                 break;
 
+            case 2:
+                //Spherical joint I.e ball and socket
+                joint = gameObject.AddComponent<CharacterJoint>();
+                SetupCharacterJoint();
+                break;
             default:
                 break;
         }
