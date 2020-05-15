@@ -344,11 +344,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e998a6de5c510546b28303e10104fb0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  seed: 1652
-  minLimbSpacing: 0.1
+  seed: 9600
+  minLimbSpacing: 0.19
   maxLimbSpacing: 0.3
   PhysicsOn: 0
-  typeOfGeneration: 2
+  typeOfGeneration: 0
 --- !u!4 &1022323499
 Transform:
   m_ObjectHideFlags: 0
@@ -375,7 +375,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 317bb8529027c9c4ba2894f640d1ab94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  populationSize: 4
+  populationSize: 5
 --- !u!1 &1806056839
 GameObject:
   m_ObjectHideFlags: 0

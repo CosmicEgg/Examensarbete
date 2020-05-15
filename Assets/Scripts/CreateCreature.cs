@@ -14,6 +14,10 @@ public class CreateCreature : MonoBehaviour
     Stack<Node> nodeStack;
     Stack<Node> recurssionStack;
     Stack<Node> symmetryStack;
+    List<Muscle> leftRecurssionMuscle;
+    List<Muscle> oriRecurssionMuscle;
+    List<Muscle> frontRecurssionMuscle;
+    List<Muscle> backRecurssionMuscle;
     int numOfNodes;
     Vector3 startPosition;
     Node root;
@@ -36,7 +40,7 @@ public class CreateCreature : MonoBehaviour
         //Create();        
     }
 
-    public Creature Create(int newSeed = 0)
+    public Creature Create(int newSeed = 0, int spacingMultiplier = 1)
     {
         //DestroyCurrent();
         //generated = false;
@@ -47,7 +51,10 @@ public class CreateCreature : MonoBehaviour
         }
 
         Random.InitState(seed);
-
+        oriRecurssionMuscle = new List<Muscle>();
+        leftRecurssionMuscle = new List<Muscle>();
+        frontRecurssionMuscle = new List<Muscle>();
+        backRecurssionMuscle = new List<Muscle>();
         PhysicsOn = true;
         limbSpacing = Random.Range(minLimbSpacing, maxLimbSpacing);
         muscles = new List<Muscle>();
@@ -232,7 +239,7 @@ public class CreateCreature : MonoBehaviour
         root = nodes[0];
         ResetTree(ref root);
 
-        InterpretTree(root);
+        InterpretTree(root, spacingMultiplier);
         return new Creature(nodes, geometry, muscles, seed);
     }
 
@@ -250,11 +257,11 @@ public class CreateCreature : MonoBehaviour
         }
     }
 
-    private void InterpretTree(Node root)
+    private void InterpretTree(Node root, int spacingMultiplier = 0)
     {
         //Root Node def.
         Queue<Node> nodeQueue = new Queue<Node>();
-        CreateRootGeometry(ref root);
+        CreateRootGeometry(ref root, spacingMultiplier);
         nodeQueue.Enqueue(root);
         int numbofgeo = 1;
         Node startOfRecurssionNode = new Node();
@@ -512,45 +519,273 @@ public class CreateCreature : MonoBehaviour
                             joint.AddRecursionJoint(parentGeometry, node.recursionJointType);
                         }
 
-
-                        if (node == recurssionNode)
+                        if (parent == recurssionNode)
                         {
                             MuscleManager muscles;
-                            if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                            if (currentEdge.recursiveNumb == 0)
                             {
-                                muscles.CreateNewMuscles(parentGeometry, currentGeometry);
-                            }
-                            else
-                            {
-                                muscles = currentGeometry.AddComponent<MuscleManager>();
-                                muscles.CreateNewMuscles(parentGeometry, currentGeometry);
-                            }
-                        }
-                        else if (node != recurssionNode)
-                        {
-                            MuscleManager muscles;
-                            if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
-                            {
-                                muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, recurssionNode.gameObjects[0].GetComponent<MuscleManager>().muscles);
-                            }
-                            else
-                            {
-                                List<Muscle> toCopy = new List<Muscle>();
-                                for (int i = 0; i < recurssionNode.gameObjects.Count; i++)
+                                if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
                                 {
-                                    if (recurssionNode.gameObjects[i] != null)
+                                    muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                    oriRecurssionMuscle = muscles.muscles;
+                                }
+                                else
+                                {
+                                    muscles = currentGeometry.AddComponent<MuscleManager>();
+                                    muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                    oriRecurssionMuscle = muscles.muscles;
+
+                                }
+                            }
+                            else if (currentEdge.recursiveNumb == 1)
+                            {
+                                if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                                {
+                                    if (oriRecurssionMuscle.Count == 0)
                                     {
-                                        toCopy = recurssionNode.gameObjects[i].GetComponent<MuscleManager>().muscles;
+                                        GameObject temp = new GameObject();
+                                        MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
+
+                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+
+                                        muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, parentGeometry.transform.right);
+                                        oriRecurssionMuscle = muscleManager.muscles;
+                                        leftRecurssionMuscle = muscles.muscles;
+                                        Destroy(temp);
+                                    }
+                                    else
+                                    {
+                                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, parentGeometry.transform.right);
+                                        leftRecurssionMuscle = muscles.muscles;
+                                    }            
+                                }
+                                else
+                                {
+                                    muscles = currentGeometry.AddComponent<MuscleManager>();
+
+                                    if (oriRecurssionMuscle.Count == 0)
+                                    {
+                                        GameObject temp = new GameObject();
+                                        MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
+
+                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+
+                                        muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, parentGeometry.transform.right);
+                                        oriRecurssionMuscle = muscleManager.muscles;
+                                        leftRecurssionMuscle = muscles.muscles;
+                                        Destroy(temp);
+                                    }
+                                    else
+                                    {
+                                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, parentGeometry.transform.right);
+                                        leftRecurssionMuscle = muscles.muscles;
                                     }
                                 }
-                                muscles = currentGeometry.AddComponent<MuscleManager>();
-                                muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, toCopy);
+                            }
+                            else if (currentEdge.recursiveNumb == 2)
+                            {
+                                if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                                {
+                                    if (oriRecurssionMuscle.Count == 0)
+                                    {
+                                        GameObject temp = new GameObject();
+                                        MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
+
+                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+
+                                        muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                        oriRecurssionMuscle = muscleManager.muscles;
+                                        frontRecurssionMuscle = muscles.muscles;
+                                        Destroy(temp);
+                                    }
+                                    else
+                                    {
+                                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                        frontRecurssionMuscle = muscles.muscles;
+                                    }
+                                   
+                                }
+                                else
+                                {
+                                    muscles = currentGeometry.AddComponent<MuscleManager>();
+
+                                    if (oriRecurssionMuscle.Count == 0)
+                                    {
+                                        GameObject temp = new GameObject();
+                                        MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
+
+                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+
+                                        muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                        oriRecurssionMuscle = muscleManager.muscles;
+                                        frontRecurssionMuscle = muscles.muscles;
+                                        Destroy(temp);
+                                    }
+                                    else
+                                    {
+                                        foreach (Edge e in parent.edges)
+                                        {
+                                            if (e.recursiveNumb == 0)
+                                            {
+                                                muscles.CreateRefMuscles(parentGeometry, currentGeometry, e.to.gameObjects[0].GetComponent<MuscleManager>().muscles, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                                frontRecurssionMuscle = muscles.muscles;
+                                                break;
+                                            }
+                                        }
+
+                                    }
+                                }
+                            }
+                            else if (currentEdge.recursiveNumb == 3)
+                            {
+                                if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                                {
+
+                                    if (oriRecurssionMuscle.Count == 0)
+                                    {
+                                        GameObject temp = new GameObject();
+                                        MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
+
+                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+
+                                        muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                        oriRecurssionMuscle = muscleManager.muscles;
+                                        backRecurssionMuscle = muscles.muscles;
+                                        Destroy(temp);
+                                    }
+                                    else
+                                    {
+                                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                        backRecurssionMuscle = muscles.muscles;
+                                    }        
+                                }
+                                else
+                                {
+                                    muscles = currentGeometry.AddComponent<MuscleManager>();
+
+                                    if (oriRecurssionMuscle.Count == 0)
+                                    {
+                                        GameObject temp = new GameObject();
+                                        MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
+
+                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+
+                                        muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                        oriRecurssionMuscle = muscleManager.muscles;
+                                        backRecurssionMuscle = muscles.muscles;
+                                        Destroy(temp);
+                                    }
+                                    else
+                                    {
+                                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                        backRecurssionMuscle = muscles.muscles;
+                                    }
+                                }
                             }
                         }
-                        
+                        else if (parent != recurssionNode)
+                        {
+                            MuscleManager muscles;
+                            if (currentEdge.recursiveNumb == 0)
+                            {
+                                if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                                {
+                                    muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle);
+                                }
+                                else
+                                {
+                                    muscles = currentGeometry.AddComponent<MuscleManager>();
+                                    muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle);
+                                }
 
-                        
-                        
+                                oriRecurssionMuscle = muscles.muscles;
+                            }
+                            else if (currentEdge.recursiveNumb == 1)
+                            {
+                                if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                                {
+                                    if (leftRecurssionMuscle.Count == 0)
+                                    {
+                                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, parentGeometry.transform.right);
+                                        leftRecurssionMuscle = muscles.muscles;
+                                    }
+                                    else
+                                    {
+                                        muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, leftRecurssionMuscle);
+                                    }
+                                }
+                                else
+                                {
+                                    muscles = currentGeometry.AddComponent<MuscleManager>();
+                                    if (leftRecurssionMuscle.Count == 0)
+                                    {
+                                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, parentGeometry.transform.right);
+                                        leftRecurssionMuscle = muscles.muscles;
+                                    }
+                                    else
+                                    {
+                                        muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, leftRecurssionMuscle);
+                                    }
+                                }
+                            }
+                            else if (currentEdge.recursiveNumb == 2)
+                            {
+                                if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                                {
+                                    if (frontRecurssionMuscle.Count == 0)
+                                    {
+                                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                        frontRecurssionMuscle = muscles.muscles;
+                                    }
+                                    else
+                                    {
+                                        muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, frontRecurssionMuscle);
+                                    }
+
+                                }
+                                else
+                                {
+                                    muscles = currentGeometry.AddComponent<MuscleManager>();
+                                    if (frontRecurssionMuscle.Count == 0)
+                                    {
+                                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                        frontRecurssionMuscle = muscles.muscles;
+                                    }
+                                    else
+                                    {
+                                        muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, frontRecurssionMuscle);
+                                    }
+                                }
+                            }
+                            else if (currentEdge.recursiveNumb == 3)
+                            {
+                                if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
+                                {
+                                    if (backRecurssionMuscle.Count == 0)
+                                    {
+                                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                        backRecurssionMuscle = muscles.muscles;
+                                    }
+                                    else
+                                    {
+                                        muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, backRecurssionMuscle);
+                                    }
+                                }
+                                else
+                                {
+                                    muscles = currentGeometry.AddComponent<MuscleManager>();
+                                    if (backRecurssionMuscle.Count == 0)
+                                    {
+                                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                        backRecurssionMuscle = muscles.muscles;
+                                    }
+                                    else
+                                    {
+                                        muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, backRecurssionMuscle);
+                                    }
+                                }
+                            }
+                        }
 
                         geometry.Add(currentGeometry);
                         currentGeometry.GetComponent<GeoInfo>().recursiveNumb = currentEdge.recursiveNumb;
@@ -571,7 +806,7 @@ public class CreateCreature : MonoBehaviour
     public void FixedUpdate()
     {
             if (PhysicsOn)
-        {
+            {
             foreach (GameObject g in geometry)
             {
                 if (g != null)
@@ -616,10 +851,10 @@ public class CreateCreature : MonoBehaviour
         }
     }
 
-    public void CreateRootGeometry(ref Node node)
+    public void CreateRootGeometry(ref Node node, int spacingMultiplier = 0)
     {
         rootGameObject = GameObject.CreatePrimitive(node.primitiveType);
-        rootGameObject.transform.position = new Vector3(0, 5, 0);
+        rootGameObject.transform.position = new Vector3(20 * spacingMultiplier, 5, 0);
         node.rotation = Vector3.zero;
         rootGameObject.transform.rotation = Quaternion.Euler(node.rotation);
         rootGameObject.transform.localScale = node.scale;
@@ -1208,7 +1443,7 @@ public class CreateCreature : MonoBehaviour
         copyStack.Push(oriNode);
         Dictionary<Node, Node> copyNodeEdge = new Dictionary<Node, Node>();
         bool nextNode = false;
-        Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id, oriNode, oriNode.recursionJointType);
+        Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id, oriNode, oriNode.recursionJointType, oriNode.scaleFactor);
         newOriNode.numOfRecursiveChildren = oriNode.numOfRecursiveChildren;
         //newOriNode.created = true;
         //toReset.Add(newOriNode);
@@ -1224,7 +1459,7 @@ public class CreateCreature : MonoBehaviour
             {
                 if (!e.to.created && !ReferenceEquals(e.to, e.from))
                 {
-                    Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to, e.to.recursionJointType);
+                    Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to, e.to.recursionJointType, e.to.scaleFactor);
                     copyStack.Push(e.to);
                     copyNodeEdge.Add(e.to, newNode);
                     e.to.created = true;
@@ -1377,8 +1612,8 @@ public class CreateCreature : MonoBehaviour
 
         nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
         nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
-        //nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
-        //nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
         //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], 4, 0));
         //nodes[3].edges.Add(new Edge(nodes[3], nodes[4], 3, 0));
         //nodes[4].edges.Add(new Edge(nodes[4], nodes[5], 3, 0));
@@ -1400,6 +1635,7 @@ public class Node
     public bool created = false;
     public bool symmetry = false;
     public int occurence = 0;
+    public float scaleFactor = 1;
     public int recursionJointType = Random.Range(0,3);
     public PrimitiveType primitiveType;
     public Vector3 scale;
@@ -1413,10 +1649,11 @@ public class Node
 
     public List<Edge> edges = new List<Edge>();
 
-    public Node(PrimitiveType primitiveType, Vector3 scale, Vector3 rotation, int id, Node referenceNode, int recursionJointType)
+    public Node(PrimitiveType primitiveType, Vector3 scale, Vector3 rotation, int id, Node referenceNode, int recursionJointType, float scaleFactor)
     {
         this.primitiveType = primitiveType;
         this.scale = scale * 0.7f;
+        this.scaleFactor = scaleFactor * 0.7f;
         this.rotation = rotation;
         this.id = id;
         this.referenceNode = referenceNode;

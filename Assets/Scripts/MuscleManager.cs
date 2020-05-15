@@ -7,7 +7,7 @@ public class MuscleManager : MonoBehaviour
     public List<Muscle> muscles = new List<Muscle>();
     public float numbOfMuscles;
     float time, cycle;
-    float cycleSpeed = 3f;
+    float cycleSpeed = 5f;
 
     public void CreateNewMuscles(GameObject parent, GameObject child)
     {
@@ -48,20 +48,29 @@ public class MuscleManager : MonoBehaviour
         {
             foreach (Muscle m in muscles)
             {
-                //m.Contraction();
+                m.Contraction();
             }
         }
         else
         {
             foreach (Muscle m in muscles)
             {
-                //m.Relaxation();
+                m.Relaxation();
             }
         }
 
         foreach (Muscle m in muscles)
         {
             m.DrawMuscle();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        foreach (Muscle m in muscles)
+        {
+            Destroy(m.emptyChild);
+            Destroy(m.emptyParent);
         }
     }
 }
@@ -155,6 +164,7 @@ public class Muscle
         distanceJoint.targetPosition = relaxationDistance;
         connectedAnchorInLocal = emptyParent.transform.position - parent.transform.position;
     }
+
     public void CreateRefMuscle(Muscle muscle, Vector3 refAxis)
     {
         jointDrive = muscle.jointDrive;
@@ -236,9 +246,10 @@ public class Muscle
         relaxationDistance = placementOnParent.transform.position - placementOnChild.transform.position;
         distanceJoint.targetPosition = relaxationDistance;
     }
+
     public void Contraction()
     {
-        jointDrive.positionSpring = 100f;
+        jointDrive.positionSpring = 300f;
         jointDrive.maximumForce = 3.402823e+38f;
         jointDrive.positionDamper = 0;
         distanceJoint.xDrive = jointDrive;
@@ -248,7 +259,7 @@ public class Muscle
     }
     public void Relaxation()
     {
-        jointDrive.positionSpring = 1f;
+        jointDrive.positionSpring = 5f;
         jointDrive.maximumForce = 3.402823e+38f;
         jointDrive.positionDamper = 0;
         distanceJoint.xDrive = jointDrive;
@@ -260,6 +271,5 @@ public class Muscle
     {
         Debug.DrawLine(emptyChild.transform.position, emptyParent.transform.position, Color.red);
     }
-
 }
 

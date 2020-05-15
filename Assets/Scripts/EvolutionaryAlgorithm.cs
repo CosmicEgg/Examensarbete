@@ -7,35 +7,88 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     public int populationSize;
     float testTime = 10;
     float timer = 0;
+    bool physicsInitiated = false, created = false;
     CreateCreature createCreature;
-    Queue<Creature> creatures = new Queue<Creature>();
+    List<Creature> creatures = new List<Creature>();
+    Queue<Test> tests = new Queue<Test>();
+    List<Test> finishedTests = new List<Test>();
 
     // Start is called before the first frame update
     void Start()
     {
-        if (TryGetComponent<CreateCreature>(out createCreature)) { }
-        else createCreature = gameObject.AddComponent<CreateCreature>();
-
-        for (int i = 0; i < populationSize; i++)
-        {
-            creatures.Enqueue(createCreature.Create());
-        }
-
-        Evaluate();
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        if (!physicsInitiated)
+        {
+            return;
+        }
+
+        if (tests.Count > 0)
+        {
+            if (tests.Peek().finished == false)
+            {
+                tests.Peek().Update();
+            }
+            else
+            {
+                finishedTests.Add(tests.Dequeue());
+            }
+        }
+    }
+
+    void FixedUpdate()
+    {
+        if (!physicsInitiated && created)
+        {
+            foreach (Creature c in creatures)
+            {
+                foreach (GameObject g in c.geometry)
+                {
+                    if (g != null)
+                    {
+                        if (g.TryGetComponent<Rigidbody>(out Rigidbody rb))
+                        {
+                            rb.isKinematic = false;
+                            rb.useGravity = true;
+                            rb.velocity = Vector3.zero;
+                            rb.angularVelocity = Vector3.zero;
+                            rb.interpolation = RigidbodyInterpolation.Extrapolate;
+
+                        }
+                    }
+                }
+            }
+
+            Evaluate();
+            physicsInitiated = true;
+        }
+       
+
+
+        if (!physicsInitiated)
+        {
+            if (TryGetComponent<CreateCreature>(out createCreature)) { }
+            else createCreature = gameObject.AddComponent<CreateCreature>();
+
+            for (int i = 0; i < populationSize; i++)
+            {
+                Creature creature = createCreature.Create(0, i);
+                creatures.Add(creature);
+            }
+
+            created = true;
+        }     
     }
 
     void Evaluate()
     {
         for (int i = 0; i < populationSize; i++)
         {   
-            Test test = new Test(createCreature.Create(), testTime);
-            
+            //Test test = new Test(creatures.Dequeue(), testTime);
+            //tests.Enqueue(test);
         }
     }
 
@@ -51,7 +104,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
     public class Test
     {
-        bool finished = false;
+        public bool finished = false;
         Creature creature;
         float fitness;
         float testTime;
@@ -66,7 +119,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             initialCenterOfMass = CalculateMeanCenterOfMass();
         }
 
-        void Update()
+        public void Update()
         {
             if (!finished)
             {

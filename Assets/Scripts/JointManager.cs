@@ -7,7 +7,7 @@ using Random = UnityEngine.Random;
 public class JointManager : MonoBehaviour
 {
     Joint joint;
-    GameObject parent;
+    GameObject parent, emptyChild, emptyParent, middle;
     Transform transform, parentTransform;
 
     public void AddRandomJoint(GameObject parentGeometry, Node node, Node parent)
@@ -158,7 +158,7 @@ public class JointManager : MonoBehaviour
         placementOnParent.GetComponent<Collider>().isTrigger = true;
         placementOnParent.transform.position = parentCollider.ClosestPoint(transform.position);
 
-        GameObject emptyParent = new GameObject();
+        emptyParent = new GameObject();
         emptyParent.transform.position = placementOnParent.transform.position;
         emptyParent.transform.parent = parent.transform;
         placementOnParent.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
@@ -169,14 +169,14 @@ public class JointManager : MonoBehaviour
         placementOnChild.GetComponent<Collider>().isTrigger = true;
         placementOnChild.transform.position = childCollider.ClosestPoint(placementOnParent.transform.position);
 
-        GameObject emptyChild = new GameObject();
+        emptyChild = new GameObject();
         emptyChild.transform.position = placementOnChild.transform.position;
         emptyChild.transform.parent = transform;
         placementOnChild.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
         placementOnChild.transform.parent = emptyChild.transform;
 
 
-        GameObject middle = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        middle = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         middle.GetComponent<Collider>().isTrigger = true;
         middle.transform.position = placementOnChild.transform.position + ((placementOnParent.transform.position - placementOnChild.transform.position) / 2);
         middle.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
@@ -198,6 +198,7 @@ public class JointManager : MonoBehaviour
         //  joint.autoConfigureConnectedAnchor = true;
         Collider parentCollider = parent.GetComponent<Collider>();
         Collider childCollider = GetComponent<Collider>();
+
 
         GameObject placementOnParent = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         placementOnParent.GetComponent<Collider>().isTrigger = true;
@@ -236,5 +237,14 @@ public class JointManager : MonoBehaviour
     {
         joint.connectedBody = parent.GetComponent<Rigidbody>();
         joint.enableCollision = true;
+    }
+
+    private void OnDestroy()
+    {
+
+        Destroy(emptyChild);
+        Destroy(emptyParent);
+        Destroy(middle);
+
     }
 }
