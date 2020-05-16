@@ -275,6 +275,8 @@ public class CreateCreature : MonoBehaviour
             if (currentNode.startOfRecurssion)
             {
                 startOfRecurssionNode = currentNode;
+                startOfRecurssionNode.scale.z = startOfRecurssionNode.scale.x;
+
             }
 
             if (currentNode.edges.Count == 0 || currentNode.gameObjects.Count == 0)
@@ -381,7 +383,6 @@ public class CreateCreature : MonoBehaviour
                 break;
             }
 
-
             foreach (GameObject pg in parent.gameObjects)
             {
                 GameObject currentGeometry;
@@ -450,7 +451,7 @@ public class CreateCreature : MonoBehaviour
                         currentGeometry.transform.position = Vector3.Reflect(pointOnParent - parentGeometry.GetComponent<GeoInfo>().PosRelParent, axis) + parentGeometry.GetComponent<GeoInfo>().PosRelParent;
                     }
 
-                    currentGeometry.transform.localScale = node.scale;
+                    currentGeometry.transform.localScale = recurssionNode.scale * node.scaleFactor;
                     currentGeometry.AddComponent<Rigidbody>();
                     currentGeometry.AddComponent<GeoInfo>();
                     Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
@@ -862,6 +863,8 @@ public class CreateCreature : MonoBehaviour
         rootGameObject.AddComponent<GeoInfo>();
         rb.isKinematic = true;
         rb.useGravity = false;
+        if (root.startOfRecurssion)
+            root.scale.x = root.scale.z;
 
         node.created = true;
         node.gameObjects.Add(rootGameObject);

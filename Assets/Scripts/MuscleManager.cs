@@ -205,6 +205,7 @@ public class Muscle
 
         relaxationDistance = placementOnParent.transform.position - placementOnChild.transform.position;
         distanceJoint.targetPosition = relaxationDistance;
+        connectedAnchorInLocal = emptyParent.transform.position - parent.transform.position;
     }
 
     public void CreateRecurssionMuscle(Muscle muscle)
@@ -245,6 +246,7 @@ public class Muscle
 
         relaxationDistance = placementOnParent.transform.position - placementOnChild.transform.position;
         distanceJoint.targetPosition = relaxationDistance;
+        connectedAnchorInLocal = emptyParent.transform.position - parent.transform.position;
     }
 
     public void Contraction()
