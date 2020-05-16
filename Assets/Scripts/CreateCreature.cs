@@ -1305,13 +1305,13 @@ public class CreateCreature : MonoBehaviour
                                 muscles = currentGeometry.AddComponent<MuscleManager>();
                                 muscles.CreateRefMuscles(parentGeometry, currentGeometry, node.gameObjects[0].GetComponent<MuscleManager>().muscles, pg.GetComponent<GeoInfo>().RefAxis);
                             }
-
                         }
 
 
                         geometry.Add(currentGeometry);
                         currentGeometry.GetComponent<GeoInfo>().recursiveNumb = currentEdge.recursiveNumb;
                         currentGeometry.name = node.id.ToString();
+                        currentGeometry.GetComponent<GeoInfo>().RefAxis = pg.GetComponent<GeoInfo>().RefAxis;
                         if (firstGeo)
                         {
                             pointOnParent = currentGeometry.transform.position;
@@ -1555,7 +1555,7 @@ public class CreateCreature : MonoBehaviour
     private void CreateSymmetryPlusSingleTest()
     {
         //Spawn Nodes
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 5; i++)
         {
             primitiveRand = Random.Range(0, 3);
             Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
@@ -1567,8 +1567,8 @@ public class CreateCreature : MonoBehaviour
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
-        //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
-        //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
+        nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
+        nodes[3].edges.Add(new Edge(nodes[3], nodes[4], Random.Range(0, 4), 0));
 
         //Root Node def.
         nodeStack.Push(nodes[0]);

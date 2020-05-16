@@ -10,7 +10,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     bool physicsInitiated = false, created = false;
     CreateCreature createCreature;
     List<Creature> creatures = new List<Creature>();
-    Queue<Test> tests = new Queue<Test>();
+    List<Test> tests = new List<Test>();
     List<Test> finishedTests = new List<Test>();
 
     // Start is called before the first frame update
@@ -26,16 +26,33 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             return;
         }
 
+
         if (tests.Count > 0)
         {
-            if (tests.Peek().finished == false)
+            for (int i = 0; i < tests.Count; i++)
             {
-                tests.Peek().Update();
+                Test t = tests[i];
+                if (!t.finished)
+                {
+                    t.Update();
+                }
+                else
+                {
+                    finishedTests.Add(t);
+                    tests.RemoveAt(i);
+                }
             }
-            else
-            {
-                finishedTests.Add(tests.Dequeue());
-            }
+            //foreach (Test t in tests)
+            //{
+            //    if (!t.finished)
+            //    {
+            //        t.Update();
+            //    }
+            //    else
+            //    {
+            //        finishedTests.Add(t);
+            //    }
+            //}
         }
     }
 
@@ -62,12 +79,10 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 }
             }
 
-            Evaluate();
+
             physicsInitiated = true;
         }
        
-
-
         if (!physicsInitiated)
         {
             if (TryGetComponent<CreateCreature>(out createCreature)) { }
@@ -77,19 +92,17 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             {
                 Creature creature = createCreature.Create(0, i);
                 creatures.Add(creature);
+                Evaluate(creature);
             }
 
             created = true;
         }     
     }
 
-    void Evaluate()
+    void Evaluate(Creature creature)
     {
-        for (int i = 0; i < populationSize; i++)
-        {   
-            //Test test = new Test(creatures.Dequeue(), testTime);
-            //tests.Enqueue(test);
-        }
+        Test test = new Test(creature, testTime);
+        tests.Add(test);
     }
 
     void Recombine()
@@ -110,7 +123,6 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         float testTime;
         float timer = 0;
         Vector3 initialCenterOfMass, endCenterOfMass;
-
 
         public Test(Creature creature, float testTime)
         {

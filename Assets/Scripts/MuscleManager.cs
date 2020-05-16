@@ -7,7 +7,7 @@ public class MuscleManager : MonoBehaviour
     public List<Muscle> muscles = new List<Muscle>();
     public float numbOfMuscles;
     float time, cycle;
-    float cycleSpeed = 5f;
+    float cycleSpeed = 3f;
 
     public void CreateNewMuscles(GameObject parent, GameObject child)
     {
@@ -249,7 +249,7 @@ public class Muscle
 
     public void Contraction()
     {
-        jointDrive.positionSpring = 300f;
+        jointDrive.positionSpring = 200f;
         jointDrive.maximumForce = 3.402823e+38f;
         jointDrive.positionDamper = 0;
         distanceJoint.xDrive = jointDrive;
@@ -259,7 +259,7 @@ public class Muscle
     }
     public void Relaxation()
     {
-        jointDrive.positionSpring = 5f;
+        jointDrive.positionSpring = 1f;
         jointDrive.maximumForce = 3.402823e+38f;
         jointDrive.positionDamper = 0;
         distanceJoint.xDrive = jointDrive;

@@ -241,10 +241,8 @@ public class JointManager : MonoBehaviour
 
     private void OnDestroy()
     {
-
         Destroy(emptyChild);
         Destroy(emptyParent);
         Destroy(middle);
-
     }
 }
