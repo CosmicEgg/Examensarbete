@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class EvolutionaryAlgorithm : MonoBehaviour
 {
@@ -60,8 +61,10 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
         foreach (List<Node> genome in genomes)
         {
-            creatures.Add(createCreature.InterpretTree(genome[0]));
+            creatures.Add(createCreature.CreateCreatureFromNodes(genome[0]));
         }
+
+        return creatures;
     }
 
     List<Creature> SelectBest(int amountToSelect, List<Test> from)
