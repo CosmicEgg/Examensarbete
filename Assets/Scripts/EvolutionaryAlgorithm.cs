@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -43,10 +44,23 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         }
 
 
-        if (dictionary.Count >= generation)
+        if (finishedTests.Count >= generation)
         {
             List<Creature> selection = SelectBest(generation / 2, finishedTests);
-            selection.AddRange(CrossOver(selection));
+            List<List<Node>> genomes = CrossOver(selection);
+            Mutate(ref genomes);
+
+            selection.AddRange(CreateCreatures(genomes));
+        }
+    }
+
+    private List<Creature> CreateCreatures(List<List<Node>> genomes)
+    {
+        List<Creature> creatures = new List<Creature>();
+
+        foreach (List<Node> genome in genomes)
+        {
+            creatures.Add(createCreature.InterpretTree(genome[0]));
         }
     }
 
@@ -115,7 +129,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 }
                 else
                 {
-                    dictionary.Add(t, t.fitness);
+                    //dictionary.Add(t, t.fitness);
                     finishedTests.Add(t);
                     testsFinished++;
                     tests.RemoveAt(i);
@@ -185,23 +199,54 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         tests.Add(test);
     }
 
-    List<Creature> CrossOver(List<Creature> toCrossOver)
+    List<List<Node>> CrossOver(List<Creature> fittest)
     {
-        List<Creature> result = new List<Creature>();
-        List<Node> genome = new List<Node>();
+        List<List<Node>> children = new List<List<Node>>();
 
+        List<Node> childGenome1 = new List<Node>();
+        List<Node> childGenome2 = new List<Node>();
 
-        for (int i = 0; i < toCrossOver.Count; i++)
+        for (int i = 0; i < fittest.Count; i += 2)
         {
-            //result.Add(createCreature.Create(toCrossOver[i].nodes, toCrossOver[toCrossOver.Count - i].nodes));
-            
+            List<Node> child = new List<Node>();
+            int index1 = Random.Range(0, fittest[i].nodes.Count);
+            Node node1 = fittest[i].nodes[index1];
+            childGenome1 = createCreature.GetBranch(node1);
+
+            int index2 = Random.Range(0, fittest[i + 1].nodes.Count);
+            Node node2 = fittest[i + 1].nodes[index2];
+            childGenome2 = createCreature.GetBranch(node2);
+
+            Edge parentEdgeTo1 = node1.parent.edges.Find((Edge edge) => edge.to == node1);
+            parentEdgeTo1.to = node2;
+
+            Edge parentEdgeTo2 = node2.parent.edges.Find((Edge edge) => edge.to == node1);
+            parentEdgeTo2.to = node1;
+
+            children.Add(fittest[i].nodes);
+            children.Add(fittest[i + 1].nodes);
+            //child.AddRange(childGenome1);
+            //child.AddRange(childGenome2);
+
         }
-        return result;
+        return children;
     }
 
-    void Mutate()
+    void Mutate(ref List<List<Node>> genomes, float mutationRate = 0.001f)
     {
+        for (int i = 0; i < genomes.Count; i++)
+        {
+            for (int j = 0; j < genomes[i].Count; j++)
+            {
+                float mutationChance = Random.Range(0.0f, 1.0f);
 
+                if (mutationChance <= mutationRate)
+                {
+                    int randomIndex = Random.Range(0, genomes[i].Count);
+                    genomes[i][randomIndex].Mutate();
+                }
+            }
+        }
     }
 
     public class Test
