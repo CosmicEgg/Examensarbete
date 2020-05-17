@@ -41,7 +41,7 @@ public class CreateCreature : MonoBehaviour
         //Create();        
     }
 
-    public Creature Create(int newSeed = 0, int spacingMultiplier = 1)
+    public Creature Create(int newSeed = 0)
     {
         //DestroyCurrent();
         //generated = false;
@@ -89,7 +89,6 @@ public class CreateCreature : MonoBehaviour
             default:
                 break;
         }
-
 
         //Start DFS to find all recursive nodes
         while (nodeStack.Count > 0)
@@ -241,8 +240,33 @@ public class CreateCreature : MonoBehaviour
         root = nodes[0];
         ResetTree(ref root);
 
-        InterpretTree(root, spacingMultiplier);
-        return new Creature(nodes, geometry, muscles, seed);
+        InterpretTree(root);
+        int geoCounter = 0;
+        foreach (GameObject g in geometry)
+        {
+            if (g != null)
+            {
+                geoCounter++;
+            }
+        }
+
+        if (geoCounter < 2)
+        {
+            DestroyCurrent();
+            return Create();
+        }
+        else if (geoCounter > 100)
+        {
+            DestroyCurrent();
+            return Create();
+        }
+
+        GameObject handle = new GameObject();
+        foreach (GameObject g in geometry)
+        {
+            g.transform.parent = handle.transform;
+        }
+        return new Creature(nodes, geometry, seed, handle);
     }
 
     private void ResetTree(ref Node node)
@@ -259,11 +283,11 @@ public class CreateCreature : MonoBehaviour
         }
     }
 
-    private void InterpretTree(Node root, int spacingMultiplier = 0)
+    private void InterpretTree(Node root)
     {
         //Root Node def.
         Queue<Node> nodeQueue = new Queue<Node>();
-        CreateRootGeometry(ref root, spacingMultiplier);
+        CreateRootGeometry(ref root);
         nodeQueue.Enqueue(root);
         int numbofgeo = 1;
         Node startOfRecurssionNode = new Node();
@@ -272,6 +296,7 @@ public class CreateCreature : MonoBehaviour
         while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
         {
             Node currentNode = nodeQueue.Peek();
+            currentNode.partOfGraph = true;
             bool startOver = false;
 
             if (currentNode.startOfRecurssion)
@@ -362,11 +387,52 @@ public class CreateCreature : MonoBehaviour
                 }
             }        
         }
+
+        CleanupNodes();
+    }
+
+    //Remove nodes not part of graph and edges leading to them in remaining nodes
+    private void CleanupNodes()
+    {
+        List<Node> nodesToDelete = new List<Node>();
+        List<Edge> edgesToDelete = new List<Edge>();
+
+        foreach (Node n in nodes)
+        {
+            if (!n.partOfGraph)
+            {
+                nodesToDelete.Add(n);
+            }
+        }
+
+        foreach (Node node in nodesToDelete)
+        {
+            foreach (Node n in nodes)
+            {
+                foreach (Edge e in n.edges)
+                {
+                    if (e.to == node)
+                    {
+                        edgesToDelete.Add(e);
+                    }
+                }
+
+                foreach (Edge e in edgesToDelete)
+                {
+                    n.edges.Remove(e);
+                }
+            }
+        }
+
+        foreach (Node n in nodesToDelete)
+        {
+            nodes.Remove(n);
+        }
     }
 
     private void CreateRecurssionGeometry(Node node, Node parent, Edge currentEdge, Node recurssionNode)
     {
-        if (ReferenceEquals(parent, node) || parent.gameObjects.Count == 0)
+        if (ReferenceEquals(parent, node) || parent.gameObjects.Count == 0 || node.scaleFactor < 0.2)
         {
             return;
         }
@@ -841,10 +907,10 @@ public class CreateCreature : MonoBehaviour
         }
     }
 
-    public void CreateRootGeometry(ref Node node, int spacingMultiplier = 0)
+    public void CreateRootGeometry(ref Node node)
     {
         rootGameObject = GameObject.CreatePrimitive(node.primitiveType);
-        rootGameObject.transform.position = new Vector3(20 * spacingMultiplier, 5, 0);
+        rootGameObject.transform.position = new Vector3(0, 0, 0);
         node.rotation = Vector3.zero;
         rootGameObject.transform.rotation = Quaternion.Euler(node.rotation);
         rootGameObject.transform.localScale = node.scale;
@@ -965,7 +1031,7 @@ public class CreateCreature : MonoBehaviour
                     node.gameObjects.Add(currentGeometry);
                     currentGeometry.name = node.id.ToString();
                     geometry.Add(currentGeometry);
-                    currentGeometry.GetComponent<GeoInfo>().ParentToChildDir = currentGeometry.transform.position - parentGeometry.transform.position;
+                    currentGeometry.GetComponent<GeoInfo>().ParentToChildVector = currentGeometry.transform.position - parentGeometry.transform.position;
                 }
             }
 
@@ -979,7 +1045,7 @@ public class CreateCreature : MonoBehaviour
 
             int random;
 
-            for (int i = 1; i < node.occurence; ++i)
+            for (int i = 1; i < node.occurence; i++)
             {
                 Quaternion mirrorRot = currentGeometry.transform.rotation;
                 Vector3 axis = parentGeometry.transform.right;
@@ -1019,7 +1085,7 @@ public class CreateCreature : MonoBehaviour
                 {
                     newAxis = false;
 
-                    if (testAxis > 0/* && parent.referenceNode == null*/)
+                    if (testAxis > 0)
                     {
                         random = Random.Range(0, 3);
 
@@ -1039,16 +1105,17 @@ public class CreateCreature : MonoBehaviour
                                 break;
                         }
                     }
+                    
 
                     Quaternion objectQuat = currentGeometry.transform.rotation;
                     Quaternion mirrorNormalQuat = new Quaternion(axis.x, axis.y, axis.z, 0);
 
-                    Quaternion reflectedQuat = mirrorNormalQuat * objectQuat;
+                    Quaternion mirrorNormalQuat = new Quaternion(axis.x, axis.y, axis.z, 0);
+                    Quaternion reflectedQuat = mirrorNormalQuat * objectQuat * mirrorNormalQuat;
                     mirrorRot = reflectedQuat;
 
                     Vector3 mirrorPos = Vector3.Reflect(currentGeometry.transform.position - parentGeometry.transform.position, axis) + parentGeometry.transform.position;
 
-                    //GameObject refChild = Instantiate(currentGeometry, mirrorPos, mirrorRot);
                     GameObject refChild = GameObject.CreatePrimitive(node.primitiveType);
                     refChild.transform.position = mirrorPos;
                     refChild.transform.rotation = mirrorRot;
@@ -1107,8 +1174,12 @@ public class CreateCreature : MonoBehaviour
                         node.gameObjects.Add(refChild);
                         geometry.Add(refChild);
                         refChild.name = node.id.ToString();
+                        //!!!!!!!!
+                        //currentGeometry.GetComponent<GeoInfo>().RefAxis = axis;
+                        currentGeometry.GetComponent<GeoInfo>().RefAxis = parentGeometry.GetComponent<GeoInfo>().RefAxis;
+                        //!!!!!
                         refGeoInfo.RefAxis = axis;
-                        refGeoInfo.ParentToChildDir = refChild.transform.position - parentGeometry.transform.position;
+                        refGeoInfo.ParentToChildVector = refChild.transform.position - parentGeometry.transform.position;
                         node.axisList.Enqueue(axis);
                         refGeoInfo.PosRelParent = parentGeometry.transform.position;
                         restart = true;
@@ -1121,7 +1192,9 @@ public class CreateCreature : MonoBehaviour
                         foreach (GameObject geo in node.gameObjects)
                         {
                             Destroy(geo);
+                            geometry.Remove(geo);
                         }
+
                         node.gameObjects.Clear();
                         break;
                     }
@@ -1303,11 +1376,13 @@ public class CreateCreature : MonoBehaviour
                         geometry.Add(currentGeometry);
                         currentGeometry.GetComponent<GeoInfo>().recursiveNumb = currentEdge.recursiveNumb;
                         currentGeometry.name = node.id.ToString();
+
                         currentGeometry.GetComponent<GeoInfo>().RefAxis = pg.GetComponent<GeoInfo>().RefAxis;
+
                         if (firstGeo)
                         {
                             pointOnParent = currentGeometry.transform.position;
-                            currentGeometry.GetComponent<GeoInfo>().ParentToChildDir = currentGeometry.transform.position - parentGeometry.transform.position;
+                            currentGeometry.GetComponent<GeoInfo>().ParentToChildVector = currentGeometry.transform.position - parentGeometry.transform.position;
                         }
 
                         firstGeo = false;
@@ -1420,6 +1495,7 @@ public class CreateCreature : MonoBehaviour
                         muscles.CreateRefMuscles(parentGeometry, currentGeometry, currentGeo.GetComponent<MuscleManager>().muscles, axis);
                     }
 
+                    currentGeometry.GetComponent<GeoInfo>().RefAxis = axis;
                     geometry.Add(currentGeometry);
                     node.gameObjects.Add(currentGeometry);
                     currentGeometry.name = node.id.ToString();
@@ -1662,6 +1738,7 @@ public class CreateCreature : MonoBehaviour
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[0].edges.Add(new Edge(nodes[0], nodes[1], Random.Range(0, 4), 0));
         nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
+        //nodes[1].edges.Add(new Edge(nodes[1], nodes[2], Random.Range(0, 4), 0));
         nodes[2].edges.Add(new Edge(nodes[2], nodes[3], Random.Range(0, 4), 0));
         nodes[3].edges.Add(new Edge(nodes[3], nodes[4], Random.Range(0, 4), 0));
 
@@ -1742,6 +1819,7 @@ public class Node
     public int numOfChildren = Random.Range(0, 5);
     public bool stacked;
     public int id;
+    public bool partOfGraph = false;
 
     public List<Edge> edges = new List<Edge>();
 
@@ -1822,15 +1900,29 @@ public class Creature
 {
     public List<Node> nodes = new List<Node>();
     public List<GameObject> geometry = new List<GameObject>();
-    public List<Muscle> muscles = new List<Muscle>();
+    public GameObject handle;
     public int seed;
 
-    public Creature(List<Node> nodes, List<GameObject> geometry, List<Muscle> muscles, int seed)
+    public Creature(List<Node> nodes, List<GameObject> geometry, int seed, GameObject handle)
     {
+        this.handle = handle;
         this.nodes = nodes;
         this.geometry = geometry;
-        this.muscles = muscles;
         this.seed = seed;
+    }
+
+    public void Update()
+    {
+        foreach (GameObject g in geometry)
+        {
+            if (g != null)
+            {
+                if (g.TryGetComponent<MuscleManager>(out MuscleManager muscleManager))
+                {
+                    muscleManager.UpdateMuscles();
+                }
+            }
+        }
     }
 }
 

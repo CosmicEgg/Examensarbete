@@ -204,7 +204,7 @@ public class JointManager : MonoBehaviour
         placementOnParent.GetComponent<Collider>().isTrigger = true;
         placementOnParent.transform.position = parentCollider.ClosestPoint(transform.position);
 
-        GameObject emptyParent = new GameObject();
+        emptyParent = new GameObject();
         emptyParent.transform.position = placementOnParent.transform.position;
         emptyParent.transform.parent = parent.transform;
         placementOnParent.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
@@ -215,14 +215,14 @@ public class JointManager : MonoBehaviour
         placementOnChild.GetComponent<Collider>().isTrigger = true;
         placementOnChild.transform.position = childCollider.ClosestPoint(placementOnParent.transform.position);
 
-        GameObject emptyChild = new GameObject();
+        emptyChild = new GameObject();
         emptyChild.transform.position = placementOnChild.transform.position;
         emptyChild.transform.parent = transform;
         placementOnChild.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
         placementOnChild.transform.parent = emptyChild.transform;
 
 
-        GameObject middle = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        middle = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         middle.GetComponent<Collider>().isTrigger = true;
         middle.transform.position = placementOnChild.transform.position + ((placementOnParent.transform.position - placementOnChild.transform.position) / 2);
         middle.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
