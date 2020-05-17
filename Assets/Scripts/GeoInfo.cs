@@ -44,7 +44,7 @@ public class GeoInfo : MonoBehaviour
         set { posRelParent = value; }
     }
 
-    public Vector3 ParentToChildDir
+    public Vector3 ParentToChildVector
     {
         get { return parentToChildDir; }
         set { parentToChildDir = value; }

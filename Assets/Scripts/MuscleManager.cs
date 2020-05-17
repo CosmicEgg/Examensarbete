@@ -39,7 +39,8 @@ public class MuscleManager : MonoBehaviour
         }
     }
 
-    void Update()
+
+    public void UpdateMuscles()
     {
         time += Time.deltaTime;
         cycle = Mathf.Sin(time * cycleSpeed);
@@ -63,6 +64,10 @@ public class MuscleManager : MonoBehaviour
         {
             m.DrawMuscle();
         }
+    }
+
+    void Update()
+    {  
     }
 
     private void OnDestroy()
