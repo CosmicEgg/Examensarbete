@@ -271,16 +271,40 @@ public class CreateCreature : MonoBehaviour
         return new Creature(nodes,geometry, seed, handle);
     }
 
-    private void ResetTree(ref Node node)
+    private void ResetTree(ref Node node, bool clearGameObjects = false)
     {
         foreach (Edge e in node.edges)
         {
             if (e.traversed)
             {
+                if (clearGameObjects)
+                {
+                    e.to.gameObjects.Clear();
+                }
                 e.to.created = false;
                 e.traversed = false;
                 e.numOfTravels = 0;
+                e.to.createdGeo = false;
                 ResetTree(ref e.to);
+            }
+        }
+    }
+
+    private void ResetNodes(ref Node root)
+    {
+        Queue<Node> nodeQueue = new Queue<Node>();
+        nodes.Remove(root);
+        nodeQueue.Enqueue(root);
+
+        while (nodeQueue.Count > 0)
+        {
+            Node currentNode = nodeQueue.Dequeue();
+
+            foreach (Edge e in currentNode.edges)
+            {
+                //nodes.Remove(e.to);
+                e.to.gameObjects.Clear();
+                nodeQueue.Enqueue(e.to);
             }
         }
     }
@@ -396,6 +420,8 @@ public class CreateCreature : MonoBehaviour
     public Creature CreateCreatureFromNodes(Node root)
     {
         //Root Node def.
+        ResetTree(ref root);
+        ResetNodes(ref root);
         geometry = new List<GameObject>();
         Queue<Node> nodeQueue = new Queue<Node>();
         CreateRootGeometry(ref root);
@@ -1037,8 +1063,9 @@ public class CreateCreature : MonoBehaviour
         rb.useGravity = false;
         if (root.startOfRecurssion)
             root.scale.x = root.scale.z;
-
+        node.parent = null;
         node.created = true;
+        node.gameObjects.Clear();
         node.gameObjects.Add(rootGameObject);
         geometry.Add(rootGameObject);
     }
@@ -1748,6 +1775,11 @@ public class CreateCreature : MonoBehaviour
 
     public void CopyNodeTree(Node oriNode, out Node outNode)
     {
+        if (oriNode == null)
+        {
+            outNode = null;
+            return;
+        }
         List<Node> toReset = new List<Node>();
         Stack<Node> copyStack = new Stack<Node>();
         copyStack.Push(oriNode);
@@ -1972,7 +2004,7 @@ public class Node
         this.rotation = rotation;
         this.id = id;
         this.referenceNode = referenceNode;
-        this.numOfRecursiveChildren = numOfRecursiveChildren;
+        partOfGraph = true;
         this.recursionJointType = recursionJointType;
 
     }
@@ -2032,6 +2064,9 @@ public class Edge
         this.recursiveLimit = recursiveLimit;
         this.numOfTravels = numOfTravels;
     }
+
+    public Edge() { }
+
     public Edge(Node from, Node to, int recursiveLimit, int numOfTravels, int recursiveNumb, Vector3 axis)
     {
         this.from = from;

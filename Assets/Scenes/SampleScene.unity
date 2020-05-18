@@ -375,8 +375,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 317bb8529027c9c4ba2894f640d1ab94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  uiManager: {fileID: 1478923419}
   batchSize: 5
-  generation: 100
+  population: 10
   plane: {fileID: 1806056839}
 --- !u!1001 &1176629781
 PrefabInstance:
@@ -497,6 +498,18 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 708ff2fdf91e5bf41ab2d84968fa2f74, type: 3}
+--- !u!114 &1478923419 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8234108694562290613, guid: 708ff2fdf91e5bf41ab2d84968fa2f74,
+    type: 3}
+  m_PrefabInstance: {fileID: 1176629781}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8515a916ff2a3d4a9207a46d365f69c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1806056839
 GameObject:
   m_ObjectHideFlags: 0

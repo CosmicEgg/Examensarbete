@@ -6,9 +6,10 @@ using Random = UnityEngine.Random;
 
 public class EvolutionaryAlgorithm : MonoBehaviour
 {
+    public UIManager uiManager;
     private int maxAllowedTimeToStabilize = 10, currentBatchSize = 0;
     private int timeToStabilize = 5;
-    public int batchSize = 5, generation = 100;
+    public int batchSize = 5, population = 10;
     float testTime = 10;
     float timer = 0, testsFinished = 0, timeSinceSpawn = 0, testsStarted = 0;
     bool physicsInitiated = false, created = false;
@@ -19,15 +20,19 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     List<Test> finishedTests = new List<Test>();
     public GameObject plane;
     Dictionary<Test, float> dictionary = new Dictionary<Test, float>();
+    private float currentGeneration = 0;
 
     // Start is called before the first frame update
     void Start()
     {
+        uiManager.SetMaxPopulationSize(population);
     }
 
     // Update is called once per frame
     void Update()
     {
+        uiManager.SetPopulationsTested(finishedTests.Count);
+        uiManager.SetCurrentGeneration(currentGeneration);
         timeSinceSpawn += Time.deltaTime;
 
         if (!physicsInitiated)
@@ -35,48 +40,58 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             return;
         }
 
-
-        if (testsFinished >= currentBatchSize)
+        if (finishedTests.Count >= population)
+        {
+            currentGeneration++;
+            plane.SetActive(false);
+            List<List<Node>> selection = SelectBest(population / 2, finishedTests);
+            List<List<Node>> genomes = CrossOver(selection);
+            //Mutate(ref genomes);
+            selection.AddRange(genomes);
+            List<Creature> newCreatures = RepopulateCreatureQueueFromGenomes(selection);
+            tests.Clear();
+            finishedTests.Clear();
+            physicsInitiated = false;
+            created = true;
+            currentBatchSize = creatureQueue.Count;
+            testsFinished = 0;
+            timeSinceSpawn = 0;
+            plane.SetActive(true);
+        }
+        else if (testsFinished >= currentBatchSize)
         {
             currentBatchSize = 0;
             testsFinished = 0;
             created = false;
             physicsInitiated = false;
-        }
-
-
-        if (finishedTests.Count >= generation)
-        {
-            List<Creature> selection = SelectBest(generation / 2, finishedTests);
-            List<List<Node>> genomes = CrossOver(selection);
-            Mutate(ref genomes);
-
-            selection.AddRange(CreateCreatures(genomes));
-        }
+        }   
     }
 
-    private List<Creature> CreateCreatures(List<List<Node>> genomes)
+    private List<Creature> RepopulateCreatureQueueFromGenomes(List<List<Node>> genomes)
     {
-        List<Creature> creatures = new List<Creature>();
+        creatures.Clear();
+        creatureQueue.Clear();
 
-        foreach (List<Node> genome in genomes)
+        for (int i = 0; i < genomes.Count; i++) 
         {
-            creatures.Add(createCreature.CreateCreatureFromNodes(genome[0]));
+            Creature newCreature = createCreature.CreateCreatureFromNodes(genomes[i][0]);
+            newCreature.handle.transform.Translate(new Vector3(20 * i, 10, 0));
+            creatures.Add(newCreature);
+            creatureQueue.Enqueue(newCreature);
         }
 
         return creatures;
     }
 
-    List<Creature> SelectBest(int amountToSelect, List<Test> from)
+    List<List<Node>> SelectBest(int amountToSelect, List<Test> from)
     {
-        List<Creature> selection = new List<Creature>();
+        List<List<Node>> selection = new List<List<Node>>();
 
         from.Sort((Test t, Test t2) => t2.fitness.CompareTo(t.fitness));
 
         for (int i = 0; i < amountToSelect; i++)
         {
-            selection.Add(from[i].creature);
-
+            selection.Add(from[i].creature.nodes);
         }
         return selection;
     }
@@ -132,7 +147,6 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 }
                 else
                 {
-                    //dictionary.Add(t, t.fitness);
                     finishedTests.Add(t);
                     testsFinished++;
                     tests.RemoveAt(i);
@@ -165,7 +179,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             physicsInitiated = true;
         }
        
-        if (!physicsInitiated)
+        if (!physicsInitiated && !created)
         {
             if (TryGetComponent<CreateCreature>(out createCreature)) { }
             else createCreature = gameObject.AddComponent<CreateCreature>();
@@ -174,7 +188,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             {
                 currentBatchSize++;
                 Creature creature = createCreature.Create();
-                creature.handle.transform.Translate(new Vector3(20 * i, 10, 0)); 
+                creature.handle.transform.Translate(new Vector3(20 * i, 5, 0)); 
                 creatures.Add(creature);
                 creatureQueue.Enqueue(creature);
             }
@@ -183,11 +197,6 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             plane.SetActive(true);
             created = true;
         }     
-    }
-
-    void Creation()
-    {
-
     }
 
     void Evaluate()
@@ -202,35 +211,86 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         tests.Add(test);
     }
 
-    List<List<Node>> CrossOver(List<Creature> fittest)
+    List<List<Node>> CrossOver(List<List<Node>> fittest)
     {
         List<List<Node>> children = new List<List<Node>>();
+        List<Node> crossOverNodeBranch1 = new List<Node>();
+        List<Node> crossOverNodeBranch2 = new List<Node>();
 
-        List<Node> childGenome1 = new List<Node>();
-        List<Node> childGenome2 = new List<Node>();
-
-        for (int i = 0; i < fittest.Count; i += 2)
+        for (int i = 0; i < fittest.Count - 1; i += 2)
         {
-            List<Node> child = new List<Node>();
-            int index1 = Random.Range(0, fittest[i].nodes.Count);
-            Node node1 = fittest[i].nodes[index1];
-            childGenome1 = createCreature.GetBranch(node1);
+            //Select random node from nodeList
+            int index1 = Random.Range(0, fittest[i].Count);
+            Node originalCrossOverNode1 = fittest[i][index1];
+            Node crossOverNode1 = new Node();
+            //Retreive all nodes branching from this node
+            createCreature.CopyNodeTree(originalCrossOverNode1, out crossOverNode1);
+            //crossOverNodeBranch1 = createCreature.GetBranch(originalCrossOverNode1);
 
-            int index2 = Random.Range(0, fittest[i + 1].nodes.Count);
-            Node node2 = fittest[i + 1].nodes[index2];
-            childGenome2 = createCreature.GetBranch(node2);
+            //Select random node from nodeList
+            int index2 = Random.Range(0, fittest[i + 1].Count);
+            Node originalCrossOverNode2 = fittest[i + 1][index2];
+            Node crossOverNode2 = new Node();
+            //Retreive all nodes branching from this node
+            createCreature.CopyNodeTree(originalCrossOverNode2, out crossOverNode2);
+            //crossOverNodeBranch2 = createCreature.GetBranch(originalCrossOverNode2);
 
-            Edge parentEdgeTo1 = node1.parent.edges.Find((Edge edge) => edge.to == node1);
-            parentEdgeTo1.to = node2;
+            //Node parent1 = new Node();
+            //createCreature.CopyNodeTree(crossOverNode1.parent, out parent1);
+            //Node parent2 = new Node();
+            //createCreature.CopyNodeTree(crossOverNode2.parent, out parent2);
 
-            Edge parentEdgeTo2 = node2.parent.edges.Find((Edge edge) => edge.to == node1);
-            parentEdgeTo2.to = node1;
+            if (originalCrossOverNode1.parent != null)
+            {
+                Edge toAdd = new Edge();
+                Edge toRemove = new Edge();
+                bool found = false;
+                foreach (Edge e in originalCrossOverNode1.parent.edges)
+                {
+                    if (e.to.Equals(originalCrossOverNode1))
+                    {
+                        toAdd = new Edge(originalCrossOverNode1.parent, crossOverNode2, e.recursiveLimit, e.numOfTravels);
+                        toRemove = e;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
 
-            children.Add(fittest[i].nodes);
-            children.Add(fittest[i + 1].nodes);
-            //child.AddRange(childGenome1);
-            //child.AddRange(childGenome2);
+                }
+                originalCrossOverNode1.parent.edges.Remove(toRemove);
+                originalCrossOverNode1.parent.edges.Add(toAdd);
+            }
 
+            if (originalCrossOverNode2.parent != null)
+            {
+                Edge toAdd = new Edge();
+                Edge toRemove = new Edge();
+                bool found = false;
+                foreach (Edge e in originalCrossOverNode2.parent.edges)
+                {
+                    if (e.to.Equals(originalCrossOverNode2))
+                    {
+                        toAdd = new Edge(originalCrossOverNode2.parent, crossOverNode1, e.recursiveLimit, e.numOfTravels);
+                        toRemove = e;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+
+                }
+                originalCrossOverNode2.parent.edges.Remove(toRemove);
+                originalCrossOverNode2.parent.edges.Add(toAdd);
+            }
+            
+            crossOverNode1.parent = originalCrossOverNode2.parent;
+            crossOverNode2.parent = originalCrossOverNode1.parent;
+
+            children.Add(fittest[i]);
+            children.Add(fittest[i+1]);
         }
         return children;
     }
