@@ -48,7 +48,7 @@ public class CreateCreature : MonoBehaviour
         seed = newSeed;
         if (seed == 0)
         {
-            seed = Random.Range(0, 10000);
+            seed = Random.Range(1, 10000);
         }
 
         Random.InitState(seed);
@@ -268,7 +268,213 @@ public class CreateCreature : MonoBehaviour
         {
             g.transform.parent = handle.transform;
         }
-        return new Creature(nodes,geometry, seed, handle);
+        return new Creature(nodes, geometry, seed, handle);
+    }
+
+    public List<Node> CreateNodesFromSeed(int newSeed = 0)
+    {
+        //DestroyCurrent();
+        //generated = false;
+        seed = newSeed;
+        if (seed == 0)
+        {
+            seed = Random.Range(1, 10000);
+        }
+
+        Random.InitState(seed);
+        oriRecurssionMuscle = new List<Muscle>();
+        leftRecurssionMuscle = new List<Muscle>();
+        frontRecurssionMuscle = new List<Muscle>();
+        backRecurssionMuscle = new List<Muscle>();
+        copyGameObject = new List<GameObject>();
+        PhysicsOn = true;
+        limbSpacing = Random.Range(minLimbSpacing, maxLimbSpacing);
+        muscles = new List<Muscle>();
+        geometry = new List<GameObject>();
+        numOfNodes = Random.Range(1, 5);
+        startPosition = Vector3.zero;
+        nodes = new List<Node>();
+        recurssionStack = new Stack<Node>();
+        symmetryStack = new Stack<Node>();
+        nodeOrder = new List<Node>();
+        nodeStack = new Stack<Node>();
+
+        minScale = 1f;
+        maxScale = 2f;
+
+        switch (typeOfGeneration)
+        {
+            case TypeOfGeneration.random:
+                CreateRandomNodes();
+                break;
+            case TypeOfGeneration.symmetry:
+                CreateSymmetryTest();
+                break;
+            case TypeOfGeneration.recursion:
+                CreateRecursionTest();
+                break;
+            case TypeOfGeneration.symplussin:
+                CreateSymmetryPlusSingleTest();
+                break;
+            default:
+                break;
+        }
+
+        //Start DFS to find all recursive nodes
+        while (nodeStack.Count > 0)
+        {
+            Node currentNode = nodeStack.Peek();
+            bool startOver = false;
+
+            if (currentNode.edges.Count == 0)
+            {
+                nodeStack.Pop();
+                currentNode.stacked = false;
+                continue;
+            }
+
+            foreach (Edge edge in currentNode.edges)
+            {
+                //If all are traversed we are finished with this node
+                if (!edge.traversed)
+                {
+                    startOver = false;
+                    break;
+                }
+                else
+                    startOver = true;
+            }
+
+            //Pop and start over
+            if (startOver)
+            {
+                nodeStack.Pop();
+                currentNode.stacked = false;
+                continue;
+            }
+
+
+            for (int i = 0; i < currentNode.edges.Count; i++)
+            {
+                //If not yet traveled and not looking at ourselves
+                if (!currentNode.edges[i].traversed && !ReferenceEquals(currentNode, currentNode.edges[i].to))
+                {
+                    //If not already in stack i.e. edge is not a backwards edge
+                    currentNode.edges[i].traversed = true;
+                    currentNode.edges[i].to.parent = currentNode;
+
+                    if (!currentNode.edges[i].to.stacked)
+                    {
+                        currentNode.edges[i].to.stacked = true;
+                        nodeStack.Push(currentNode.edges[i].to);
+                        nodeOrder.Add(currentNode.edges[i].to);
+                    }
+                    else //Remove backwards edge
+                    {
+                        Debug.Log("Removing edge from " + currentNode.id + " to " + currentNode.edges[i].to.id);
+                        currentNode.edges.RemoveAt(i);
+                    }
+
+                    break;
+                }
+            }
+
+            foreach (Edge edge in currentNode.edges)
+            {
+                if (!edge.traversed && ReferenceEquals(currentNode, edge.to))
+                {
+                    //If not already in stack i.e. edge is not a backwards edge
+                    bool addNode = true;
+
+                    foreach (Node n in recurssionStack)
+                    {
+                        if (ReferenceEquals(n, edge.to))
+                            addNode = false;
+                    }
+
+                    if (addNode)
+                    {
+                        recurssionStack.Push(edge.to);
+                        edge.to.startOfRecurssion = true;
+                        nodeOrder.Add(edge.to);
+                    }
+                    edge.traversed = true;
+                }
+            }
+        }
+
+        root = nodes[0];
+        ResetTree(ref root);
+
+        Queue<Node> recurssionQueue = new Queue<Node>();
+
+        while (recurssionStack.Count > 0)
+        {
+            Node queueNode = recurssionStack.Pop();
+
+            recurssionQueue.Enqueue(queueNode);
+        }
+
+        while (recurssionQueue.Count > 0)
+        {
+            Node originalRecursiveNode = recurssionQueue.Peek();
+
+            Queue<Node> currentNodeRecurssion = new Queue<Node>();
+            currentNodeRecurssion.Enqueue(originalRecursiveNode);
+
+            while (currentNodeRecurssion.Count > 0)
+            {
+                Node currentNode = currentNodeRecurssion.Peek();
+                //List<Node> newAddedNodes = new List<Node>();
+                List<Edge> edgesToAdd = new List<Edge>();
+                int selfEdges = 0;
+                foreach (Edge e in currentNode.edges)
+                {
+                    if (ReferenceEquals(e.to, e.from))
+                    {
+                        selfEdges++;
+                    }
+                }
+
+                currentNode.numOfRecursiveChildren = selfEdges;
+
+                int counter = -1;
+
+                for (int i = 0; i < currentNode.edges.Count; i++)
+                {
+                    if (ReferenceEquals(currentNode.edges[i].to, currentNode.edges[i].from))
+                    {
+                        CopyNodeTree(currentNode, out Node newNode);
+                        newNode.parent = currentNode;
+                        counter++;
+                        //-1 för att vi skapat en kopia redan och borde egenltigen redan höjt numOfTravels
+                        if (currentNode.edges[i].numOfTravels < currentNode.edges[i].recursiveLimit - 1)
+                        {
+                            for (int j = 0; j < selfEdges; j++)
+                            {
+                                newNode.edges.Add(new Edge(newNode, newNode, currentNode.edges[i].recursiveLimit, currentNode.edges[i].numOfTravels + 1, j, new Vector3(1, 0, 0)));
+                            }
+                        }
+
+                        currentNodeRecurssion.Enqueue(newNode);
+
+                        currentNode.edges.RemoveAt(i);
+                        edgesToAdd.Add(new Edge(currentNode, newNode, 4, 4, counter, new Vector3(0, 0, 1)));
+                        i = -1;
+                    }
+                }
+
+                currentNode.edges.AddRange(edgesToAdd);
+                currentNodeRecurssion.Dequeue();
+            }
+            recurssionQueue.Dequeue();
+        }
+        root = nodes[0];
+        ResetTree(ref root);
+
+        InterpretTreeWithoutCreatingGeometry(root);
+
+        return nodes;
     }
 
     private void ResetTree(ref Node node, bool clearGameObjects = false)
@@ -307,6 +513,99 @@ public class CreateCreature : MonoBehaviour
                 nodeQueue.Enqueue(e.to);
             }
         }
+    }
+
+    public void InterpretTreeWithoutCreatingGeometry(Node root)
+    {
+        //Root Node def.
+        Queue<Node> nodeQueue = new Queue<Node>();
+        //CreateRootGeometry(ref root);
+        nodeQueue.Enqueue(root);
+        int numbofgeo = 1;
+        Node startOfRecurssionNode = new Node();
+
+        //Interpret tree in a BFS-like fashion
+        while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
+        {
+            Node currentNode = nodeQueue.Peek();
+            currentNode.partOfGraph = true;
+            bool startOver = false;
+
+            if (currentNode.startOfRecurssion)
+            {
+                startOfRecurssionNode = currentNode;
+                startOfRecurssionNode.scale.z = startOfRecurssionNode.scale.x;
+
+            }
+
+            if (currentNode.edges.Count == 0 || currentNode.gameObjects.Count == 0)
+            {
+                nodeQueue.Dequeue();
+                continue;
+            }
+
+
+            foreach (Edge edge in currentNode.edges)
+            {
+                if (!edge.traversed)
+                {
+                    startOver = false;
+                    break;
+                }
+                else
+                    startOver = true;
+            }
+
+            //Pop and start over
+            if (startOver)
+            {
+                nodeQueue.Dequeue();
+                continue;
+            }
+
+            //Make deepCopy of currentNodes to prevent deletion of nodes in original list
+            List<Node> tempNodes = new List<Node>();
+            foreach (Edge e in currentNode.edges)
+            {
+                tempNodes.Add(e.to);
+            }
+
+            var myhash = new HashSet<Node>();
+            var mylist = tempNodes;
+            var duplicates = mylist.Where(item => !myhash.Add(item)).Distinct().ToList();
+
+            //Region for multiple edges to one node
+            //Occurences contain the number of times a duplicate exists stored 
+            //as an integer in indexing corresponding to duplicates indexing
+            for (int i = 0; i < duplicates.Count; i++)
+            {
+                foreach (Node n in tempNodes)
+                {
+                    if (duplicates[i].Equals(n))
+                    {
+                        n.symmetry = true;
+                        n.occurence++;
+                    }
+                }
+            }
+
+            //Creating all not already traversed normal children/nodes
+            for (int i = 0; i < currentNode.edges.Count; i++)
+            {
+                if (!currentNode.edges[i].traversed /*&& !currentNode.edges[i].to.created*/)
+                {
+                    currentNode.edges[i].traversed = true;
+
+                    if (!currentNode.edges[i].to.createdGeo)
+                    {
+                        nodeQueue.Enqueue(currentNode.edges[i].to);
+                        currentNode.edges[i].to.createdGeo = true;
+                    }
+                }
+            }
+        }
+
+        CleanupNodes();
     }
 
     public void InterpretTree(Node root)
@@ -1052,6 +1351,7 @@ public class CreateCreature : MonoBehaviour
 
     public void CreateRootGeometry(ref Node node)
     {
+
         rootGameObject = GameObject.CreatePrimitive(node.primitiveType);
         rootGameObject.transform.position = new Vector3(0, 0, 0);
         node.rotation = Vector3.zero;
@@ -1198,7 +1498,14 @@ public class CreateCreature : MonoBehaviour
                 {
                     if (parent.referenceNode != null)
                     {
-                        axis = node.referenceNode.axisList.Dequeue();
+                        //if (node.referenceNode.axisList.Count > 0)
+                        //{
+                            //!!!
+                            axis = node.referenceNode.axisList.ElementAt(i - 1);
+                            //axis = node.referenceNode.axisList.Dequeue();
+                            //!!!
+
+                        //}
                     }
                     else
                     {
@@ -1323,7 +1630,7 @@ public class CreateCreature : MonoBehaviour
                         //!!!!!
                         refGeoInfo.RefAxis = axis;
                         refGeoInfo.ParentToChildVector = refChild.transform.position - parentGeometry.transform.position;
-                        node.axisList.Enqueue(axis);
+                        node.axisList.Add(axis);
                         refGeoInfo.PosRelParent = parentGeometry.transform.position;
                         restart = true;
                     }
@@ -1987,7 +2294,7 @@ public class Node
     public Vector3 rotation;
     public Vector3 parentToChildDir;
     public List<GameObject> gameObjects = new List<GameObject>();
-    public Queue<Vector3> axisList = new Queue<Vector3>();
+    public List<Vector3> axisList = new List<Vector3>();
     public int numOfChildren = Random.Range(0, 5);
     public bool stacked;
     public int id;
