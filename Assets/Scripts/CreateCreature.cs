@@ -271,9 +271,11 @@ public class CreateCreature : MonoBehaviour
         return new Creature(nodes, geometry, seed, handle);
     }
 
+
+    //Returnerar för få noder
     public List<Node> CreateNodesFromSeed(int newSeed = 0)
     {
-        //DestroyCurrent();
+        DestroyCurrent();
         //generated = false;
         seed = newSeed;
         if (seed == 0)
@@ -519,7 +521,8 @@ public class CreateCreature : MonoBehaviour
     {
         //Root Node def.
         Queue<Node> nodeQueue = new Queue<Node>();
-        //CreateRootGeometry(ref root);
+        CreateRootWithoutGeomtery(ref root);
+
         nodeQueue.Enqueue(root);
         int numbofgeo = 1;
         Node startOfRecurssionNode = new Node();
@@ -538,7 +541,7 @@ public class CreateCreature : MonoBehaviour
 
             }
 
-            if (currentNode.edges.Count == 0 || currentNode.gameObjects.Count == 0)
+            if (currentNode.edges.Count == 0/* || currentNode.gameObjects.Count == 0*/)
             {
                 nodeQueue.Dequeue();
                 continue;
@@ -606,6 +609,26 @@ public class CreateCreature : MonoBehaviour
         }
 
         CleanupNodes();
+    }
+
+    private void CreateRootWithoutGeomtery(ref Node node)
+    {
+        //rootGameObject = GameObject.CreatePrimitive(node.primitiveType);
+        //rootGameObject.transform.position = new Vector3(0, 0, 0);
+        node.rotation = Vector3.zero;
+        //rootGameObject.transform.rotation = Quaternion.Euler(node.rotation);
+        //rootGameObject.transform.localScale = node.scale;
+        //Rigidbody rb = rootGameObject.AddComponent<Rigidbody>();
+        //rootGameObject.AddComponent<GeoInfo>();
+        //rb.isKinematic = true;
+        //rb.useGravity = false;
+        if (root.startOfRecurssion)
+            root.scale.x = root.scale.z;
+        node.parent = null;
+        node.created = true;
+        node.gameObjects.Clear();
+        //node.gameObjects.Add(rootGameObject);
+        //geometry.Add(rootGameObject);
     }
 
     public void InterpretTree(Node root)
@@ -1498,14 +1521,18 @@ public class CreateCreature : MonoBehaviour
                 {
                     if (parent.referenceNode != null)
                     {
-                        //if (node.referenceNode.axisList.Count > 0)
-                        //{
+                        if (node.referenceNode.axisList.Count > 0 && i - 1 <= node.referenceNode.axisList.Count)
+                        {
+                            if (node.referenceNode.axisList.ElementAt(i - 1) != null )
+                            {
+                                axis = node.referenceNode.axisList.ElementAt(i - 1);
+                            }
+
                             //!!!
-                            axis = node.referenceNode.axisList.ElementAt(i - 1);
                             //axis = node.referenceNode.axisList.Dequeue();
                             //!!!
 
-                        //}
+                        }
                     }
                     else
                     {
@@ -2057,12 +2084,12 @@ public class CreateCreature : MonoBehaviour
         return true;
     }
 
-    public List<Node> GetBranch(Node root)
+    //Needs to be called after all recursive nodes have been flushed out as single nodes to prevent inifinite loop
+    public List<Node> GetExpandedNodesList(Node root)
     {
-        List<Node> branch = new List<Node>();
+        List<Node> expandedNodes = new List<Node>();
         Queue<Node> nodeQueue = new Queue<Node>();
-        nodes.Remove(root);
-        branch.Add(root);
+        expandedNodes.Add(root);
         nodeQueue.Enqueue(root);
 
         while (nodeQueue.Count > 0)
@@ -2071,13 +2098,12 @@ public class CreateCreature : MonoBehaviour
 
             foreach (Edge e in currentNode.edges)
             {
-                nodes.Remove(e.to);
                 nodeQueue.Enqueue(e.to);
-                branch.Add(e.to);
+                expandedNodes.Add(e.to);
             }
         }
 
-        return branch;
+        return expandedNodes;
     }
 
     public void CopyNodeTree(Node oriNode, out Node outNode)
@@ -2391,6 +2417,12 @@ public class Creature
     public List<GameObject> geometry = new List<GameObject>();
     public GameObject handle;
     public int seed;
+    public float timer = 0, timeToGetReady = 0;
+    public bool active = false;
+    public bool readyToStart = false;
+    public bool finished = false;
+    public float fitness;
+    public Vector3 initialCenterOfMass, finalCenterOfMass;
 
     public Creature(List<Node> nodes, List<GameObject> geometry, int seed, GameObject handle)
     {
@@ -2402,6 +2434,8 @@ public class Creature
 
     public void Update()
     {
+        timer += Time.deltaTime;
+
         foreach (GameObject g in geometry)
         {
             if (g != null)
