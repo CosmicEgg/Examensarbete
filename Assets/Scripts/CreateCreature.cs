@@ -501,7 +501,7 @@ public class CreateCreature : MonoBehaviour
     private void ResetNodes(ref Node root)
     {
         Queue<Node> nodeQueue = new Queue<Node>();
-        nodes.Remove(root);
+        //nodes.Remove(root);
         nodeQueue.Enqueue(root);
 
         while (nodeQueue.Count > 0)
@@ -755,7 +755,7 @@ public class CreateCreature : MonoBehaviour
         while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
         {
             Node currentNode = nodeQueue.Peek();
-            currentNode.partOfGraph = true;
+            nodeQueue.Peek().partOfGraph = true;
             bool startOver = false;
 
             if (currentNode.startOfRecurssion)

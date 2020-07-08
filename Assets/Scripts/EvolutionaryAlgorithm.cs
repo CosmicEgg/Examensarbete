@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using System.IO;
 
 public class EvolutionaryAlgorithm : MonoBehaviour
 {
@@ -46,6 +47,18 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         if (finishedTests.Count >= population)
         {       
             currentGeneration++;
+            //Write generation to file
+
+            using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\seedTest.txt", true))
+            {
+                foreach (Test t in finishedTests)
+                {
+                    file.WriteLine("Generation: " + currentGeneration + ", fitness: " + t.fitness + ", seed: " + t.creature.seed);
+                }
+            }
+
+
+
             if (currentGeneration == 2)
             {
 
