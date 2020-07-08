@@ -6,7 +6,8 @@ using Random = UnityEngine.Random;
 
 public class EA2 : MonoBehaviour
 {
-    public CreateCreature creatureCreator;
+    public UIManager uiManager;
+    CreateCreature creatureCreator;
     List<Creature> currentBatch = new List<Creature>();
     List<Creature> totalPopulation = new List<Creature>();
     List<Creature> newGeneration = new List<Creature>();
@@ -32,18 +33,27 @@ public class EA2 : MonoBehaviour
         plane.SetActive(true);
     }
 
-    public void Update()
+    public void Awake()
     {
-        
+        creatureCreator = new CreateCreature();
+        CreateFirstGenerationCreatures();     
     }
 
-    public void LateUpdate()
+    public void Update()
+    {
+        uiManager.SetCurrentGeneration(generations);
+        uiManager.SetPopulationsTested(totalPopulation.Count);
+        uiManager.SetMaxPopulationSize(totalPopulationSize);
+    }
+
+    public void FixedUpdate()
     {
         for (int i = 0; i < currentBatch.Count; i++)
         {
             if (!currentBatch[i].active)
             {
                 ActivateCreature(currentBatch[i]);
+                currentBatch[i].active = true;
             }
 
             if (!currentBatch[i].readyToStart)
@@ -57,6 +67,7 @@ public class EA2 : MonoBehaviour
                 }
                 else if (currentBatch[i].timeToGetReady > allowedTimeToGetReady)
                 {
+                    Destroy(currentBatch[i].handle);
                     currentBatch[i] = creatureCreator.Create();
                 }
             }
@@ -71,10 +82,12 @@ public class EA2 : MonoBehaviour
                 currentBatch[i].finalCenterOfMass = CalculateMeanCenterOfMass(currentBatch[i]);
                 currentBatch[i].fitness = Vector3.Distance(currentBatch[i].finalCenterOfMass, currentBatch[i].initialCenterOfMass);
                 currentBatch[i].finished = true;
+                Destroy(currentBatch[i].handle);
             }
         }
 
         batchDone = true;
+
         foreach (Creature c in currentBatch)
         {
             if (!c.finished)
@@ -83,19 +96,25 @@ public class EA2 : MonoBehaviour
             }
         }
 
+        if(batchDone)
+            totalPopulation.AddRange(currentBatch);
+
         if (totalPopulation.Count >= totalPopulationSize)
         {
+            foreach(Creature c in currentBatch)
+            {
+                Destroy(c.handle);
+            }
             CreateNewGeneration();
             totalPopulation.Clear();
             currentBatch.Clear();
             batchDone = false;
             generations++;
-            CreateNewCreatures();
+            CreateNewCreaturesFromNewGeneration();
         }
 
         if (batchDone)
         {
-            totalPopulation.AddRange(currentBatch);
             currentBatch.Clear();
 
             if (generations == 1)
@@ -103,33 +122,38 @@ public class EA2 : MonoBehaviour
                 CreateFirstGenerationCreatures();
             }
             else
-            {
-                
-                //Create som other creatures
+            { 
+                CreateNewCreaturesFromNewGeneration();
             }
         }      
     }
 
-    private void CreateNewCreatures()
+    private void CreateNewCreaturesFromNewGeneration()
     {
-        //plane.SetActive(false);
+        plane.SetActive(false);
+        int j = 0;
 
-        //for (int i = 0; i < batchSize; i++)
-        //{
-        //    Creature creature = creatureCreator.Cre
-        //    creature.handle.transform.Translate(new Vector3(20 * i, 5, 0));
-        //    currentBatch.Add(creature);
-        //}
+        for (int i = 0; i < batchSize; i++)
+        {
+            if(totalPopulation.Count > 0)
+            {
+                j = -1;
+            }
 
-        //plane.SetActive(true);
+            Creature creature = creatureCreator.CreateCreatureFromNodes(newGeneration[totalPopulation.Count + i +j].nodes[0]);
+            creature.handle.transform.Translate(new Vector3(20 * i, 5, 0));
+            currentBatch.Add(creature);
+        }
+
+        plane.SetActive(true);
     }
 
     private void CreateNewGeneration()
     {
         totalPopulation.Sort((Creature c, Creature other) => other.fitness.CompareTo(c.fitness));
-        totalPopulation.RemoveRange(49, 50);
-        List<Node> selectedOriginals = new List<Node>();
-        List<Node> selectedDuplicates = new List<Node>();
+        totalPopulation.RemoveRange(totalPopulationSize/2-1, totalPopulationSize/2);
+        List<Creature> selectedOriginals = new List<Creature>();
+        List<Creature> selectedDuplicates = new List<Creature>();
         newGeneration = new List<Creature>();
 
         selectedDuplicates = totalPopulation;
@@ -163,8 +187,8 @@ public class EA2 : MonoBehaviour
     {
         for (int i = 0; i < creatures.Count - 2; i+=2)
         {
-            Node node1 = creatures[i].nodes[Random.Range(0, creatures[i].nodes.Count + 1)];
-            Node node2 = creatures[i + 1].nodes[Random.Range(0, creatures[i + 1].nodes.Count + 1)];
+            Node node1 = creatures[i].nodes[Random.Range(0, creatures[i].nodes.Count)];
+            Node node2 = creatures[i + 1].nodes[Random.Range(0, creatures[i + 1].nodes.Count)];
 
             if (node1.parent != null)
             {
@@ -215,16 +239,6 @@ public class EA2 : MonoBehaviour
             node2.parent = temp;
         }
     } 
-
-    private void BreedBest()
-    {
-
-    }
-
-    private void StartOver()
-    {
-
-    }
 
     private void ActivateCreature(Creature c)
     {
