@@ -1521,7 +1521,7 @@ public class CreateCreature : MonoBehaviour
                 {
                     if (parent.referenceNode != null)
                     {
-                        if (node.referenceNode.axisList.Count > 0 && i - 1 <= node.referenceNode.axisList.Count)
+                        if (node.referenceNode.axisList.Count > 0 && i - 1 < node.referenceNode.axisList.Count)
                         {
                             if (node.referenceNode.axisList.ElementAt(i - 1) != null )
                             {
@@ -2446,6 +2446,11 @@ public class Creature
                 }
             }
         }
+    }
+
+    public void destroyGeo()
+    {
+        
     }
 }
 
