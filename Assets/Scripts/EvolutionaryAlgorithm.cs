@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using System.IO;
 
 public class EvolutionaryAlgorithm : MonoBehaviour
 {
@@ -46,6 +47,22 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         if (finishedTests.Count >= population)
         {       
             currentGeneration++;
+            //Write generation to file
+
+            using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\seedTest.txt", true))
+            {
+                foreach (Test t in finishedTests)
+                {
+                    file.WriteLine("Generation: " + currentGeneration + ", fitness: " + t.fitness + ", seed: " + t.creature.seed);
+                }
+            }
+
+
+
+            if (currentGeneration == 2)
+            {
+
+            }
             plane.SetActive(false);
             int amountToSelect = population / 2;
             generationGenomes.Clear();
@@ -56,6 +73,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             Mutate(ref generationGenomes);
             List<Creature> newCreatures = CreatePopulationFromGenomes(generationGenomes);
 
+            //Delete gameobjects
             tests.ForEach(delegate (Test t) { t.PrepareForClear(); });
             tests.Clear();
             finishedTests.ForEach(delegate (Test t) { t.PrepareForClear(); });
@@ -92,7 +110,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     {
         List<Test> selection = new List<Test>();
 
-        tests.Sort((Test t, Test t2) => t2.fitness.CompareTo(t.fitness));
+        finishedTests.Sort((Test t, Test t2) => t2.fitness.CompareTo(t.fitness));
 
         for (int i = 0; i < amountToSelect; i++)
         {

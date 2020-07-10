@@ -755,7 +755,7 @@ public class CreateCreature : MonoBehaviour
         while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
         {
             Node currentNode = nodeQueue.Peek();
-            currentNode.partOfGraph = true;
+            nodeQueue.Peek().partOfGraph = true;
             bool startOver = false;
 
             if (currentNode.startOfRecurssion)

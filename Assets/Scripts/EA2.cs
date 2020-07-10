@@ -26,7 +26,7 @@ public class EA2 : MonoBehaviour
         for (int i = 0; i < batchSize; i++)
         {
             Creature creature = creatureCreator.Create();
-            creature.handle.transform.Translate(new Vector3(20 * i, 5, 0));
+            creature.handle.transform.Translate(new Vector3(20 * i, 10, 0));
             currentBatch.Add(creature);
         }
 
@@ -35,8 +35,8 @@ public class EA2 : MonoBehaviour
 
     public void Awake()
     {
-        creatureCreator = new CreateCreature();
-        CreateFirstGenerationCreatures();     
+        //creatureCreator = new CreateCreature();
+        //CreateFirstGenerationCreatures();     
     }
 
     public void Update()
@@ -140,8 +140,9 @@ public class EA2 : MonoBehaviour
                 j = -1;
             }
 
+            //List<Node> test = creatureCreator.CreateNodesFromSeed(newGeneration[totalPopulation.Count + i + j].seed);
             Creature creature = creatureCreator.CreateCreatureFromNodes(newGeneration[totalPopulation.Count + i +j].nodes[0]);
-            creature.handle.transform.Translate(new Vector3(20 * i, 5, 0));
+            creature.handle.transform.Translate(new Vector3(20 * i, 10, 0));
             currentBatch.Add(creature);
         }
 
