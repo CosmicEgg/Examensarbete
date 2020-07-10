@@ -26,6 +26,7 @@ public class CreateCreature : MonoBehaviour
     public int seed;
     public float minLimbSpacing = 0, maxLimbSpacing = 0.3f;
     float limbSpacing;
+    Color color;
 
     GameObject rootGameObject;
     public bool PhysicsOn = true;
@@ -271,7 +272,6 @@ public class CreateCreature : MonoBehaviour
         return new Creature(nodes, geometry, seed, handle);
     }
 
-
     //Returnerar för få noder
     public List<Node> CreateNodesFromSeed(int newSeed = 0)
     {
@@ -501,7 +501,7 @@ public class CreateCreature : MonoBehaviour
     private void ResetNodes(ref Node root)
     {
         Queue<Node> nodeQueue = new Queue<Node>();
-        nodes.Remove(root);
+        //nodes.Remove(root);
         nodeQueue.Enqueue(root);
 
         while (nodeQueue.Count > 0)
@@ -762,7 +762,6 @@ public class CreateCreature : MonoBehaviour
             {
                 startOfRecurssionNode = currentNode;
                 startOfRecurssionNode.scale.z = startOfRecurssionNode.scale.x;
-
             }
 
             if (currentNode.edges.Count == 0 || currentNode.gameObjects.Count == 0)
@@ -1311,6 +1310,11 @@ public class CreateCreature : MonoBehaviour
                             currentGeometry.GetComponent<GeoInfo>().recursiveNumb = currentEdge.recursiveNumb;
                             currentGeometry.name = node.id.ToString();
 
+                            if (node.color != null)
+                            {
+                                currentGeometry.GetComponent<Renderer>().material.color = node.color;
+                            }
+
                             firstGeo = false;
                         }
                     }
@@ -1374,7 +1378,6 @@ public class CreateCreature : MonoBehaviour
 
     public void CreateRootGeometry(ref Node node)
     {
-
         rootGameObject = GameObject.CreatePrimitive(node.primitiveType);
         rootGameObject.transform.position = new Vector3(0, 0, 0);
         node.rotation = Vector3.zero;
@@ -1391,6 +1394,11 @@ public class CreateCreature : MonoBehaviour
         node.gameObjects.Clear();
         node.gameObjects.Add(rootGameObject);
         geometry.Add(rootGameObject);
+
+        if(node.color != null)
+        {
+            rootGameObject.GetComponent<Renderer>().material.color = node.color;
+        }
     }
 
     public void CreateSymmetricalGeometry(Node node, Node parent)
@@ -1499,6 +1507,11 @@ public class CreateCreature : MonoBehaviour
                     currentGeometry.name = node.id.ToString();
                     geometry.Add(currentGeometry);
                     currentGeometry.GetComponent<GeoInfo>().ParentToChildVector = currentGeometry.transform.position - parentGeometry.transform.position;
+
+                    if (node.color != null)
+                    {
+                        currentGeometry.GetComponent<Renderer>().material.color = node.color;
+                    }
                 }
             }
 
@@ -1659,6 +1672,12 @@ public class CreateCreature : MonoBehaviour
                         refGeoInfo.ParentToChildVector = refChild.transform.position - parentGeometry.transform.position;
                         node.axisList.Add(axis);
                         refGeoInfo.PosRelParent = parentGeometry.transform.position;
+
+                        if (node.color != null)
+                        {
+                            refChild.GetComponent<Renderer>().material.color = node.color;
+                        }
+
                         restart = true;
                     }
 
@@ -1854,6 +1873,11 @@ public class CreateCreature : MonoBehaviour
                         currentGeometry.GetComponent<GeoInfo>().recursiveNumb = currentEdge.recursiveNumb;
                         currentGeometry.name = node.id.ToString();
 
+                        if (node.color != null)
+                        {
+                            currentGeometry.GetComponent<Renderer>().material.color = node.color;
+                        }
+
                         currentGeometry.GetComponent<GeoInfo>().RefAxis = pg.GetComponent<GeoInfo>().RefAxis;
 
                         if (firstGeo)
@@ -1976,6 +2000,11 @@ public class CreateCreature : MonoBehaviour
                     geometry.Add(currentGeometry);
                     node.gameObjects.Add(currentGeometry);
                     currentGeometry.name = node.id.ToString();
+
+                    if (node.color != null)
+                    {
+                        currentGeometry.GetComponent<Renderer>().material.color = node.color;
+                    }
                 }
             }
         }
@@ -2079,6 +2108,11 @@ public class CreateCreature : MonoBehaviour
                 geometry.Add(currentGeometry);
                 node.gameObjects.Add(currentGeometry);
                 currentGeometry.name = node.id.ToString();
+
+                if (node.color != null)
+                {
+                    currentGeometry.GetComponent<Renderer>().material.color = node.color;
+                }
             }
         }
         return true;
@@ -2120,6 +2154,8 @@ public class CreateCreature : MonoBehaviour
         bool nextNode = false;
         Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id, oriNode, oriNode.recursionJointType, oriNode.scaleFactor);
         newOriNode.numOfRecursiveChildren = oriNode.numOfRecursiveChildren;
+        newOriNode.color = oriNode.color;
+
         //newOriNode.created = true;
         //toReset.Add(newOriNode);
         copyNodeEdge.Add(oriNode, newOriNode);
@@ -2135,6 +2171,7 @@ public class CreateCreature : MonoBehaviour
                 if (!e.to.created && !ReferenceEquals(e.to, e.from))
                 {
                     Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to, e.to.recursionJointType, e.to.scaleFactor);
+                    newNode.color = e.to.color; 
                     copyStack.Push(e.to);
                     copyNodeEdge.Add(e.to, newNode);
                     e.to.created = true;
@@ -2183,6 +2220,15 @@ public class CreateCreature : MonoBehaviour
             primitiveRand = Random.Range(0, 3);
             Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
             Node node = new Node(primitiveRand, minScale, maxScale, rotation, i);
+
+            if(i == 0)
+            {
+                color = new Color(
+                Random.Range(0f, 1f),
+                Random.Range(0f, 1f),
+                Random.Range(0f, 1f));
+            }
+            node.color = color;
             nodes.Add(node);
         }
 
@@ -2326,6 +2372,7 @@ public class Node
     public int id;
     public bool partOfGraph = false;
     public Node parent;
+    public Color color;
 
     public List<Edge> edges = new List<Edge>();
 

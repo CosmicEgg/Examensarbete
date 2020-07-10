@@ -185,7 +185,7 @@ public class EA2 : MonoBehaviour
 
     private void CrossOver(ref List<Creature> creatures)
     {
-        for (int i = 0; i < creatures.Count - 2; i+=2)
+        for (int i = 0; i < creatures.Count - 2; i =  i + 2)
         {
             Node node1 = creatures[i].nodes[Random.Range(0, creatures[i].nodes.Count)];
             Node node2 = creatures[i + 1].nodes[Random.Range(0, creatures[i + 1].nodes.Count)];

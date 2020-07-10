@@ -220,13 +220,23 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         for (int i = 0; i < genomes.Count; i++) 
         {
             placementFactor++;
-            if (placementFactor >= batchSize)
+            if (placementFactor == batchSize)
             {
                 placementFactor = 0;
             }
 
             Creature newCreature = creationManager.CreateCreatureFromNodes(genomes[i][0]);
-            newCreature.handle.transform.Translate(new Vector3(20 * placementFactor, 5, 0));
+            newCreature.handle.transform.position = new Vector3(20 * placementFactor, 5, 0);
+            newCreature.handle.layer = LayerMask.NameToLayer(placementFactor.ToString());
+
+            foreach (Transform child in newCreature.handle.transform)
+            {
+                if (null == child)
+                {
+                    continue;
+                }
+                child.gameObject.layer = LayerMask.NameToLayer(placementFactor.ToString());
+            }
 
             if (i < batchSize)
             {
@@ -303,7 +313,19 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         {
             Creature newCreature = creaturesToCreateQueue.Dequeue();
             if (!newCreature.handle.activeSelf) newCreature.handle.SetActive(true);
-            newCreature.handle.transform.Translate(new Vector3(20 * i, 5, 0));
+            newCreature.handle.transform.position = new Vector3(20 * i, 5, 0);
+
+            newCreature.handle.layer = LayerMask.NameToLayer(i.ToString());
+
+            foreach (Transform child in newCreature.handle.transform)
+            {
+                if (null == child)
+                {
+                    continue;
+                }
+                child.gameObject.layer = LayerMask.NameToLayer(i.ToString());
+            }
+
             currentBatchSize++;
             currentCreatures.Add(newCreature);
             creaturesToTestQueue.Enqueue(newCreature);
@@ -354,7 +376,19 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         {
             currentBatchSize++;
             Creature creature = creationManager.Create();
-            creature.handle.transform.Translate(new Vector3(20 * i, 5, 0));
+            creature.handle.transform.position = new Vector3(20 * i, 5, 0);
+
+            creature.handle.layer = LayerMask.NameToLayer(i.ToString());
+
+            foreach (Transform child in creature.handle.transform)
+            {
+                if (null == child)
+                {
+                    continue;
+                }
+                child.gameObject.layer = LayerMask.NameToLayer(i.ToString());
+            }
+
             currentCreatures.Add(creature);
             creaturesToTestQueue.Enqueue(creature);
         }
