@@ -46,13 +46,14 @@ public class CreateCreature : MonoBehaviour
     {
         //DestroyCurrent();
         //generated = false;
-        seed = newSeed;
-        if (seed == 0)
-        {
-            seed = Random.Range(1, 10000);
-        }
 
-        Random.InitState(seed);
+        //seed = newSeed;
+        //if (seed == 0)
+        //{
+        //    seed = Random.Range(1, 10000);
+        //}
+        //Random.InitState(seed);
+
         oriRecurssionMuscle = new List<Muscle>();
         leftRecurssionMuscle = new List<Muscle>();
         frontRecurssionMuscle = new List<Muscle>();
@@ -120,7 +121,7 @@ public class CreateCreature : MonoBehaviour
             if (startOver)
             {
                 nodeStack.Pop();
-                currentNode.stacked = false;
+                currentNode.stacked = false;    
                 continue;
             }
 
@@ -256,6 +257,7 @@ public class CreateCreature : MonoBehaviour
         if (geoCounter < 2)
         {
             DestroyCurrent();
+
             return Create();
         }
         else if (geoCounter > 100)
@@ -273,17 +275,11 @@ public class CreateCreature : MonoBehaviour
     }
 
     //Returnerar för få noder
-    public List<Node> CreateNodesFromSeed(int newSeed = 0)
+    public List<Node> CreateNodesFromSeed(int numberOfNodes, int rootSeed)
     {
         DestroyCurrent();
         //generated = false;
-        seed = newSeed;
-        if (seed == 0)
-        {
-            seed = Random.Range(1, 10000);
-        }
 
-        Random.InitState(seed);
         oriRecurssionMuscle = new List<Muscle>();
         leftRecurssionMuscle = new List<Muscle>();
         frontRecurssionMuscle = new List<Muscle>();
@@ -293,7 +289,7 @@ public class CreateCreature : MonoBehaviour
         limbSpacing = Random.Range(minLimbSpacing, maxLimbSpacing);
         muscles = new List<Muscle>();
         geometry = new List<GameObject>();
-        numOfNodes = Random.Range(1, 5);
+        numOfNodes = numberOfNodes;
         startPosition = Vector3.zero;
         nodes = new List<Node>();
         recurssionStack = new Stack<Node>();
@@ -307,7 +303,7 @@ public class CreateCreature : MonoBehaviour
         switch (typeOfGeneration)
         {
             case TypeOfGeneration.random:
-                CreateRandomNodes();
+                CreateNewNodesFromSeed(numOfNodes, rootSeed);
                 break;
             case TypeOfGeneration.symmetry:
                 CreateSymmetryTest();
@@ -635,7 +631,7 @@ public class CreateCreature : MonoBehaviour
     {
         //Root Node def.
         Queue<Node> nodeQueue = new Queue<Node>();
-        CreateRootGeometry(ref root);
+        CreateRootGeometry(root);
         nodeQueue.Enqueue(root);
         int numbofgeo = 1;
         Node startOfRecurssionNode = new Node();
@@ -644,6 +640,7 @@ public class CreateCreature : MonoBehaviour
         while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
         {
             Node currentNode = nodeQueue.Peek();
+            Random.InitState(currentNode.seed);
             currentNode.partOfGraph = true;
             bool startOver = false;
 
@@ -746,7 +743,7 @@ public class CreateCreature : MonoBehaviour
         ResetNodes(ref root);
         geometry = new List<GameObject>();
         Queue<Node> nodeQueue = new Queue<Node>();
-        CreateRootGeometry(ref root);
+        CreateRootGeometry(root);
         nodeQueue.Enqueue(root);
         int numbofgeo = 1;
         Node startOfRecurssionNode = new Node();
@@ -755,6 +752,7 @@ public class CreateCreature : MonoBehaviour
         while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
         {
             Node currentNode = nodeQueue.Peek();
+            Random.InitState(seed);
             nodeQueue.Peek().partOfGraph = true;
             bool startOver = false;
 
@@ -1376,7 +1374,7 @@ public class CreateCreature : MonoBehaviour
         }
     }
 
-    public void CreateRootGeometry(ref Node node)
+    public void CreateRootGeometry(Node node)
     {
         rootGameObject = GameObject.CreatePrimitive(node.primitiveType);
         rootGameObject.transform.position = new Vector3(0, 0, 0);
@@ -2152,7 +2150,7 @@ public class CreateCreature : MonoBehaviour
         copyStack.Push(oriNode);
         Dictionary<Node, Node> copyNodeEdge = new Dictionary<Node, Node>();
         bool nextNode = false;
-        Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id, oriNode, oriNode.recursionJointType, oriNode.scaleFactor);
+        Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id, oriNode, oriNode.recursionJointType, oriNode.scaleFactor, oriNode.seed);
         newOriNode.numOfRecursiveChildren = oriNode.numOfRecursiveChildren;
         newOriNode.color = oriNode.color;
 
@@ -2170,7 +2168,7 @@ public class CreateCreature : MonoBehaviour
             {
                 if (!e.to.created && !ReferenceEquals(e.to, e.from))
                 {
-                    Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to, e.to.recursionJointType, e.to.scaleFactor);
+                    Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to, e.to.recursionJointType, e.to.scaleFactor, e.to.seed);
                     newNode.color = e.to.color; 
                     copyStack.Push(e.to);
                     copyNodeEdge.Add(e.to, newNode);
@@ -2217,11 +2215,15 @@ public class CreateCreature : MonoBehaviour
         //Spawn Nodes
         for (int i = 0; i < numOfNodes; i++)
         {
+            int seed = Random.Range(1, 10000);
+            Random.InitState(seed);
+
             primitiveRand = Random.Range(0, 3);
             Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
             Node node = new Node(primitiveRand, minScale, maxScale, rotation, i);
+            node.seed = seed;
 
-            if(i == 0)
+            if (i == 0)
             {
                 color = new Color(
                 Random.Range(0f, 1f),
@@ -2237,6 +2239,7 @@ public class CreateCreature : MonoBehaviour
         {
             for (int y = 0; y < nodes[x].numOfChildren; y++)
             {
+                Random.InitState(nodes[x].seed);
                 nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)], Random.Range(0, 4), 0));
             }
         }
@@ -2245,6 +2248,54 @@ public class CreateCreature : MonoBehaviour
         nodeStack.Push(nodes[0]);
         nodeOrder.Add(nodes[0]);
         nodes[0].stacked = true;
+    }
+
+    private void CreateNewNodesFromSeed(int numberOfNodes, int rootSeed)
+    {      
+        //Spawn Nodes
+        for (int i = 0; i < numberOfNodes; i++)
+        {
+            if (i == 0)
+            {
+                Random.InitState(rootSeed);
+                seed = rootSeed;
+            }
+            else
+            {
+                seed = Random.Range(1, 10000);
+                Random.InitState(seed);
+            }
+
+            primitiveRand = Random.Range(0, 3);
+            Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
+            Node node = new Node(primitiveRand, minScale, maxScale, rotation, i);
+            node.seed = seed;
+
+            if (i == 0)
+            {
+                color = new Color(
+                Random.Range(0f, 1f),
+                Random.Range(0f, 1f),
+                Random.Range(0f, 1f));
+            }
+            node.color = color;
+            nodes.Add(node);
+        }
+
+        //Add Children
+        for (int x = 0; x < nodes.Count; x++)
+        {
+            for (int y = 0; y < nodes[x].numOfChildren; y++)
+            {
+                Random.InitState(nodes[x].seed);
+                nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)], Random.Range(0, 4), 0));
+            }
+        }
+
+    //Root Node def.
+    nodeStack.Push(nodes[0]);
+    nodeOrder.Add(nodes[0]);
+    nodes[0].stacked = true;
     }
 
     //For testing symmetry
@@ -2373,10 +2424,11 @@ public class Node
     public bool partOfGraph = false;
     public Node parent;
     public Color color;
+    public int seed;
 
     public List<Edge> edges = new List<Edge>();
 
-    public Node(PrimitiveType primitiveType, Vector3 scale, Vector3 rotation, int id, Node referenceNode, int recursionJointType, float scaleFactor)
+    public Node(PrimitiveType primitiveType, Vector3 scale, Vector3 rotation, int id, Node referenceNode, int recursionJointType, float scaleFactor, int seed)
     {
         this.primitiveType = primitiveType;
         this.scale = scale * 0.7f;
@@ -2386,6 +2438,7 @@ public class Node
         this.referenceNode = referenceNode;
         partOfGraph = true;
         this.recursionJointType = recursionJointType;
+        this.seed = seed;
 
     }
 

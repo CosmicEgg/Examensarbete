@@ -49,24 +49,27 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             currentGeneration++;
             //Write generation to file
 
-            using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\seedTest.txt", true))
-            {
-                foreach (Test t in finishedTests)
-                {
-                    file.WriteLine("Generation: " + currentGeneration + ", fitness: " + t.fitness + ", seed: " + t.creature.seed);
-                }
-            }
+            //using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\seedTest.txt", true))
+            //{
+            //    foreach (Test t in finishedTests)
+            //    {
+            //        file.WriteLine("Generation: " + currentGeneration + ", fitness: " + t.fitness + ", seed: " + t.creature.seed);
+            //    }
+            //}
 
-
-
-            if (currentGeneration == 2)
-            {
-
-            }
             plane.SetActive(false);
             int amountToSelect = population / 2;
             generationGenomes.Clear();
             List<Test> bestTests = SelectBestTests(amountToSelect, finishedTests);
+
+
+
+
+
+
+
+
+            ///HÄr under är de kaos
             List<List<Node>> bestGenomes = CreateGenomesFromTests(bestTests);
             generationGenomes.AddRange(bestGenomes);
             generationGenomes.AddRange(CrossOver(bestTests));
@@ -126,7 +129,29 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
         for (int i = 0; i < bestTests.Count; i++)
         {
-            List<Node> nodes = creationManager.CreateNodesFromSeed(bestTests[i].creature.seed);
+            List<Node> nodes = new List<Node>();
+
+            foreach (Node n in bestTests[i].creature.nodes)
+            {
+                Node newNode = new Node(n.primitiveType, n.scale, n.rotation, n.id, n.referenceNode, n.recursionJointType, n.scaleFactor, n.seed);
+
+                nodes.Add(newNode);
+
+            }
+
+            for (int j = 0; j < nodes.Count; j++)
+            {
+                foreach (Edge e in nodes[i].edges)
+                {
+                    Node node = nodes.Find(x => x == e.to);
+
+                    nodes[i].edges.Add(new Edge(nodes[i], e.to, e.recursiveLimit, e.numOfTravels));
+                }
+            }
+
+
+            nodes = bestTests[i].creature.nodes;
+            //List<Node> nodes = creationManager.CreateNodesFromSeed(bestTests[i].creature.nodes.Count, bestTests[i].creature.nodes[0].seed);
             genomes.Add(nodes);
         }
 
@@ -139,9 +164,11 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
         for (int i = 0; i < bestTests.Count; i++)
         {
-            List<Node> nodes = creationManager.GetExpandedNodesList(creationManager.CreateNodesFromSeed(bestTests[i].creature.seed)[0]);
-            genomes.Add(nodes);
-            
+            List<Node> expandedNodeList = creationManager.GetExpandedNodesList(bestTests[i].creature.nodes[0]);
+            genomes.Add(expandedNodeList);
+            //List<Node> nodes = creationManager.GetExpandedNodesList(creationManager.CreateNodesFromSeed(bestTests[i].creature.nodes.Count, bestTests[i].creature.nodes[0].seed)[0]);
+            //genomes.Add(nodes);
+
         }
 
         List<List<Node>> newGenomes = new List<List<Node>>();
