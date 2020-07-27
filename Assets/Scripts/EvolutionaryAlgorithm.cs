@@ -9,7 +9,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 {
     public UIManager uiManager;
     private bool createFromQueue = false;
-    private int maxAllowedTimeToStabilize = 10, currentBatchSize = 0;
+    private int maxAllowedTimeToStabilize = 6, currentBatchSize = 0;
     private int timeToStabilize = 6;
     public int batchSize = 6, population = 12;
     float testTime = 10;
@@ -48,7 +48,10 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         {       
             currentGeneration++;
             //Write generation to file
+            if (currentGeneration == 2)
+            {
 
+            }
             //using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\seedTest.txt", true))
             //{
             //    foreach (Test t in finishedTests)
@@ -59,21 +62,17 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
             plane.SetActive(false);
             int amountToSelect = population / 2;
+            //int amountToSelect = population;
             generationGenomes.Clear();
             List<Test> bestTests = SelectBestTests(amountToSelect, finishedTests);
 
-
-
-
-
-
-
-
             ///HÄr under är de kaos
             List<List<Node>> bestGenomes = CreateGenomesFromTests(bestTests);
+            //List<List<Node>> bestGenomes2 = CreateGenomesFromTests(bestTests);
             generationGenomes.AddRange(bestGenomes);
+            //generationGenomes.AddRange(bestGenomes2);
             generationGenomes.AddRange(CrossOver(bestTests));
-            Mutate(ref generationGenomes);
+            //Mutate(ref generationGenomes);
             List<Creature> newCreatures = CreatePopulationFromGenomes(generationGenomes);
 
             //Delete gameobjects
@@ -117,43 +116,72 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
         for (int i = 0; i < amountToSelect; i++)
         {
+            //Kanske borde göra en "new Test" här för kopieringens skull
             selection.Add(finishedTests[i]);
         }
 
         return selection;
     }
 
+    //List<List<Node>> CreateGenomesFromTests(List<Test> bestTests)
+    //{
+    //    List<List<Node>> genomes = new List<List<Node>>();
+
+    //    for (int i = 0; i < bestTests.Count; i++)
+    //    {
+    //        List<Node> nodes = creationManager.CreateNodesFromSeed(bestTests[i].creature.nodes.Count, bestTests[i].creature.nodes[0].seed);
+    //        genomes.Add(nodes);
+    //    }
+
+    //    return genomes;
+    //}
+
     List<List<Node>> CreateGenomesFromTests(List<Test> bestTests)
     {
         List<List<Node>> genomes = new List<List<Node>>();
+        List<Node> nodes = new List<Node>();
 
         for (int i = 0; i < bestTests.Count; i++)
         {
-            List<Node> nodes = new List<Node>();
+            nodes = new List<Node>();
+            Node newRoot = new Node();
+            creationManager.CopyNodeTree(bestTests[i].creature.nodes[0], out newRoot);
+            nodes = creationManager.GetExpandedNodesList(newRoot);
 
-            foreach (Node n in bestTests[i].creature.nodes)
-            {
-                Node newNode = new Node(n.primitiveType, n.scale, n.rotation, n.id, n.referenceNode, n.recursionJointType, n.scaleFactor, n.seed);
-
-                nodes.Add(newNode);
-
-            }
-
-            for (int j = 0; j < nodes.Count; j++)
-            {
-                foreach (Edge e in nodes[i].edges)
-                {
-                    Node node = nodes.Find(x => x == e.to);
-
-                    nodes[i].edges.Add(new Edge(nodes[i], e.to, e.recursiveLimit, e.numOfTravels));
-                }
-            }
-
-
-            nodes = bestTests[i].creature.nodes;
-            //List<Node> nodes = creationManager.CreateNodesFromSeed(bestTests[i].creature.nodes.Count, bestTests[i].creature.nodes[0].seed);
             genomes.Add(nodes);
+
+            //foreach (Node n in bestTests[i].creature.nodes)
+            //{
+            //    Node newNode = new Node(n.primitiveType, n.scale, n.rotation, n.id, n.referenceNode, n.recursionJointType, n.scaleFactor, n.seed);
+            //    nodes.Add(newNode);
+            //}
+
+            //foreach (Node n in bestTests[i].creature.nodes)
+            //{
+            //    foreach (Edge e in n.edges)
+            //    {
+
+            //    }
+            //}
+
+            //for (int j = 0; j < nodes.Count; j++)
+            //{
+            //    if (nodes[j].edges.Count > 0)
+            //    {
+            //        foreach (Edge e in nodes[j].edges)
+            //        {
+            //            Node node = nodes.Find(x => x == e.to);
+
+            //            nodes[j].edges.Add(new Edge(nodes[j], e.to, e.recursiveLimit, e.numOfTravels));
+            //        }
+            //    }
+            //}
+
+            //nodes = bestTests[i].creature.nodes;
+            //List<Node> nodes = creationManager.CreateNodesFromSeed(bestTests[i].creature.nodes.Count, bestTests[i].creature.nodes[0].seed);
         }
+
+        //   genomes.Add(nodes);
 
         return genomes;
     }
@@ -161,14 +189,18 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     List<List<Node>> CrossOver(List<Test> bestTests)
     {
         List<List<Node>> genomes = new List<List<Node>>();
+        List<Node> nodes = new List<Node>();
 
         for (int i = 0; i < bestTests.Count; i++)
         {
             List<Node> expandedNodeList = creationManager.GetExpandedNodesList(bestTests[i].creature.nodes[0]);
             genomes.Add(expandedNodeList);
-            //List<Node> nodes = creationManager.GetExpandedNodesList(creationManager.CreateNodesFromSeed(bestTests[i].creature.nodes.Count, bestTests[i].creature.nodes[0].seed)[0]);
-            //genomes.Add(nodes);
 
+            //nodes = new List<Node>();
+            //Node newRoot = new Node();
+            //creationManager.CopyNodeTree(bestTests[i].creature.nodes[0], out newRoot);
+            //nodes = creationManager.GetExpandedNodesList(newRoot);
+            //genomes.Add(nodes);
         }
 
         List<List<Node>> newGenomes = new List<List<Node>>();
@@ -194,47 +226,97 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             if (originalCrossOverNode1.parent != null)
             {
                 Edge toAdd = new Edge();
-                Edge toRemove = new Edge();
+                List<Edge> edgesToRemove = new List<Edge>();
+                int counter = 0;
                 //bool found = false;
                 foreach (Edge e in originalCrossOverNode1.parent.edges)
                 {
-                    if (e.to.Equals(originalCrossOverNode1))
+                    //if (e.to != null)
+                    //{
+
+                    if (e.to == null)
                     {
-                        toAdd = new Edge(originalCrossOverNode1.parent, crossOverNode2, e.recursiveLimit, e.numOfTravels);
-                        toRemove = e;
-                        //found = true;
-                        break;
+
                     }
+                        if (e.to.Equals(originalCrossOverNode1))
+                        {
+                            counter++;
+                            toAdd = new Edge(originalCrossOverNode1.parent, crossOverNode2, e.recursiveLimit, e.numOfTravels);
+                            edgesToRemove.Add(e);
+
+                            //found = true;
+                            //break;
+                        }
+                    //}
                 }
 
-                originalCrossOverNode1.parent.edges.Remove(toRemove);
+                foreach (Edge e in edgesToRemove)
+                {
+                    originalCrossOverNode1.parent.edges.Remove(e);
+                }
+
+                if (counter > 1)
+                {
+
+                }
+
                 originalCrossOverNode1.parent.edges.Add(toAdd);
             }
 
             if (originalCrossOverNode2.parent != null)
             {
+
                 Edge toAdd = new Edge();
-                Edge toRemove = new Edge();
+                List<Edge> edgesToRemove = new List<Edge>();
+                int counter = 0;
                 //bool found = false;
                 foreach (Edge e in originalCrossOverNode2.parent.edges)
                 {
-                    if (e.to.Equals(originalCrossOverNode2))
+                    //if (e.to != null)
+                    //{
+
+                    if (e.to == null)
                     {
-                        toAdd = new Edge(originalCrossOverNode2.parent, crossOverNode1, e.recursiveLimit, e.numOfTravels);
-                        toRemove = e;
-                        //found = true;
-                        break;
+
                     }
+                    if (e.to.Equals(originalCrossOverNode2))
+                        {
+                            counter++;
+                            toAdd = new Edge(originalCrossOverNode2.parent, crossOverNode1, e.recursiveLimit, e.numOfTravels);
+                            edgesToRemove.Add(e);
+                            //found = true;
+                            //break;
+                        }
                 }
-                originalCrossOverNode2.parent.edges.Remove(toRemove);
+
+                foreach (Edge e in edgesToRemove)
+                {
+                    originalCrossOverNode2.parent.edges.Remove(e);
+                }
+
+                if (counter > 1)
+                {
+
+                }
+
                 originalCrossOverNode2.parent.edges.Add(toAdd);
             }
 
             crossOverNode1.parent = originalCrossOverNode2.parent;
             crossOverNode2.parent = originalCrossOverNode1.parent;
 
-            newGenomes.Add(genomes[i]);
-            newGenomes.Add(genomes[i + 1]);
+            //Node temp = new Node(); temp = crossOverNode1.parent;
+            //crossOverNode1.parent = originalCrossOverNode2.parent;
+            //crossOverNode2.parent = temp;
+
+
+            List<Node> newNodes1 = new List<Node>();
+            List<Node> newNodes2 = new List<Node>();
+            newNodes1 = creationManager.GetExpandedNodesList(genomes[i][0]);
+            newNodes2 = creationManager.GetExpandedNodesList(genomes[i+1][0]);
+
+            newGenomes.Add(newNodes1);
+            newGenomes.Add(newNodes2);
         }
         return newGenomes;
     }
@@ -270,7 +352,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 placementFactor = 0;
             }
 
-            Creature newCreature = creationManager.CreateCreatureFromNodes(genomes[i][0]);
+            Creature newCreature = creationManager.CreateCreatureFromNodes(genomes[i][0], genomes[i]);
             newCreature.handle.transform.position = new Vector3(20 * placementFactor, 5, 0);
             newCreature.handle.layer = LayerMask.NameToLayer(placementFactor.ToString());
 
@@ -301,25 +383,48 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
     bool ReadyToStart(Creature creature)
     {
-        foreach (GameObject g in creature.geometry)
+        //foreach (GameObject g in creature.geometry)
+        for (int i = 0; i < creature.handle.transform.childCount; i++)
         {
-            if (g != null)
+            Transform child = creature.handle.transform.GetChild(i);
+
+            if (child != null)
             {
-                if (g.TryGetComponent<Rigidbody>(out Rigidbody rb))
+                if (child.TryGetComponent<Rigidbody>(out Rigidbody rb))
                 {
-                    if (rb.velocity.magnitude > 0.5)
+                    if (rb.velocity.magnitude > 1)
                     {
                         return false;
                     }
-                    else if (rb.angularVelocity.magnitude > 0.5)
-                    {
-                        return false;
-                    }
+                    //else if (rb.angularVelocity.magnitude > 2)
+                    //{
+                    //    return false;
+                    //}
                 }
             }
         }
-        
+
         return true;
+
+        //foreach (GameObject g in creature.handle.transform.)
+        //{
+        //    if (g != null)
+        //    {
+        //        if (g.TryGetComponent<Rigidbody>(out Rigidbody rb))
+        //        {
+        //            if (rb.velocity.magnitude > 0.5)
+        //            {
+        //                return false;
+        //            }
+        //            else if (rb.angularVelocity.magnitude > 0.5)
+        //            {
+        //                return false;
+        //            }
+        //        }
+        //    }
+        //}
+        
+        //return true;
     }
 
     void FixedUpdate()

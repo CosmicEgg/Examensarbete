@@ -275,205 +275,205 @@ public class CreateCreature : MonoBehaviour
     }
 
     //Returnerar för få noder
-    public List<Node> CreateNodesFromSeed(int numberOfNodes, int rootSeed)
-    {
-        DestroyCurrent();
-        //generated = false;
+    //public List<Node> CreateNodesFromSeed(int numberOfNodes, int rootSeed)
+    //{
+    //    DestroyCurrent();
+    //    //generated = false;
 
-        oriRecurssionMuscle = new List<Muscle>();
-        leftRecurssionMuscle = new List<Muscle>();
-        frontRecurssionMuscle = new List<Muscle>();
-        backRecurssionMuscle = new List<Muscle>();
-        copyGameObject = new List<GameObject>();
-        PhysicsOn = true;
-        limbSpacing = Random.Range(minLimbSpacing, maxLimbSpacing);
-        muscles = new List<Muscle>();
-        geometry = new List<GameObject>();
-        numOfNodes = numberOfNodes;
-        startPosition = Vector3.zero;
-        nodes = new List<Node>();
-        recurssionStack = new Stack<Node>();
-        symmetryStack = new Stack<Node>();
-        nodeOrder = new List<Node>();
-        nodeStack = new Stack<Node>();
+    //    oriRecurssionMuscle = new List<Muscle>();
+    //    leftRecurssionMuscle = new List<Muscle>();
+    //    frontRecurssionMuscle = new List<Muscle>();
+    //    backRecurssionMuscle = new List<Muscle>();
+    //    copyGameObject = new List<GameObject>();
+    //    PhysicsOn = true;
+    //    limbSpacing = Random.Range(minLimbSpacing, maxLimbSpacing);
+    //    muscles = new List<Muscle>();
+    //    geometry = new List<GameObject>();
+    //    numOfNodes = numberOfNodes;
+    //    startPosition = Vector3.zero;
+    //    nodes = new List<Node>();
+    //    recurssionStack = new Stack<Node>();
+    //    symmetryStack = new Stack<Node>();
+    //    nodeOrder = new List<Node>();
+    //    nodeStack = new Stack<Node>();
 
-        minScale = 1f;
-        maxScale = 2f;
+    //    minScale = 1f;
+    //    maxScale = 2f;
 
-        switch (typeOfGeneration)
-        {
-            case TypeOfGeneration.random:
-                CreateNewNodesFromSeed(numOfNodes, rootSeed);
-                break;
-            case TypeOfGeneration.symmetry:
-                CreateSymmetryTest();
-                break;
-            case TypeOfGeneration.recursion:
-                CreateRecursionTest();
-                break;
-            case TypeOfGeneration.symplussin:
-                CreateSymmetryPlusSingleTest();
-                break;
-            default:
-                break;
-        }
+    //    switch (typeOfGeneration)
+    //    {
+    //        case TypeOfGeneration.random:
+    //            CreateNewNodesFromSeed(numOfNodes, rootSeed);
+    //            break;
+    //        case TypeOfGeneration.symmetry:
+    //            CreateSymmetryTest();
+    //            break;
+    //        case TypeOfGeneration.recursion:
+    //            CreateRecursionTest();
+    //            break;
+    //        case TypeOfGeneration.symplussin:
+    //            CreateSymmetryPlusSingleTest();
+    //            break;
+    //        default:
+    //            break;
+    //    }
 
-        //Start DFS to find all recursive nodes
-        while (nodeStack.Count > 0)
-        {
-            Node currentNode = nodeStack.Peek();
-            bool startOver = false;
+    //    //Start DFS to find all recursive nodes
+    //    while (nodeStack.Count > 0)
+    //    {
+    //        Node currentNode = nodeStack.Peek();
+    //        bool startOver = false;
 
-            if (currentNode.edges.Count == 0)
-            {
-                nodeStack.Pop();
-                currentNode.stacked = false;
-                continue;
-            }
+    //        if (currentNode.edges.Count == 0)
+    //        {
+    //            nodeStack.Pop();
+    //            currentNode.stacked = false;
+    //            continue;
+    //        }
 
-            foreach (Edge edge in currentNode.edges)
-            {
-                //If all are traversed we are finished with this node
-                if (!edge.traversed)
-                {
-                    startOver = false;
-                    break;
-                }
-                else
-                    startOver = true;
-            }
+    //        foreach (Edge edge in currentNode.edges)
+    //        {
+    //            //If all are traversed we are finished with this node
+    //            if (!edge.traversed)
+    //            {
+    //                startOver = false;
+    //                break;
+    //            }
+    //            else
+    //                startOver = true;
+    //        }
 
-            //Pop and start over
-            if (startOver)
-            {
-                nodeStack.Pop();
-                currentNode.stacked = false;
-                continue;
-            }
+    //        //Pop and start over
+    //        if (startOver)
+    //        {
+    //            nodeStack.Pop();
+    //            currentNode.stacked = false;
+    //            continue;
+    //        }
 
 
-            for (int i = 0; i < currentNode.edges.Count; i++)
-            {
-                //If not yet traveled and not looking at ourselves
-                if (!currentNode.edges[i].traversed && !ReferenceEquals(currentNode, currentNode.edges[i].to))
-                {
-                    //If not already in stack i.e. edge is not a backwards edge
-                    currentNode.edges[i].traversed = true;
-                    currentNode.edges[i].to.parent = currentNode;
+    //        for (int i = 0; i < currentNode.edges.Count; i++)
+    //        {
+    //            //If not yet traveled and not looking at ourselves
+    //            if (!currentNode.edges[i].traversed && !ReferenceEquals(currentNode, currentNode.edges[i].to))
+    //            {
+    //                //If not already in stack i.e. edge is not a backwards edge
+    //                currentNode.edges[i].traversed = true;
+    //                currentNode.edges[i].to.parent = currentNode;
 
-                    if (!currentNode.edges[i].to.stacked)
-                    {
-                        currentNode.edges[i].to.stacked = true;
-                        nodeStack.Push(currentNode.edges[i].to);
-                        nodeOrder.Add(currentNode.edges[i].to);
-                    }
-                    else //Remove backwards edge
-                    {
-                        Debug.Log("Removing edge from " + currentNode.id + " to " + currentNode.edges[i].to.id);
-                        currentNode.edges.RemoveAt(i);
-                    }
+    //                if (!currentNode.edges[i].to.stacked)
+    //                {
+    //                    currentNode.edges[i].to.stacked = true;
+    //                    nodeStack.Push(currentNode.edges[i].to);
+    //                    nodeOrder.Add(currentNode.edges[i].to);
+    //                }
+    //                else //Remove backwards edge
+    //                {
+    //                    Debug.Log("Removing edge from " + currentNode.id + " to " + currentNode.edges[i].to.id);
+    //                    currentNode.edges.RemoveAt(i);
+    //                }
 
-                    break;
-                }
-            }
+    //                break;
+    //            }
+    //        }
 
-            foreach (Edge edge in currentNode.edges)
-            {
-                if (!edge.traversed && ReferenceEquals(currentNode, edge.to))
-                {
-                    //If not already in stack i.e. edge is not a backwards edge
-                    bool addNode = true;
+    //        foreach (Edge edge in currentNode.edges)
+    //        {
+    //            if (!edge.traversed && ReferenceEquals(currentNode, edge.to))
+    //            {
+    //                //If not already in stack i.e. edge is not a backwards edge
+    //                bool addNode = true;
 
-                    foreach (Node n in recurssionStack)
-                    {
-                        if (ReferenceEquals(n, edge.to))
-                            addNode = false;
-                    }
+    //                foreach (Node n in recurssionStack)
+    //                {
+    //                    if (ReferenceEquals(n, edge.to))
+    //                        addNode = false;
+    //                }
 
-                    if (addNode)
-                    {
-                        recurssionStack.Push(edge.to);
-                        edge.to.startOfRecurssion = true;
-                        nodeOrder.Add(edge.to);
-                    }
-                    edge.traversed = true;
-                }
-            }
-        }
+    //                if (addNode)
+    //                {
+    //                    recurssionStack.Push(edge.to);
+    //                    edge.to.startOfRecurssion = true;
+    //                    nodeOrder.Add(edge.to);
+    //                }
+    //                edge.traversed = true;
+    //            }
+    //        }
+    //    }
 
-        root = nodes[0];
-        ResetTree(ref root);
+    //    root = nodes[0];
+    //    ResetTree(ref root);
 
-        Queue<Node> recurssionQueue = new Queue<Node>();
+    //    Queue<Node> recurssionQueue = new Queue<Node>();
 
-        while (recurssionStack.Count > 0)
-        {
-            Node queueNode = recurssionStack.Pop();
+    //    while (recurssionStack.Count > 0)
+    //    {
+    //        Node queueNode = recurssionStack.Pop();
 
-            recurssionQueue.Enqueue(queueNode);
-        }
+    //        recurssionQueue.Enqueue(queueNode);
+    //    }
 
-        while (recurssionQueue.Count > 0)
-        {
-            Node originalRecursiveNode = recurssionQueue.Peek();
+    //    while (recurssionQueue.Count > 0)
+    //    {
+    //        Node originalRecursiveNode = recurssionQueue.Peek();
 
-            Queue<Node> currentNodeRecurssion = new Queue<Node>();
-            currentNodeRecurssion.Enqueue(originalRecursiveNode);
+    //        Queue<Node> currentNodeRecurssion = new Queue<Node>();
+    //        currentNodeRecurssion.Enqueue(originalRecursiveNode);
 
-            while (currentNodeRecurssion.Count > 0)
-            {
-                Node currentNode = currentNodeRecurssion.Peek();
-                //List<Node> newAddedNodes = new List<Node>();
-                List<Edge> edgesToAdd = new List<Edge>();
-                int selfEdges = 0;
-                foreach (Edge e in currentNode.edges)
-                {
-                    if (ReferenceEquals(e.to, e.from))
-                    {
-                        selfEdges++;
-                    }
-                }
+    //        while (currentNodeRecurssion.Count > 0)
+    //        {
+    //            Node currentNode = currentNodeRecurssion.Peek();
+    //            //List<Node> newAddedNodes = new List<Node>();
+    //            List<Edge> edgesToAdd = new List<Edge>();
+    //            int selfEdges = 0;
+    //            foreach (Edge e in currentNode.edges)
+    //            {
+    //                if (ReferenceEquals(e.to, e.from))
+    //                {
+    //                    selfEdges++;
+    //                }
+    //            }
 
-                currentNode.numOfRecursiveChildren = selfEdges;
+    //            currentNode.numOfRecursiveChildren = selfEdges;
 
-                int counter = -1;
+    //            int counter = -1;
 
-                for (int i = 0; i < currentNode.edges.Count; i++)
-                {
-                    if (ReferenceEquals(currentNode.edges[i].to, currentNode.edges[i].from))
-                    {
-                        CopyNodeTree(currentNode, out Node newNode);
-                        newNode.parent = currentNode;
-                        counter++;
-                        //-1 för att vi skapat en kopia redan och borde egenltigen redan höjt numOfTravels
-                        if (currentNode.edges[i].numOfTravels < currentNode.edges[i].recursiveLimit - 1)
-                        {
-                            for (int j = 0; j < selfEdges; j++)
-                            {
-                                newNode.edges.Add(new Edge(newNode, newNode, currentNode.edges[i].recursiveLimit, currentNode.edges[i].numOfTravels + 1, j, new Vector3(1, 0, 0)));
-                            }
-                        }
+    //            for (int i = 0; i < currentNode.edges.Count; i++)
+    //            {
+    //                if (ReferenceEquals(currentNode.edges[i].to, currentNode.edges[i].from))
+    //                {
+    //                    CopyNodeTree(currentNode, out Node newNode);
+    //                    newNode.parent = currentNode;
+    //                    counter++;
+    //                    //-1 för att vi skapat en kopia redan och borde egenltigen redan höjt numOfTravels
+    //                    if (currentNode.edges[i].numOfTravels < currentNode.edges[i].recursiveLimit - 1)
+    //                    {
+    //                        for (int j = 0; j < selfEdges; j++)
+    //                        {
+    //                            newNode.edges.Add(new Edge(newNode, newNode, currentNode.edges[i].recursiveLimit, currentNode.edges[i].numOfTravels + 1, j, new Vector3(1, 0, 0)));
+    //                        }
+    //                    }
 
-                        currentNodeRecurssion.Enqueue(newNode);
+    //                    currentNodeRecurssion.Enqueue(newNode);
 
-                        currentNode.edges.RemoveAt(i);
-                        edgesToAdd.Add(new Edge(currentNode, newNode, 4, 4, counter, new Vector3(0, 0, 1)));
-                        i = -1;
-                    }
-                }
+    //                    currentNode.edges.RemoveAt(i);
+    //                    edgesToAdd.Add(new Edge(currentNode, newNode, 4, 4, counter, new Vector3(0, 0, 1)));
+    //                    i = -1;
+    //                }
+    //            }
 
-                currentNode.edges.AddRange(edgesToAdd);
-                currentNodeRecurssion.Dequeue();
-            }
-            recurssionQueue.Dequeue();
-        }
-        root = nodes[0];
-        ResetTree(ref root);
+    //            currentNode.edges.AddRange(edgesToAdd);
+    //            currentNodeRecurssion.Dequeue();
+    //        }
+    //        recurssionQueue.Dequeue();
+    //    }
+    //    root = nodes[0];
+    //    ResetTree(ref root);
 
-        InterpretTreeWithoutCreatingGeometry(root);
+    //    InterpretTreeWithoutCreatingGeometry(root);
 
-        return nodes;
-    }
+    //    return nodes;
+    //}
 
     private void ResetTree(ref Node node, bool clearGameObjects = false)
     {
@@ -507,125 +507,129 @@ public class CreateCreature : MonoBehaviour
             foreach (Edge e in currentNode.edges)
             {
                 //nodes.Remove(e.to);
+                if (e.to == null)
+                {
+
+                }
                 e.to.gameObjects.Clear();
                 nodeQueue.Enqueue(e.to);
             }
         }
     }
 
-    public void InterpretTreeWithoutCreatingGeometry(Node root)
-    {
-        //Root Node def.
-        Queue<Node> nodeQueue = new Queue<Node>();
-        CreateRootWithoutGeomtery(ref root);
+    //public void InterpretTreeWithoutCreatingGeometry(Node root)
+    //{
+    //    //Root Node def.
+    //    Queue<Node> nodeQueue = new Queue<Node>();
+    //    CreateRootWithoutGeomtery(ref root);
 
-        nodeQueue.Enqueue(root);
-        int numbofgeo = 1;
-        Node startOfRecurssionNode = new Node();
+    //    nodeQueue.Enqueue(root);
+    //    int numbofgeo = 1;
+    //    Node startOfRecurssionNode = new Node();
 
-        //Interpret tree in a BFS-like fashion
-        while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
-        {
-            Node currentNode = nodeQueue.Peek();
-            currentNode.partOfGraph = true;
-            bool startOver = false;
+    //    //Interpret tree in a BFS-like fashion
+    //    while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
+    //    {
+    //        Node currentNode = nodeQueue.Peek();
+    //        currentNode.partOfGraph = true;
+    //        bool startOver = false;
 
-            if (currentNode.startOfRecurssion)
-            {
-                startOfRecurssionNode = currentNode;
-                startOfRecurssionNode.scale.z = startOfRecurssionNode.scale.x;
+    //        if (currentNode.startOfRecurssion)
+    //        {
+    //            startOfRecurssionNode = currentNode;
+    //            startOfRecurssionNode.scale.z = startOfRecurssionNode.scale.x;
 
-            }
+    //        }
 
-            if (currentNode.edges.Count == 0/* || currentNode.gameObjects.Count == 0*/)
-            {
-                nodeQueue.Dequeue();
-                continue;
-            }
+    //        if (currentNode.edges.Count == 0/* || currentNode.gameObjects.Count == 0*/)
+    //        {
+    //            nodeQueue.Dequeue();
+    //            continue;
+    //        }
 
 
-            foreach (Edge edge in currentNode.edges)
-            {
-                if (!edge.traversed)
-                {
-                    startOver = false;
-                    break;
-                }
-                else
-                    startOver = true;
-            }
+    //        foreach (Edge edge in currentNode.edges)
+    //        {
+    //            if (!edge.traversed)
+    //            {
+    //                startOver = false;
+    //                break;
+    //            }
+    //            else
+    //                startOver = true;
+    //        }
 
-            //Pop and start over
-            if (startOver)
-            {
-                nodeQueue.Dequeue();
-                continue;
-            }
+    //        //Pop and start over
+    //        if (startOver)
+    //        {
+    //            nodeQueue.Dequeue();
+    //            continue;
+    //        }
 
-            //Make deepCopy of currentNodes to prevent deletion of nodes in original list
-            List<Node> tempNodes = new List<Node>();
-            foreach (Edge e in currentNode.edges)
-            {
-                tempNodes.Add(e.to);
-            }
+    //        //Make deepCopy of currentNodes to prevent deletion of nodes in original list
+    //        List<Node> tempNodes = new List<Node>();
+    //        foreach (Edge e in currentNode.edges)
+    //        {
+    //            tempNodes.Add(e.to);
+    //        }
 
-            var myhash = new HashSet<Node>();
-            var mylist = tempNodes;
-            var duplicates = mylist.Where(item => !myhash.Add(item)).Distinct().ToList();
+    //        var myhash = new HashSet<Node>();
+    //        var mylist = tempNodes;
+    //        var duplicates = mylist.Where(item => !myhash.Add(item)).Distinct().ToList();
 
-            //Region for multiple edges to one node
-            //Occurences contain the number of times a duplicate exists stored 
-            //as an integer in indexing corresponding to duplicates indexing
-            for (int i = 0; i < duplicates.Count; i++)
-            {
-                foreach (Node n in tempNodes)
-                {
-                    if (duplicates[i].Equals(n))
-                    {
-                        n.symmetry = true;
-                        n.occurence++;
-                    }
-                }
-            }
+    //        //Region for multiple edges to one node
+    //        //Occurences contain the number of times a duplicate exists stored 
+    //        //as an integer in indexing corresponding to duplicates indexing
+    //        for (int i = 0; i < duplicates.Count; i++)
+    //        {
+    //            foreach (Node n in tempNodes)
+    //            {
+    //                if (duplicates[i].Equals(n))
+    //                {
+    //                    n.symmetry = true;
+    //                    n.occurence++;
+    //                }
+    //            }
+    //        }
 
-            //Creating all not already traversed normal children/nodes
-            for (int i = 0; i < currentNode.edges.Count; i++)
-            {
-                if (!currentNode.edges[i].traversed /*&& !currentNode.edges[i].to.created*/)
-                {
-                    currentNode.edges[i].traversed = true;
+    //        //Creating all not already traversed normal children/nodes
+    //        for (int i = 0; i < currentNode.edges.Count; i++)
+    //        {
+    //            if (!currentNode.edges[i].traversed /*&& !currentNode.edges[i].to.created*/)
+    //            {
+    //                currentNode.edges[i].traversed = true;
 
-                    if (!currentNode.edges[i].to.createdGeo)
-                    {
-                        nodeQueue.Enqueue(currentNode.edges[i].to);
-                        currentNode.edges[i].to.createdGeo = true;
-                    }
-                }
-            }
-        }
+    //                if (!currentNode.edges[i].to.createdGeo)
+    //                {
+    //                    nodeQueue.Enqueue(currentNode.edges[i].to);
+    //                    currentNode.edges[i].to.createdGeo = true;
+    //                }
+    //            }
+    //        }
+    //    }
 
-        CleanupNodes();
-    }
+    //    CleanupNodes();
+    //}
 
-    private void CreateRootWithoutGeomtery(ref Node node)
-    {
-        //rootGameObject = GameObject.CreatePrimitive(node.primitiveType);
-        //rootGameObject.transform.position = new Vector3(0, 0, 0);
-        node.rotation = Vector3.zero;
-        //rootGameObject.transform.rotation = Quaternion.Euler(node.rotation);
-        //rootGameObject.transform.localScale = node.scale;
-        //Rigidbody rb = rootGameObject.AddComponent<Rigidbody>();
-        //rootGameObject.AddComponent<GeoInfo>();
-        //rb.isKinematic = true;
-        //rb.useGravity = false;
-        if (root.startOfRecurssion)
-            root.scale.x = root.scale.z;
-        node.parent = null;
-        node.created = true;
-        node.gameObjects.Clear();
-        //node.gameObjects.Add(rootGameObject);
-        //geometry.Add(rootGameObject);
-    }
+    //private void CreateRootWithoutGeomtery(ref Node node)
+    //{
+    //    //rootGameObject = GameObject.CreatePrimitive(node.primitiveType);
+    //    //rootGameObject.transform.position = new Vector3(0, 0, 0);
+    //    node.rotation = Vector3.zero;
+    //    //rootGameObject.transform.rotation = Quaternion.Euler(node.rotation);
+    //    //rootGameObject.transform.localScale = node.scale;
+    //    //Rigidbody rb = rootGameObject.AddComponent<Rigidbody>();
+    //    //rootGameObject.AddComponent<GeoInfo>();
+    //    //rb.isKinematic = true;
+    //    //rb.useGravity = false;
+    //    if (root.startOfRecurssion)
+    //        root.scale.x = root.scale.z;
+    //    node.parent = null;
+    //    node.created = true;
+    //    node.gameObjects.Clear();
+    //    //node.gameObjects.Add(rootGameObject);
+    //    //geometry.Add(rootGameObject);
+    //}
 
     public void InterpretTree(Node root)
     {
@@ -640,7 +644,7 @@ public class CreateCreature : MonoBehaviour
         while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
         {
             Node currentNode = nodeQueue.Peek();
-            Random.InitState(currentNode.seed);
+            //Random.InitState(currentNode.seed);
             currentNode.partOfGraph = true;
             bool startOver = false;
 
@@ -736,12 +740,34 @@ public class CreateCreature : MonoBehaviour
         CleanupNodes();
     }
 
-    public Creature CreateCreatureFromNodes(Node root)
+    public Creature CreateCreatureFromNodes(Node root, List<Node> oldNodes)
     {
+        if (root == null)
+        {
+            print("Root is null");
+        }
         //Root Node def.
         ResetTree(ref root);
         ResetNodes(ref root);
         geometry = new List<GameObject>();
+        oriRecurssionMuscle = new List<Muscle>();
+        leftRecurssionMuscle = new List<Muscle>();
+        frontRecurssionMuscle = new List<Muscle>();
+        backRecurssionMuscle = new List<Muscle>();
+        copyGameObject = new List<GameObject>();
+        PhysicsOn = true;
+        //limbSpacing = Random.Range(minLimbSpacing, maxLimbSpacing);
+        muscles = new List<Muscle>();
+        startPosition = Vector3.zero;
+        //nodes = oldNodes;
+
+        nodes = GetExpandedNodesList(root);
+
+        //recurssionStack = new Stack<Node>();
+        //symmetryStack = new Stack<Node>();
+        //nodeOrder = new List<Node>();
+        //nodeStack = new Stack<Node>();
+
         Queue<Node> nodeQueue = new Queue<Node>();
         CreateRootGeometry(root);
         nodeQueue.Enqueue(root);
@@ -752,7 +778,8 @@ public class CreateCreature : MonoBehaviour
         while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
         {
             Node currentNode = nodeQueue.Peek();
-            Random.InitState(seed);
+            seed = currentNode.seed;
+            //Random.InitState(seed);
             nodeQueue.Peek().partOfGraph = true;
             bool startOver = false;
 
@@ -856,40 +883,40 @@ public class CreateCreature : MonoBehaviour
     //Remove nodes not part of graph and edges leading to them in remaining nodes
     private void CleanupNodes()
     {
-        List<Node> nodesToDelete = new List<Node>();
-        List<Edge> edgesToDelete = new List<Edge>();
+        //List<Node> nodesToDelete = new List<Node>();
+        //List<Edge> edgesToDelete = new List<Edge>();
 
-        foreach (Node n in nodes)
-        {
-            if (!n.partOfGraph)
-            {
-                nodesToDelete.Add(n);
-            }
-        }
+        //foreach (Node n in nodes)
+        //{
+        //    if (!n.partOfGraph)
+        //    {
+        //        nodesToDelete.Add(n);
+        //    }
+        //}
 
-        foreach (Node node in nodesToDelete)
-        {
-            foreach (Node n in nodes)
-            {
-                foreach (Edge e in n.edges)
-                {
-                    if (e.to == node)
-                    {
-                        edgesToDelete.Add(e);
-                    }
-                }
+        //foreach (Node node in nodesToDelete)
+        //{
+        //    foreach (Node n in nodes)
+        //    {
+        //        foreach (Edge e in n.edges)
+        //        {
+        //            if (e.to == node)
+        //            {
+        //                edgesToDelete.Add(e);
+        //            }
+        //        }
 
-                foreach (Edge e in edgesToDelete)
-                {
-                    n.edges.Remove(e);
-                }
-            }
-        }
+        //        foreach (Edge e in edgesToDelete)
+        //        {
+        //            n.edges.Remove(e);
+        //        }
+        //    }
+        //}
 
-        foreach (Node n in nodesToDelete)
-        {
-            nodes.Remove(n);
-        }
+        //foreach (Node n in nodesToDelete)
+        //{
+        //    nodes.Remove(n);
+        //}
     }
 
     private void CreateRecurssionGeometry(Node node, Node parent, Edge currentEdge, Node recurssionNode)
@@ -1426,7 +1453,7 @@ public class CreateCreature : MonoBehaviour
             while (!created)
             {
                 tries++;
-                if (tries > 100)
+                if (tries > 20)
                 {
                     Debug.Log("To many tries");
                     restart = true;
@@ -1629,7 +1656,7 @@ public class CreateCreature : MonoBehaviour
                             Destroy(refChild);
                             newAxis = true;
                             testAxis++;
-                            Debug.Log("Test");
+                            //Debug.Log("Test");
                             break;
                         }
                     }
@@ -2116,11 +2143,20 @@ public class CreateCreature : MonoBehaviour
         return true;
     }
 
+
     //Needs to be called after all recursive nodes have been flushed out as single nodes to prevent inifinite loop
     public List<Node> GetExpandedNodesList(Node root)
     {
+        if (root == null)
+        {
+            Debug.Log("Root is null, GetExpandedNodeList");
+            return null;
+        }
+
         List<Node> expandedNodes = new List<Node>();
         Queue<Node> nodeQueue = new Queue<Node>();
+        //List<Tuple<Node, Node>> pairs = new List<Tuple<Node, Node>>();
+        //Node newRoot = new Node(root.primitiveType, root.scale, root.rotation, root.id, root.referenceNode, root.recursionJointType, root.scaleFactor, root.seed);
         expandedNodes.Add(root);
         nodeQueue.Enqueue(root);
 
@@ -2128,12 +2164,42 @@ public class CreateCreature : MonoBehaviour
         {
             Node currentNode = nodeQueue.Dequeue();
 
+            if (currentNode == null)
+            {
+                print("currentNode is null, GetExpandedNodesList");
+                continue;
+            }
+
             foreach (Edge e in currentNode.edges)
             {
                 nodeQueue.Enqueue(e.to);
+                //Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to.referenceNode, e.to.recursionJointType, e.to.scaleFactor, e.to.seed);
+                //expandedNodes.Add(newNode);
+                //pairs.Add(new Tuple<Node, Node>(e.to, newNode));
                 expandedNodes.Add(e.to);
             }
         }
+
+        //nodeQueue.Clear();
+        //nodeQueue.Enqueue(root);
+        //while (nodeQueue.Count > 0)
+        //{
+        //    Node currentNode = nodeQueue.Dequeue();
+
+        //    foreach (Edge e in currentNode.edges)
+        //    {
+
+        //        if (e.to.Equals(n))
+        //        {
+        //            n.edges.Add(new Edge());
+        //        }
+        //        nodeQueue.Enqueue(e.to);
+        //        expandedNodes.Add(new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to.referenceNode, e.to.recursionJointType, e.to.scaleFactor, e.to.seed));
+        //        //expandedNodes.Add(e.to);
+        //    }
+        //}
+
+
 
         return expandedNodes;
     }
@@ -2142,6 +2208,7 @@ public class CreateCreature : MonoBehaviour
     {
         if (oriNode == null)
         {
+            print("oriNode is null, CopyNodeTree");
             outNode = null;
             return;
         }
@@ -2154,8 +2221,8 @@ public class CreateCreature : MonoBehaviour
         newOriNode.numOfRecursiveChildren = oriNode.numOfRecursiveChildren;
         newOriNode.color = oriNode.color;
 
-        //newOriNode.created = true;
-        //toReset.Add(newOriNode);
+        newOriNode.created = true;
+        toReset.Add(newOriNode);
         copyNodeEdge.Add(oriNode, newOriNode);
 
         while (copyStack.Count > 0)
@@ -2166,6 +2233,11 @@ public class CreateCreature : MonoBehaviour
 
             foreach (Edge e in currentNode.edges)
             {
+                if (e.to == null)
+                {
+                    print("currentNode.e.to is null, CopyNodeTree");
+                }
+
                 if (!e.to.created && !ReferenceEquals(e.to, e.from))
                 {
                     Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to, e.to.recursionJointType, e.to.scaleFactor, e.to.seed);
@@ -2196,10 +2268,13 @@ public class CreateCreature : MonoBehaviour
 
         foreach (KeyValuePair<Node, Node> pair in copyNodeEdge)
         {
+            //Foreach outgoing edge in original
             foreach (Edge e in pair.Key.edges)
             {
-                if(!ReferenceEquals(e.to, e.from))
+                //If the edge is non-recursive
+                if(!ReferenceEquals(e.to, e.from) && e.to != null)
                 {
+                    //Add an outgoing edge to copy of original between the copy and the copy of e.to
                     if(copyNodeEdge.TryGetValue(e.to, out Node temp))
                         pair.Value.edges.Add(new Edge(pair.Value, temp, e.recursiveLimit, e.numOfTravels));
                 }
@@ -2216,7 +2291,7 @@ public class CreateCreature : MonoBehaviour
         for (int i = 0; i < numOfNodes; i++)
         {
             int seed = Random.Range(1, 10000);
-            Random.InitState(seed);
+            //Random.InitState(seed);
 
             primitiveRand = Random.Range(0, 3);
             Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
@@ -2239,7 +2314,7 @@ public class CreateCreature : MonoBehaviour
         {
             for (int y = 0; y < nodes[x].numOfChildren; y++)
             {
-                Random.InitState(nodes[x].seed);
+                //Random.InitState(nodes[x].seed);
                 nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)], Random.Range(0, 4), 0));
             }
         }
@@ -2257,13 +2332,13 @@ public class CreateCreature : MonoBehaviour
         {
             if (i == 0)
             {
-                Random.InitState(rootSeed);
+                //Random.InitState(rootSeed);
                 seed = rootSeed;
             }
             else
             {
                 seed = Random.Range(1, 10000);
-                Random.InitState(seed);
+                //Random.InitState(seed);
             }
 
             primitiveRand = Random.Range(0, 3);
@@ -2287,7 +2362,7 @@ public class CreateCreature : MonoBehaviour
         {
             for (int y = 0; y < nodes[x].numOfChildren; y++)
             {
-                Random.InitState(nodes[x].seed);
+                //Random.InitState(nodes[x].seed);
                 nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)], Random.Range(0, 4), 0));
             }
         }
