@@ -9,7 +9,6 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 {
     public UIManager uiManager;
     private bool createFromQueue = false;
-    public int trialNumber;
     private int maxAllowedTimeToStabilize = 6, currentBatchSize = 0;
     private int timeToStabilize = 6;
     public int batchSize = 6, population = 12;
@@ -26,11 +25,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     public GameObject plane;
     public int startSeed;
     Dictionary<Test, float> dictionary = new Dictionary<Test, float>();
-    private int currentGeneration = 0;
-
-    SaveLoadData saveLoadData;
-    public List<Creature> toSaveLoad = new List<Creature>();
-    int loaded = 0;
+    private float currentGeneration = 0;
 
     // Start is called before the first frame update
     void Start()
@@ -41,9 +36,6 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         }
 
         uiManager.SetMaxPopulationSize(population);
-        saveLoadData = new SaveLoadData();
-        saveLoadData.NewTestFolder(trialNumber);
-        saveLoadData.NewSaveFolder(trialNumber, currentGeneration);
     }
 
     // Update is called once per frame
@@ -62,8 +54,18 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         {       
             currentGeneration++;
             //Write generation to file
-            saveLoadData.NewSaveFolder(trialNumber, currentGeneration);
-      
+            if (currentGeneration == 2)
+            {
+
+            }
+            //using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\seedTest.txt", true))
+            //{
+            //    foreach (Test t in finishedTests)
+            //    {
+            //        file.WriteLine("Generation: " + currentGeneration + ", fitness: " + t.fitness + ", seed: " + t.creature.seed);
+            //    }
+            //}
+
             plane.SetActive(false);
             int amountToSelect = population / 2;
             //int amountToSelect = population;
@@ -116,7 +118,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     {
         List<Test> selection = new List<Test>();
 
-        finishedTests.Sort((Test t, Test t2) => t2.creature.fitness.CompareTo(t.creature.fitness));
+        finishedTests.Sort((Test t, Test t2) => t2.fitness.CompareTo(t.fitness));
 
         for (int i = 0; i < amountToSelect; i++)
         {
@@ -543,9 +545,9 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 else if (createFromQueue)
                 {
                     Creature toDestroy = creaturesToTestQueue.Dequeue();
-                    Test test = new Test(toDestroy, 0, trialNumber, currentGeneration);
+                    Test test = new Test(toDestroy, 0);
                     test.finished = true;
-                    test.creature.fitness = 0;
+                    test.fitness = 0;
                     tests.Add(test);
                     currentCreatures.Remove(toDestroy);
                     Destroy(toDestroy.handle);
@@ -606,8 +608,6 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
         }
     }
-    
-
 
     private void UpdateTests()
     {
@@ -638,28 +638,22 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             return;
         }
 
-        Test test = new Test(creaturesToTestQueue.Dequeue(), testTime, trialNumber, currentGeneration);
+        Test test = new Test(creaturesToTestQueue.Dequeue(), testTime);
         testsStarted++;
         tests.Add(test);
     }
-
-
 
     public class Test
     {
         public bool finished = false;
         public Creature creature;
-        public int generation, test;
+        public float fitness;
         float testTime;
         float timer = 0;
         Vector3 initialCenterOfMass, endCenterOfMass;
-        SaveLoadData sLD;
 
-        public Test(Creature creature, float testTime, int test,int generation)
+        public Test(Creature creature, float testTime)
         {
-            sLD = new SaveLoadData();
-            this.generation = generation;
-            this.test = test;
             this.testTime = testTime;
             this.creature = creature;
             initialCenterOfMass = CalculateMeanCenterOfMass();
@@ -676,9 +670,8 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 {
                     endCenterOfMass = CalculateMeanCenterOfMass();
                     float distanceTravelled = Vector2.Distance(new Vector2(initialCenterOfMass.x, initialCenterOfMass.z), new Vector2(endCenterOfMass.x, endCenterOfMass.z));
-                    creature.fitness = distanceTravelled;
+                    fitness = distanceTravelled;
                     finished = true;
-                    sLD.SaveCreature(creature,test, generation);
                     Destroy(creature.handle);
                 }
             }
