@@ -1112,13 +1112,17 @@ public class CreateCreature : MonoBehaviour
                                 {
                                     if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
                                     {
-                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry, node.numbOfMuscleSeed, node.muscleStrengthSeed, node.muscleAnchorSeed,
+                                            node.muscleConnectedAnchorSeed, node.seed);
+
                                         oriRecurssionMuscle = muscles.muscles;
                                     }
                                     else
                                     {
                                         muscles = currentGeometry.AddComponent<MuscleManager>();
-                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry, node.numbOfMuscleSeed, node.muscleStrengthSeed, node.muscleAnchorSeed,
+                                            node.muscleConnectedAnchorSeed, node.seed);
+
                                         oriRecurssionMuscle = muscles.muscles;
                                     }
                                 }
@@ -1131,7 +1135,8 @@ public class CreateCreature : MonoBehaviour
                                             GameObject temp = new GameObject();
                                             MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
 
-                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry, node.numbOfMuscleSeed, node.muscleStrengthSeed, node.muscleAnchorSeed,
+                                                node.muscleConnectedAnchorSeed, node.seed);
 
                                             muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, parentGeometry.transform.right);
                                             oriRecurssionMuscle = muscleManager.muscles;
@@ -1153,7 +1158,8 @@ public class CreateCreature : MonoBehaviour
                                             GameObject temp = new GameObject();
                                             MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
 
-                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry, node.numbOfMuscleSeed, node.muscleStrengthSeed, node.muscleAnchorSeed,
+                                                node.muscleConnectedAnchorSeed, node.seed);
 
                                             muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, parentGeometry.transform.right);
                                             oriRecurssionMuscle = muscleManager.muscles;
@@ -1176,7 +1182,8 @@ public class CreateCreature : MonoBehaviour
                                             GameObject temp = new GameObject();
                                             MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
 
-                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry, node.numbOfMuscleSeed, node.muscleStrengthSeed, node.muscleAnchorSeed,
+                                                node.muscleConnectedAnchorSeed, node.seed);
 
                                             muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
                                             oriRecurssionMuscle = muscleManager.muscles;
@@ -1199,7 +1206,8 @@ public class CreateCreature : MonoBehaviour
                                             GameObject temp = new GameObject();
                                             MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
 
-                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry, node.numbOfMuscleSeed, node.muscleStrengthSeed, node.muscleAnchorSeed,
+                                                node.muscleConnectedAnchorSeed, node.seed);
 
                                             muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
                                             oriRecurssionMuscle = muscleManager.muscles;
@@ -1231,7 +1239,8 @@ public class CreateCreature : MonoBehaviour
                                             GameObject temp = new GameObject();
                                             MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
 
-                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry, node.numbOfMuscleSeed, node.muscleStrengthSeed, node.muscleAnchorSeed,
+                                                node.muscleConnectedAnchorSeed, node.seed);
 
                                             muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
                                             oriRecurssionMuscle = muscleManager.muscles;
@@ -1253,7 +1262,8 @@ public class CreateCreature : MonoBehaviour
                                             GameObject temp = new GameObject();
                                             MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
 
-                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry, node.numbOfMuscleSeed, node.muscleStrengthSeed, node.muscleAnchorSeed,
+                                                node.muscleConnectedAnchorSeed, node.seed);
 
                                             muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
                                             oriRecurssionMuscle = muscleManager.muscles;
@@ -1562,12 +1572,14 @@ public class CreateCreature : MonoBehaviour
                     MuscleManager muscles;
                     if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
                     {
-                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                        muscles.CreateNewMuscles(parentGeometry, currentGeometry, node.numbOfMuscleSeed, node.muscleStrengthSeed, node.muscleAnchorSeed,
+                            node.muscleConnectedAnchorSeed, node.seed);
                     }
                     else
                     {
                         muscles = currentGeometry.AddComponent<MuscleManager>();
-                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                        muscles.CreateNewMuscles(parentGeometry, currentGeometry, node.numbOfMuscleSeed, node.muscleStrengthSeed, node.muscleAnchorSeed,
+                            node.muscleConnectedAnchorSeed, node.seed);
                     }
                     currentGeoIndex++;
                     node.gameObjects.Add(currentGeometry);
@@ -1913,12 +1925,14 @@ public class CreateCreature : MonoBehaviour
                             MuscleManager muscles;
                             if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
                             {
-                                muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                muscles.CreateNewMuscles(parentGeometry, currentGeometry, node.numbOfMuscleSeed, node.muscleStrengthSeed, node.muscleAnchorSeed,
+                                    node.muscleConnectedAnchorSeed, node.seed);
                             }
                             else
                             {
                                 muscles = currentGeometry.AddComponent<MuscleManager>();
-                                muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                muscles.CreateNewMuscles(parentGeometry, currentGeometry, node.numbOfMuscleSeed, node.muscleStrengthSeed, node.muscleAnchorSeed,
+                                    node.muscleConnectedAnchorSeed, node.seed);
                             }
                         }
                         else
@@ -2259,8 +2273,10 @@ public class CreateCreature : MonoBehaviour
         Dictionary<Node, Node> copyNodeEdge = new Dictionary<Node, Node>();
         bool nextNode = false;
         Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id, oriNode, oriNode.recursionJointType, oriNode.scaleFactor, oriNode.seed);
-        //newOriNode.scale = oriNode.scale;
-        //newOriNode.scaleFactor = oriNode.scaleFactor;
+        newOriNode.numbOfMuscleSeed = oriNode.numbOfMuscleSeed;
+        newOriNode.muscleStrengthSeed = oriNode.muscleStrengthSeed;
+        newOriNode.muscleAnchorSeed = oriNode.muscleAnchorSeed;
+        newOriNode.muscleConnectedAnchorSeed = oriNode.muscleConnectedAnchorSeed;
         newOriNode.numOfRecursiveChildren = oriNode.numOfRecursiveChildren;
         newOriNode.color = oriNode.color;
 
@@ -2347,6 +2363,10 @@ public class CreateCreature : MonoBehaviour
             Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
             Node node = new Node(primitiveRand, minScale, maxScale, rotation, i);
             node.seed = seed;
+            node.numbOfMuscleSeed = Random.Range(1, 10000);
+            node.muscleStrengthSeed = Random.Range(1, 10000);
+            node.muscleAnchorSeed = Random.Range(1, 10000);
+            node.muscleConnectedAnchorSeed = Random.Range(1, 10000);
 
             if (i == 0)
             {
@@ -2551,6 +2571,7 @@ public class Node
     public Node parent;
     public Color color;
     public int seed;
+    public int muscleStrengthSeed, muscleAnchorSeed, muscleConnectedAnchorSeed, numbOfMuscleSeed;
 
     public List<Node> children = new List<Node>();
     public List<Edge> edges = new List<Edge>();

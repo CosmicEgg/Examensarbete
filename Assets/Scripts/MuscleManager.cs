@@ -5,20 +5,24 @@ using UnityEngine;
 public class MuscleManager : MonoBehaviour
 {
     public List<Muscle> muscles = new List<Muscle>();
-    public float numbOfMuscles;
+    public int numbOfMuscles;
     float time, cycle;
     float cycleSpeed = 3f;
 
-    public void CreateNewMuscles(GameObject parent, GameObject child)
+    public void CreateNewMuscles(GameObject parent, GameObject child, int numbOfMuscleSeed, int muscleStrengthSeed, int muscleAnchorSeed, int muscleConnectedAnchorSeed, int nodeSeed)
     {
-        numbOfMuscles = Random.Range(1, 3);
+        Random.InitState(numbOfMuscleSeed);
+
+        numbOfMuscles = Random.Range(0, 4);
 
         for (int i = 0; i < numbOfMuscles; i++)
         {
             Muscle m = new Muscle(parent, child);
-            m.CreateNewMuscle();
+            m.CreateNewMuscle(muscleStrengthSeed, muscleAnchorSeed, muscleConnectedAnchorSeed);
             muscles.Add(m);
         }
+
+        Random.InitState(nodeSeed);
     }
     public void CreateRefMuscles(GameObject parent, GameObject child, List<Muscle> refMuscle, Vector3 refAxis)
     {
@@ -87,6 +91,7 @@ public class Muscle
     public GameObject emptyParent, emptyChild;
     GameObject child, parent;
     public Vector3 connectedAnchorInLocal;
+    public float strenght;
 
     public Muscle(GameObject parent, GameObject child)
     {
@@ -95,14 +100,20 @@ public class Muscle
         this.child = child;
     }
 
-    public void CreateNewMuscle()
+    public void CreateNewMuscle(int strenghtSeed,int anchorSeed, int connectedAnchorSeed)
     {
+        Random.InitState(strenghtSeed);
+        
+        strenght = Random.Range(0.0f, 1.0f);
+
         jointDrive.positionSpring = 0f;
-        jointDrive.maximumForce = 3.402823e+38f;
+        jointDrive.maximumForce = 3.402823e+38f * strenght;
         jointDrive.positionDamper = 0;
 
         Collider parentCollider = parent.GetComponent<Collider>();
         Collider childCollider = child.GetComponent<Collider>();
+
+        Random.InitState(connectedAnchorSeed);
 
         connectedAnchor = new Vector3(Random.Range(parentCollider.bounds.min.x, parentCollider.bounds.max.x),
                 Random.Range(parentCollider.bounds.min.y, parentCollider.bounds.max.y), Random.Range(parentCollider.bounds.min.z, parentCollider.bounds.max.z));
@@ -129,6 +140,8 @@ public class Muscle
 
         placementOnParent.transform.parent = emptyParent.transform;
         placementOnParent.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+
+        Random.InitState(anchorSeed);
 
         anchor = new Vector3(Random.Range(childCollider.bounds.min.x, childCollider.bounds.max.x),
                 Random.Range(childCollider.bounds.min.y, childCollider.bounds.max.y), Random.Range(childCollider.bounds.min.z, childCollider.bounds.max.z));
