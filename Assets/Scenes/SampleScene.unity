@@ -345,11 +345,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e998a6de5c510546b28303e10104fb0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  seed: 0
   minLimbSpacing: 0.19
   maxLimbSpacing: 0.3
   PhysicsOn: 0
   typeOfGeneration: 0
+  minScale: 0
+  maxScale: 0
 --- !u!4 &1022323499
 Transform:
   m_ObjectHideFlags: 0
@@ -380,6 +381,7 @@ MonoBehaviour:
   batchSize: 6
   population: 12
   plane: {fileID: 1806056839}
+  startSeed: 0
 --- !u!114 &1022323501
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -396,6 +398,7 @@ MonoBehaviour:
   batchSize: 10
   population: 20
   plane: {fileID: 1806056839}
+  startSeed: 5
 --- !u!1001 &1176629781
 PrefabInstance:
   m_ObjectHideFlags: 0

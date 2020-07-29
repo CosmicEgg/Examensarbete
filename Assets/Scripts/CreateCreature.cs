@@ -23,7 +23,7 @@ public class CreateCreature : MonoBehaviour
     Vector3 startPosition;
     Node root;
     bool generated = false;
-    public int seed;
+    //public int seed;
     public float minLimbSpacing = 0, maxLimbSpacing = 0.3f;
     float limbSpacing;
     Color color;
@@ -34,7 +34,7 @@ public class CreateCreature : MonoBehaviour
     public TypeOfGeneration typeOfGeneration;
 
     int primitiveRand;
-    float minScale, maxScale;
+    public float minScale, maxScale;
 
     // Start is called before the first frame update
     void Start()
@@ -224,14 +224,14 @@ public class CreateCreature : MonoBehaviour
                         {
                             for (int j = 0; j < selfEdges; j++)
                             {
-                                newNode.edges.Add(new Edge(newNode, newNode, currentNode.edges[i].recursiveLimit, currentNode.edges[i].numOfTravels + 1, j, new Vector3(1, 0, 0)));
+                                newNode.edges.Add(new Edge(newNode, newNode, currentNode.edges[i].recursiveLimit, currentNode.edges[i].numOfTravels + 1, j));
                             }
                         }
 
                         currentNodeRecurssion.Enqueue(newNode);
 
                         currentNode.edges.RemoveAt(i);
-                        edgesToAdd.Add(new Edge(currentNode, newNode, 4, 4, counter, new Vector3(0, 0, 1)));
+                        edgesToAdd.Add(new Edge(currentNode, newNode, 4, 4, counter));
                         i = -1;
                     }
                 }
@@ -246,12 +246,24 @@ public class CreateCreature : MonoBehaviour
 
         InterpretTree(root);
         int geoCounter = 0;
+        int fixedJointCounter = 0;
         foreach (GameObject g in geometry)
         {
             if (g != null)
             {
+                if (g.TryGetComponent<FixedJoint>(out FixedJoint joint))
+                {
+                    fixedJointCounter++;
+                }
+                
                 geoCounter++;
             }
+        }
+
+        if (fixedJointCounter == geoCounter - 1)
+        {
+            DestroyCurrent();
+            return Create();
         }
 
         if (geoCounter < 2)
@@ -271,7 +283,7 @@ public class CreateCreature : MonoBehaviour
         {
             g.transform.parent = handle.transform;
         }
-        return new Creature(nodes, geometry, seed, handle);
+        return new Creature(nodes, geometry, handle);
     }
 
     //Returnerar för få noder
@@ -644,7 +656,6 @@ public class CreateCreature : MonoBehaviour
         while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
         {
             Node currentNode = nodeQueue.Peek();
-            //Random.InitState(currentNode.seed);
             currentNode.partOfGraph = true;
             bool startOver = false;
 
@@ -712,6 +723,7 @@ public class CreateCreature : MonoBehaviour
                 if (!currentNode.edges[i].traversed /*&& !currentNode.edges[i].to.created*/)
                 {
                     currentNode.edges[i].traversed = true;
+                    Random.InitState(currentNode.edges[i].to.seed);
 
                     if (currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo)
                     {
@@ -740,8 +752,9 @@ public class CreateCreature : MonoBehaviour
         CleanupNodes();
     }
 
-    public Creature CreateCreatureFromNodes(Node root, List<Node> oldNodes)
+    public Creature CreateCreatureFromNodes(Node root, int counter = 0)
     {
+        int currentCounter = counter;
         if (root == null)
         {
             print("Root is null");
@@ -778,7 +791,7 @@ public class CreateCreature : MonoBehaviour
         while (nodeQueue.Count > 0 && nodeQueue.Count < 1000)
         {
             Node currentNode = nodeQueue.Peek();
-            seed = currentNode.seed;
+            //seed = currentNode.seed;
             //Random.InitState(seed);
             nodeQueue.Peek().partOfGraph = true;
             bool startOver = false;
@@ -846,16 +859,16 @@ public class CreateCreature : MonoBehaviour
                 if (!currentNode.edges[i].traversed /*&& !currentNode.edges[i].to.created*/)
                 {
                     currentNode.edges[i].traversed = true;
+                    Random.InitState(currentNode.edges[i].to.seed);
 
                     if (currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo)
                     {
                         CreateSymmetricalGeometry(currentNode.edges[i].to, currentNode);
                     }
-                    else if (!currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo && currentNode.edges[i].recursiveNumb == -1)
+                    //Nu borde allting tolkas som single edge geometry och inget bör gå in i createrecursiongeometry
+                    else if (!currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo && currentNode.edges[i].recursiveNumb >= -1)
                     {
                         CreateSingleEdgeGeometry(currentNode.edges[i].to, currentNode, currentNode.edges[i], startOfRecurssionNode);
-                        numbofgeo++;
-                        Debug.Log(numbofgeo);
                     }
                     else if (!currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo && currentNode.edges[i].recursiveNumb > -1)
                     {
@@ -871,13 +884,41 @@ public class CreateCreature : MonoBehaviour
             }
         }
 
+        int geoCounter = 0;
+        foreach (GameObject g in geometry)
+        {
+            if (g != null)
+            {
+
+                geoCounter++;
+            }
+        }
+
+        if (geoCounter < 2)
+        {
+            DestroyCurrent();
+
+            return CreateCreatureFromNodes(root, ++currentCounter);
+        }
+        else if (geoCounter > 100)
+        {
+            DestroyCurrent();
+            if (currentCounter > 10)
+            {
+                print("CreateCreature from nodes - too much geometry");
+                return Create();
+            }
+            return CreateCreatureFromNodes(root, ++currentCounter);
+        }
+
+
         CleanupNodes();
         GameObject handle = new GameObject();
         foreach (GameObject g in geometry)
         {
             g.transform.parent = handle.transform;
         }
-        return new Creature(nodes, geometry, seed, handle);
+        return new Creature(nodes, geometry, handle);
     }
 
     //Remove nodes not part of graph and edges leading to them in remaining nodes
@@ -997,6 +1038,7 @@ public class CreateCreature : MonoBehaviour
                         }
 
                         currentGeometry.transform.localScale = recurssionNode.scale * node.scaleFactor;
+                        node.scale *= node.scaleFactor;
                         currentGeometry.AddComponent<Rigidbody>();
                         currentGeometry.AddComponent<GeoInfo>();
                         Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
@@ -1379,7 +1421,7 @@ public class CreateCreature : MonoBehaviour
         if (!generated)
         {
             generated = true;
-            Create(seed);
+            Create(/*seed*/);
             //InterpretTree(root);
 
         }
@@ -2143,7 +2185,6 @@ public class CreateCreature : MonoBehaviour
         return true;
     }
 
-
     //Needs to be called after all recursive nodes have been flushed out as single nodes to prevent inifinite loop
     public List<Node> GetExpandedNodesList(Node root)
     {
@@ -2218,6 +2259,8 @@ public class CreateCreature : MonoBehaviour
         Dictionary<Node, Node> copyNodeEdge = new Dictionary<Node, Node>();
         bool nextNode = false;
         Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id, oriNode, oriNode.recursionJointType, oriNode.scaleFactor, oriNode.seed);
+        //newOriNode.scale = oriNode.scale;
+        //newOriNode.scaleFactor = oriNode.scaleFactor;
         newOriNode.numOfRecursiveChildren = oriNode.numOfRecursiveChildren;
         newOriNode.color = oriNode.color;
 
@@ -2241,7 +2284,9 @@ public class CreateCreature : MonoBehaviour
                 if (!e.to.created && !ReferenceEquals(e.to, e.from))
                 {
                     Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to, e.to.recursionJointType, e.to.scaleFactor, e.to.seed);
-                    newNode.color = e.to.color; 
+                    newNode.color = e.to.color;
+                    //newNode.scale = e.to.scale;
+                    //newNode.scaleFactor = e.to.scaleFactor;
                     copyStack.Push(e.to);
                     copyNodeEdge.Add(e.to, newNode);
                     e.to.created = true;
@@ -2276,7 +2321,12 @@ public class CreateCreature : MonoBehaviour
                 {
                     //Add an outgoing edge to copy of original between the copy and the copy of e.to
                     if(copyNodeEdge.TryGetValue(e.to, out Node temp))
-                        pair.Value.edges.Add(new Edge(pair.Value, temp, e.recursiveLimit, e.numOfTravels));
+                    {
+                        Edge newEdge = new Edge(pair.Value, temp, e.recursiveLimit, e.numOfTravels/*, e.recursiveNumb, e.axis*/);
+                        newEdge.recursiveNumb = e.recursiveNumb;
+                        pair.Value.edges.Add(newEdge);
+                    
+                    }
                 }
             }
         }
@@ -2291,7 +2341,7 @@ public class CreateCreature : MonoBehaviour
         for (int i = 0; i < numOfNodes; i++)
         {
             int seed = Random.Range(1, 10000);
-            //Random.InitState(seed);
+            Random.InitState(seed);
 
             primitiveRand = Random.Range(0, 3);
             Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
@@ -2314,7 +2364,7 @@ public class CreateCreature : MonoBehaviour
         {
             for (int y = 0; y < nodes[x].numOfChildren; y++)
             {
-                //Random.InitState(nodes[x].seed);
+                Random.InitState(nodes[x].seed);
                 nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)], Random.Range(0, 4), 0));
             }
         }
@@ -2325,53 +2375,53 @@ public class CreateCreature : MonoBehaviour
         nodes[0].stacked = true;
     }
 
-    private void CreateNewNodesFromSeed(int numberOfNodes, int rootSeed)
-    {      
-        //Spawn Nodes
-        for (int i = 0; i < numberOfNodes; i++)
-        {
-            if (i == 0)
-            {
-                //Random.InitState(rootSeed);
-                seed = rootSeed;
-            }
-            else
-            {
-                seed = Random.Range(1, 10000);
-                //Random.InitState(seed);
-            }
+    //private void CreateNewNodesFromSeed(int numberOfNodes, int rootSeed)
+    //{      
+    //    //Spawn Nodes
+    //    for (int i = 0; i < numberOfNodes; i++)
+    //    {
+    //        if (i == 0)
+    //        {
+    //            Random.InitState(rootSeed);
+    //            seed = rootSeed;
+    //        }
+    //        else
+    //        {
+    //            seed = Random.Range(1, 10000);
+    //            Random.InitState(seed);
+    //        }
 
-            primitiveRand = Random.Range(0, 3);
-            Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
-            Node node = new Node(primitiveRand, minScale, maxScale, rotation, i);
-            node.seed = seed;
+    //        primitiveRand = Random.Range(0, 3);
+    //        Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
+    //        Node node = new Node(primitiveRand, minScale, maxScale, rotation, i);
+    //        node.seed = seed;
 
-            if (i == 0)
-            {
-                color = new Color(
-                Random.Range(0f, 1f),
-                Random.Range(0f, 1f),
-                Random.Range(0f, 1f));
-            }
-            node.color = color;
-            nodes.Add(node);
-        }
+    //        if (i == 0)
+    //        {
+    //            color = new Color(
+    //            Random.Range(0f, 1f),
+    //            Random.Range(0f, 1f),
+    //            Random.Range(0f, 1f));
+    //        }
+    //        node.color = color;
+    //        nodes.Add(node);
+    //    }
 
-        //Add Children
-        for (int x = 0; x < nodes.Count; x++)
-        {
-            for (int y = 0; y < nodes[x].numOfChildren; y++)
-            {
-                //Random.InitState(nodes[x].seed);
-                nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)], Random.Range(0, 4), 0));
-            }
-        }
+    //    //Add Children
+    //    for (int x = 0; x < nodes.Count; x++)
+    //    {
+    //        for (int y = 0; y < nodes[x].numOfChildren; y++)
+    //        {
+    //            Random.InitState(nodes[x].seed);
+    //            nodes[x].edges.Add(new Edge(nodes[x], nodes[Random.Range(0, numOfNodes)], Random.Range(0, 4), 0));
+    //        }
+    //    }
 
-    //Root Node def.
-    nodeStack.Push(nodes[0]);
-    nodeOrder.Add(nodes[0]);
-    nodes[0].stacked = true;
-    }
+    ////Root Node def.
+    //nodeStack.Push(nodes[0]);
+    //nodeOrder.Add(nodes[0]);
+    //nodes[0].stacked = true;
+    //}
 
     //For testing symmetry
     private void CreateSymmetryTest()
@@ -2475,10 +2525,11 @@ public class CreateCreature : MonoBehaviour
     #endregion
 }
 
+
 public class Node
 {
     public int numOfRecursiveChildren = 0;
-    float randUniScale;
+    public float randUniScale;
     public bool startOfRecurssion = false;
     public Node referenceNode = null;
     public bool createdGeo = false; 
@@ -2501,12 +2552,13 @@ public class Node
     public Color color;
     public int seed;
 
+    public List<Node> children = new List<Node>();
     public List<Edge> edges = new List<Edge>();
 
     public Node(PrimitiveType primitiveType, Vector3 scale, Vector3 rotation, int id, Node referenceNode, int recursionJointType, float scaleFactor, int seed)
     {
         this.primitiveType = primitiveType;
-        this.scale = scale * 0.7f;
+        this.scale = scale;
         this.scaleFactor = scaleFactor * 0.7f;
         this.rotation = rotation;
         this.id = id;
@@ -2548,11 +2600,6 @@ public class Node
         this.id = id;
     
     }
-
-    public void Mutate()
-    {
-        //Randomize shit
-    }
 }
 
 public class Edge
@@ -2563,7 +2610,7 @@ public class Edge
     public int recursiveLimit;
     public bool traversed = false;
     public int recursiveNumb = -1;
-    public Vector3 axis;
+    //public Vector3 axis;
 
     public Edge(Node from, Node to, int recursiveLimit, int numOfTravels)
     {
@@ -2575,23 +2622,23 @@ public class Edge
 
     public Edge() { }
 
-    public Edge(Node from, Node to, int recursiveLimit, int numOfTravels, int recursiveNumb, Vector3 axis)
+    public Edge(Node from, Node to, int recursiveLimit, int numOfTravels, int recursiveNumb/*, Vector3 axis*/)
     {
         this.from = from;
         this.to = to;
         this.recursiveLimit = recursiveLimit;
         this.numOfTravels = numOfTravels;
         this.recursiveNumb = recursiveNumb;
-        this.axis = axis;
+        //this.axis = axis;
     }
 }
+
 
 public class Creature
 {
     public List<Node> nodes = new List<Node>();
     public List<GameObject> geometry = new List<GameObject>();
     public GameObject handle;
-    public int seed;
     public float timer = 0, timeToGetReady = 0;
     public bool active = false;
     public bool readyToStart = false;
@@ -2599,12 +2646,11 @@ public class Creature
     public float fitness;
     public Vector3 initialCenterOfMass, finalCenterOfMass;
 
-    public Creature(List<Node> nodes, List<GameObject> geometry, int seed, GameObject handle)
+    public Creature(List<Node> nodes, List<GameObject> geometry, GameObject handle)
     {
         this.handle = handle;
         this.nodes = nodes;
         this.geometry = geometry;
-        this.seed = seed;
     }
 
     public void Update()
@@ -2622,10 +2668,246 @@ public class Creature
             }
         }
     }
-
-    public void destroyGeo()
-    {
-        
-    }
 }
+
+//public class TreeContainer : MonoBehaviour, ISerializationCallbackReceiver
+//{
+//    [Serializable]
+//    public struct SerializableNode
+//    {
+//        public int numOfRecursiveChildren;
+//        public float randUniScale;
+//        public bool startOfRecurssion;
+//        public Node referenceNode;
+//        public bool createdGeo;
+//        public bool created;
+//        public bool symmetry;
+//        public int occurence;
+//        public float scaleFactor;
+//        public int recursionJointType;
+//        public PrimitiveType primitiveType;
+//        public Vector3 scale;
+//        public Vector3 rotation;
+//        public Vector3 parentToChildDir;
+//        public List<GameObject> gameObjects;
+//        public List<Vector3> axisList;
+//        public int numOfChildren;
+//        public bool stacked;
+//        public int id;
+//        public bool partOfGraph;
+//        public Node parent;
+//        public Color color;
+//        public int seed;
+
+//        public List<Edge> edges;
+
+//        public int childCount;
+//        public int indexOfFirstChild;
+//    }
+
+//    Node root = new Node();
+//    public List<SerializableNode> serializedNodes;
+
+//    public void OnBeforeSerialize()
+//    {
+//        if (serializedNodes == null)
+//        {
+//            serializedNodes = new List<SerializableNode>();
+//        }
+
+//        if (root == null)
+//        {
+//            root = new Node();
+//        }
+
+//        serializedNodes.Clear();
+//        AddNodeToSerializedNodes(root);
+//    }
+
+//    void AddNodeToSerializedNodes(Node n)
+//    {
+//        var serializedNode = new SerializableNode()
+//        {
+//            numOfRecursiveChildren = n.numOfRecursiveChildren,
+//            randUniScale = n.randUniScale,
+//            startOfRecurssion = n.startOfRecurssion,
+//            createdGeo = n.createdGeo,
+//            created = n.created,
+//            symmetry = n.symmetry,
+//            occurence = n.occurence,
+//            scaleFactor = n.scaleFactor,
+//            recursionJointType = n.recursionJointType,
+//            primitiveType = n.primitiveType,
+//            scale = n.scale,
+//            rotation = n.rotation,
+//            parentToChildDir = n.parentToChildDir,
+//            numOfChildren = n.numOfChildren,
+//            stacked = n.stacked,
+//            id = n.id,
+//            partOfGraph = n.partOfGraph,
+//            seed = n.seed,
+
+//            //Datatyper som är oklara hur de serialize:as
+//            axisList = n.axisList,
+//            color = n.color,
+//            gameObjects = n.gameObjects,
+
+//            referenceNode = n.referenceNode,
+//            edges = n.edges,
+//            parent = n.parent, //cykliskt?//
+
+//            childCount = n.edges.Count,
+//            indexOfFirstChild = serializedNodes.Count + 1
+//        };
+
+//        serializedNodes.Add(serializedNode);
+
+//        //Kanske borde ta hänsyn till rekursiva edges och ifall e.to är null
+//        foreach (Edge e in n.edges)
+//        {
+//            AddNodeToSerializedNodes(e.to);
+//        }
+//    }
+
+//    public void OnAfterDeserialize()
+//    {
+//        if (serializedNodes.Count > 0)
+//        {
+//            ReadNodeFromSerializedNodes(0, out root);
+//        }
+//        else
+//            root = new Node();
+//    }
+
+//    int ReadNodeFromSerializedNodes(int index, out Node node)
+//    {
+//        var serializedNode = serializedNodes[index];
+
+//        Node newNode = new Node()
+//        {
+//            numOfRecursiveChildren = serializedNode.numOfRecursiveChildren,
+//            randUniScale = serializedNode.randUniScale,
+//            startOfRecurssion = serializedNode.startOfRecurssion,
+//            createdGeo = serializedNode.createdGeo,
+//            created = serializedNode.created,
+//            symmetry = serializedNode.symmetry,
+//            occurence = serializedNode.occurence,
+//            scaleFactor = serializedNode.scaleFactor,
+//            recursionJointType = serializedNode.recursionJointType,
+//            primitiveType = serializedNode.primitiveType,
+//            scale = serializedNode.scale,
+//            rotation = serializedNode.rotation,
+//            parentToChildDir = serializedNode.parentToChildDir,
+//            numOfChildren = serializedNode.numOfChildren,
+//            stacked = serializedNode.stacked,
+//            id = serializedNode.id,
+//            partOfGraph = serializedNode.partOfGraph,
+
+//            //oklart hur dessa läses av
+//            //referenceNode = serializedNode.referenceNode,
+//            axisList = serializedNode.axisList,
+//            color = serializedNode.color,
+//            seed = serializedNode.seed,
+//            gameObjects = serializedNode.gameObjects,
+//            //edges = serializedNode.edges,
+//            //parent = serializedNode.parent,
+
+//            referenceNode = new Node(),
+//            parent = new Node(),
+//            edges = new List<Edge>(),
+//            children = new List<Node>()
+//        };
+
+//        // The tree needs to be read in depth-first, since that's how we wrote it out.
+//        for (int i = 0; i != serializedNode.childCount; i++)
+//        {
+//            Node childNode;
+//            index = ReadNodeFromSerializedNodes(++index, out childNode);
+//            //Edge edge = new Edge(newNode, childNode, )
+//            newNode.children.Add(childNode);
+//        }
+
+//        node = newNode;
+//        return index;
+//    }
+//}
+
+//public class BehaviourWithTree : MonoBehaviour, ISerializationCallbackReceiver
+//    {
+//        // Node class that is used at runtime.
+//        // This is internal to the BehaviourWithTree class and is not serialized.
+//        public class Node
+//        {
+//            public string interestingValue = "value";
+//            public List<Node> children = new List<Node>();
+//        }
+//        // Node class that we will use for serialization.
+//        [Serializable]
+//        public struct SerializableNode
+//        {
+//            public string interestingValue;
+//            public int childCount;
+//            public int indexOfFirstChild;
+//        }
+//        // The root node used for runtime tree representation. Not serialized.
+//        Node root = new Node();
+//        // This is the field we give Unity to serialize.
+//        public List<SerializableNode> serializedNodes;
+//        public void OnBeforeSerialize()
+//        {
+//            // Unity is about to read the serializedNodes field's contents.
+//            // The correct data must now be written into that field "just in time".
+//            if (serializedNodes == null) serializedNodes = new List<SerializableNode>();
+//            if (root == null) root = new Node();
+//            serializedNodes.Clear();
+//            AddNodeToSerializedNodes(root);
+//            // Now Unity is free to serialize this field, and we should get back the expected 
+//            // data when it is deserialized later.
+//        }
+//        void AddNodeToSerializedNodes(Node n)
+//        {
+//            var serializedNode = new SerializableNode()
+//            {
+//                interestingValue = n.interestingValue,
+//                childCount = n.children.Count,
+//                indexOfFirstChild = serializedNodes.Count + 1
+//            }
+//            ;
+//            serializedNodes.Add(serializedNode);
+//            foreach (var child in n.children)
+//                AddNodeToSerializedNodes(child);
+//        }
+//        public void OnAfterDeserialize()
+//        {
+//            //Unity has just written new data into the serializedNodes field.
+//            //let's populate our actual runtime data with those new values.
+//            if (serializedNodes.Count > 0)
+//            {
+//                ReadNodeFromSerializedNodes(0, out root);
+//            }
+//            else
+//                root = new Node();
+//        }
+//        int ReadNodeFromSerializedNodes(int index, out Node node)
+//        {
+//            var serializedNode = serializedNodes[index];
+//            // Transfer the deserialized data into the internal Node class
+//            Node newNode = new Node()
+//            {
+//                interestingValue = serializedNode.interestingValue,
+//                children = new List<Node>()
+//            }
+//            ;
+//            // The tree needs to be read in depth-first, since that's how we wrote it out.
+//            for (int i = 0; i != serializedNode.childCount; i++)
+//            {
+//                Node childNode;
+//                index = ReadNodeFromSerializedNodes(++index, out childNode);
+//                newNode.children.Add(childNode);
+//            }
+//            node = newNode;
+//            return index;
+//        }
+//    }
+
 

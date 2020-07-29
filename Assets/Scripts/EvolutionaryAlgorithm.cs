@@ -23,12 +23,18 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     List<Test> tests = new List<Test>();
     List<Test> finishedTests = new List<Test>();
     public GameObject plane;
+    public int startSeed;
     Dictionary<Test, float> dictionary = new Dictionary<Test, float>();
     private float currentGeneration = 0;
 
     // Start is called before the first frame update
     void Start()
     {
+        if (startSeed != 0)
+        {
+            Random.InitState(startSeed);
+        }
+
         uiManager.SetMaxPopulationSize(population);
     }
 
@@ -72,7 +78,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             generationGenomes.AddRange(bestGenomes);
             //generationGenomes.AddRange(bestGenomes2);
             generationGenomes.AddRange(CrossOver(bestTests));
-            //Mutate(ref generationGenomes);
+            //Mutate(ref generationGenomes, 0.1f);
             List<Creature> newCreatures = CreatePopulationFromGenomes(generationGenomes);
 
             //Delete gameobjects
@@ -189,7 +195,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     List<List<Node>> CrossOver(List<Test> bestTests)
     {
         List<List<Node>> genomes = new List<List<Node>>();
-        List<Node> nodes = new List<Node>();
+        //List<Node> nodes = new List<Node>();
 
         for (int i = 0; i < bestTests.Count; i++)
         {
@@ -203,6 +209,15 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             //genomes.Add(nodes);
         }
 
+        int count = genomes.Count;
+        for (int i = 0; i < genomes.Count; i++)
+        {
+            int random = Random.Range(i, count);
+            var temp = genomes[i];
+            genomes[i] = genomes[random];
+            genomes[random] = temp;
+        }
+
         List<List<Node>> newGenomes = new List<List<Node>>();
         List<Node> crossOverNodeBranch1 = new List<Node>();
         List<Node> crossOverNodeBranch2 = new List<Node>();
@@ -210,14 +225,14 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         for (int i = 0; i < genomes.Count - 1; i += 2)
         {
             //Select random node from nodeList
-            int index1 = Random.Range(0, genomes[i].Count);
+            int index1 = Random.Range(1, genomes[i].Count);
             Node originalCrossOverNode1 = genomes[i][index1];
             Node crossOverNode1 = new Node();
             //Retreive all nodes branching from this node
             creationManager.CopyNodeTree(originalCrossOverNode1, out crossOverNode1);
 
             //Select random node from nodeList
-            int index2 = Random.Range(0, genomes[i + 1].Count);
+            int index2 = Random.Range(1, genomes[i + 1].Count);
             Node originalCrossOverNode2 = genomes[i + 1][index2];
             Node crossOverNode2 = new Node();
             //Retreive all nodes branching from this node
@@ -228,26 +243,15 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 Edge toAdd = new Edge();
                 List<Edge> edgesToRemove = new List<Edge>();
                 int counter = 0;
-                //bool found = false;
                 foreach (Edge e in originalCrossOverNode1.parent.edges)
                 {
-                    //if (e.to != null)
-                    //{
-
-                    if (e.to == null)
+                    if (e.to.Equals(originalCrossOverNode1))
                     {
-
+                        counter++;
+                        toAdd = new Edge(originalCrossOverNode1.parent, crossOverNode2, e.recursiveLimit, e.numOfTravels);
+                        toAdd.recursiveNumb = e.recursiveNumb;
+                        edgesToRemove.Add(e);
                     }
-                        if (e.to.Equals(originalCrossOverNode1))
-                        {
-                            counter++;
-                            toAdd = new Edge(originalCrossOverNode1.parent, crossOverNode2, e.recursiveLimit, e.numOfTravels);
-                            edgesToRemove.Add(e);
-
-                            //found = true;
-                            //break;
-                        }
-                    //}
                 }
 
                 foreach (Edge e in edgesToRemove)
@@ -255,12 +259,11 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                     originalCrossOverNode1.parent.edges.Remove(e);
                 }
 
-                if (counter > 1)
-                {
-
-                }
-
                 originalCrossOverNode1.parent.edges.Add(toAdd);
+            }
+            else if (originalCrossOverNode1.parent == null)
+            {
+
             }
 
             if (originalCrossOverNode2.parent != null)
@@ -269,24 +272,17 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 Edge toAdd = new Edge();
                 List<Edge> edgesToRemove = new List<Edge>();
                 int counter = 0;
-                //bool found = false;
+
                 foreach (Edge e in originalCrossOverNode2.parent.edges)
                 {
-                    //if (e.to != null)
-                    //{
-
-                    if (e.to == null)
-                    {
-
-                    }
                     if (e.to.Equals(originalCrossOverNode2))
-                        {
-                            counter++;
-                            toAdd = new Edge(originalCrossOverNode2.parent, crossOverNode1, e.recursiveLimit, e.numOfTravels);
-                            edgesToRemove.Add(e);
-                            //found = true;
-                            //break;
-                        }
+                    {
+                        counter++;
+                        toAdd = new Edge(originalCrossOverNode2.parent, crossOverNode1, e.recursiveLimit, e.numOfTravels);
+                        toAdd.recursiveNumb = e.recursiveNumb;
+
+                        edgesToRemove.Add(e);
+                    }
                 }
 
                 foreach (Edge e in edgesToRemove)
@@ -294,20 +290,19 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                     originalCrossOverNode2.parent.edges.Remove(e);
                 }
 
-                if (counter > 1)
-                {
-
-                }
-
                 originalCrossOverNode2.parent.edges.Add(toAdd);
             }
+            else if (originalCrossOverNode2.parent == null)
+            {
 
-            crossOverNode1.parent = originalCrossOverNode2.parent;
-            crossOverNode2.parent = originalCrossOverNode1.parent;
+            }
 
-            //Node temp = new Node(); temp = crossOverNode1.parent;
             //crossOverNode1.parent = originalCrossOverNode2.parent;
-            //crossOverNode2.parent = temp;
+            //crossOverNode2.parent = originalCrossOverNode1.parent;
+
+            Node temp = new Node(); temp = crossOverNode1.parent;
+            crossOverNode1.parent = originalCrossOverNode2.parent;
+            crossOverNode2.parent = temp;
 
 
             List<Node> newNodes1 = new List<Node>();
@@ -331,8 +326,54 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
                 if (mutationChance <= mutationRate)
                 {
-                    int randomIndex = Random.Range(0, genomes[i].Count);
-                    //genomes[i][randomIndex].Mutate();
+                    int seed = Random.Range(1, 10000);
+                    Random.InitState(seed);
+
+                    Node mutatedNode = genomes[i][j];
+
+                    int primitiveRand = Random.Range(0, 3);
+                    Vector3 scale;
+                    PrimitiveType primitiveType;
+                    float minScale = creationManager.minScale, maxScale = creationManager.maxScale;
+                    float randUniScale;
+
+                    switch (primitiveRand)
+                    {
+                        case 0:
+                            primitiveType = PrimitiveType.Cube;
+                            scale = new Vector3(Random.Range(minScale, maxScale), Random.Range(minScale, maxScale), Random.Range(minScale, maxScale));
+                            break;
+                        case 1:
+                            primitiveType = PrimitiveType.Capsule;
+                            randUniScale = Random.Range(minScale, maxScale);
+                            scale = new Vector3(randUniScale, randUniScale, randUniScale);
+                            break;
+                        case 2:
+                            primitiveType = PrimitiveType.Sphere;
+                            randUniScale = Random.Range(minScale, maxScale);
+                            scale = new Vector3(randUniScale, randUniScale, randUniScale);
+                            break;
+                        default:
+                            primitiveType = PrimitiveType.Cube;
+                            scale = new Vector3(Random.Range(minScale, maxScale), Random.Range(minScale, maxScale), Random.Range(minScale, maxScale));
+                            break;
+                    }
+
+                    Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
+                    mutatedNode.primitiveType = primitiveType;
+                    mutatedNode.rotation = rotation;
+                    mutatedNode.scale = scale;
+                    
+                    mutatedNode.seed = seed;
+
+                    Color color = new Color(
+                    Random.Range(0f, 1f),
+                    Random.Range(0f, 1f),
+                    Random.Range(0f, 1f));
+
+                    mutatedNode.color = color;
+
+                    genomes[i][j] = mutatedNode;
                 }
             }
         }
@@ -352,7 +393,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 placementFactor = 0;
             }
 
-            Creature newCreature = creationManager.CreateCreatureFromNodes(genomes[i][0], genomes[i]);
+            Creature newCreature = creationManager.CreateCreatureFromNodes(genomes[i][0]);
             newCreature.handle.transform.position = new Vector3(20 * placementFactor, 5, 0);
             newCreature.handle.layer = LayerMask.NameToLayer(placementFactor.ToString());
 
