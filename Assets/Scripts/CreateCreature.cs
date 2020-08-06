@@ -279,6 +279,7 @@ public class CreateCreature : MonoBehaviour
         }
 
         GameObject handle = new GameObject();
+
         foreach (GameObject g in geometry)
         {
             g.transform.parent = handle.transform;
@@ -762,6 +763,8 @@ public class CreateCreature : MonoBehaviour
         //Root Node def.
         ResetTree(ref root);
         ResetNodes(ref root);
+        nodes = new List<Node>();
+        nodes.Add(root);
         geometry = new List<GameObject>();
         oriRecurssionMuscle = new List<Muscle>();
         leftRecurssionMuscle = new List<Muscle>();
@@ -774,7 +777,7 @@ public class CreateCreature : MonoBehaviour
         startPosition = Vector3.zero;
         //nodes = oldNodes;
 
-        nodes = GetExpandedNodesList(root);
+        //nodes = GetExpandedNodesList(root);
 
         //recurssionStack = new Stack<Node>();
         //symmetryStack = new Stack<Node>();
@@ -1112,13 +1115,13 @@ public class CreateCreature : MonoBehaviour
                                 {
                                     if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
                                     {
-                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
                                         oriRecurssionMuscle = muscles.muscles;
                                     }
                                     else
                                     {
                                         muscles = currentGeometry.AddComponent<MuscleManager>();
-                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                        muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
                                         oriRecurssionMuscle = muscles.muscles;
                                     }
                                 }
@@ -1131,7 +1134,7 @@ public class CreateCreature : MonoBehaviour
                                             GameObject temp = new GameObject();
                                             MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
 
-                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
 
                                             muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, parentGeometry.transform.right);
                                             oriRecurssionMuscle = muscleManager.muscles;
@@ -1153,7 +1156,7 @@ public class CreateCreature : MonoBehaviour
                                             GameObject temp = new GameObject();
                                             MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
 
-                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
 
                                             muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, parentGeometry.transform.right);
                                             oriRecurssionMuscle = muscleManager.muscles;
@@ -1176,7 +1179,7 @@ public class CreateCreature : MonoBehaviour
                                             GameObject temp = new GameObject();
                                             MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
 
-                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
 
                                             muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
                                             oriRecurssionMuscle = muscleManager.muscles;
@@ -1199,7 +1202,7 @@ public class CreateCreature : MonoBehaviour
                                             GameObject temp = new GameObject();
                                             MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
 
-                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
 
                                             muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
                                             oriRecurssionMuscle = muscleManager.muscles;
@@ -1231,7 +1234,7 @@ public class CreateCreature : MonoBehaviour
                                             GameObject temp = new GameObject();
                                             MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
 
-                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
 
                                             muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
                                             oriRecurssionMuscle = muscleManager.muscles;
@@ -1253,7 +1256,7 @@ public class CreateCreature : MonoBehaviour
                                             GameObject temp = new GameObject();
                                             MuscleManager muscleManager = temp.AddComponent<MuscleManager>();
 
-                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                            muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
 
                                             muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
                                             oriRecurssionMuscle = muscleManager.muscles;
@@ -1476,9 +1479,9 @@ public class CreateCreature : MonoBehaviour
         }
 
         bool restart = false;
+        int stopRestart = 0;
 
-
-        while (!restart)
+        while (!restart && stopRestart < 10)
         {
             List<GameObject> copyGeoList = new List<GameObject>();
 
@@ -1487,7 +1490,6 @@ public class CreateCreature : MonoBehaviour
             Rigidbody parentRigidBody = parentGeometry.GetComponent<Rigidbody>();
 
             GameObject currentGeometry;
-
             int currentGeoIndex = 0;
             bool created = false;
             int tries = 0;
@@ -1562,12 +1564,12 @@ public class CreateCreature : MonoBehaviour
                     MuscleManager muscles;
                     if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
                     {
-                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                        muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
                     }
                     else
                     {
                         muscles = currentGeometry.AddComponent<MuscleManager>();
-                        muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                        muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
                     }
                     currentGeoIndex++;
                     node.gameObjects.Add(currentGeometry);
@@ -1778,6 +1780,7 @@ public class CreateCreature : MonoBehaviour
                     break;
                 }
             }
+            stopRestart++;
         }
     }
 
@@ -1913,12 +1916,12 @@ public class CreateCreature : MonoBehaviour
                             MuscleManager muscles;
                             if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
                             {
-                                muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
                             }
                             else
                             {
                                 muscles = currentGeometry.AddComponent<MuscleManager>();
-                                muscles.CreateNewMuscles(parentGeometry, currentGeometry);
+                                muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
                             }
                         }
                         else
@@ -1990,7 +1993,7 @@ public class CreateCreature : MonoBehaviour
             while (!created)
             {
                 tries++;
-                if (tries > 100)
+                if (tries > 10)
                 {
                     Debug.Log("To many tries");
                     break;
@@ -2099,7 +2102,7 @@ public class CreateCreature : MonoBehaviour
         while (!created)
         {
             tries++;
-            if (tries > 100)
+            if (tries > 10)
             {
                 Debug.Log("To many tries");
                 break;
@@ -2198,7 +2201,9 @@ public class CreateCreature : MonoBehaviour
         Queue<Node> nodeQueue = new Queue<Node>();
         //List<Tuple<Node, Node>> pairs = new List<Tuple<Node, Node>>();
         //Node newRoot = new Node(root.primitiveType, root.scale, root.rotation, root.id, root.referenceNode, root.recursionJointType, root.scaleFactor, root.seed);
-        expandedNodes.Add(root);
+        Node newRoot = root;
+
+        expandedNodes.Add(newRoot);
         nodeQueue.Enqueue(root);
 
         while (nodeQueue.Count > 0)
@@ -2217,7 +2222,8 @@ public class CreateCreature : MonoBehaviour
                 //Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to.referenceNode, e.to.recursionJointType, e.to.scaleFactor, e.to.seed);
                 //expandedNodes.Add(newNode);
                 //pairs.Add(new Tuple<Node, Node>(e.to, newNode));
-                expandedNodes.Add(e.to);
+                Node newEto = e.to;
+                expandedNodes.Add(newEto);
             }
         }
 
@@ -2261,6 +2267,8 @@ public class CreateCreature : MonoBehaviour
         Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id, oriNode, oriNode.recursionJointType, oriNode.scaleFactor, oriNode.seed);
         newOriNode.numOfRecursiveChildren = oriNode.numOfRecursiveChildren;
         newOriNode.color = oriNode.color;
+        newOriNode.muscleSeeds = oriNode.muscleSeeds;
+        newOriNode.numbOfMuscles = oriNode.numbOfMuscles;
 
         newOriNode.created = true;
         toReset.Add(newOriNode);
@@ -2283,12 +2291,13 @@ public class CreateCreature : MonoBehaviour
                 {
                     Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to, e.to.recursionJointType, e.to.scaleFactor, e.to.seed);
                     newNode.color = e.to.color;
+                    newNode.muscleSeeds = e.to.muscleSeeds;
+                    newNode.numbOfMuscles = e.to.numbOfMuscles;
                     //newNode.scale = e.to.scale;
                     //newNode.scaleFactor = e.to.scaleFactor;
                     copyStack.Push(e.to);
                     copyNodeEdge.Add(e.to, newNode);
                     e.to.created = true;
-                    e.to.parent = currentNode;
                     toReset.Add(e.to);
                     nextNode = true;
                     break;
@@ -2323,6 +2332,7 @@ public class CreateCreature : MonoBehaviour
                         Edge newEdge = new Edge(pair.Value, temp, e.recursiveLimit, e.numOfTravels/*, e.recursiveNumb, e.axis*/);
                         newEdge.recursiveNumb = e.recursiveNumb;
                         pair.Value.edges.Add(newEdge);
+                        temp.parent = pair.Value;
                     
                     }
                 }
@@ -2345,6 +2355,16 @@ public class CreateCreature : MonoBehaviour
             Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
             Node node = new Node(primitiveRand, minScale, maxScale, rotation, i);
             node.seed = seed;
+            node.numbOfMuscles = Random.Range(1, 5);
+            node.muscleSeeds = new int[node.numbOfMuscles, 3];
+
+            for (int j = 0; j < node.numbOfMuscles; j++)
+            {
+                for (int k = 0; k < 3; k++)
+                {
+                    node.muscleSeeds[j, k] = Random.Range(0, 1000);
+                }
+            }
 
             if (i == 0)
             {
@@ -2507,10 +2527,8 @@ public class CreateCreature : MonoBehaviour
         //nodes.Add(node4);
         //nodes.Add(node5);
 
-        nodes[0].edges.Add(new Edge(nodes[0], nodes[1], 3, 0));
-        nodes[0].edges.Add(new Edge(nodes[0], nodes[1], 3, 0));
-        nodes[0].edges.Add(new Edge(nodes[0], nodes[1], 3, 0));
-        nodes[1].edges.Add(new Edge(nodes[1], nodes[1], 1, 0));
+        nodes[0].edges.Add(new Edge(nodes[0], nodes[0], 3, 0));
+
 
         //nodes[2].edges.Add(new Edge(nodes[2], nodes[3], 4, 0));
         //nodes[3].edges.Add(new Edge(nodes[3], nodes[4], 3, 0));
@@ -2524,7 +2542,7 @@ public class CreateCreature : MonoBehaviour
 }
 
 
-public class Node
+public class Node 
 {
     public int numOfRecursiveChildren = 0;
     public float randUniScale;
@@ -2549,6 +2567,8 @@ public class Node
     public Node parent;
     public Color color;
     public int seed;
+    public int numbOfMuscles;
+    public int[,] muscleSeeds;
 
     public List<Node> children = new List<Node>();
     public List<Edge> edges = new List<Edge>();

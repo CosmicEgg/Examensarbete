@@ -395,10 +395,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   uiManager: {fileID: 1478923419}
-  batchSize: 10
-  population: 20
+  batchSize: 12
+  population: 12
   plane: {fileID: 1806056839}
-  startSeed: 5
+  startSeed: 0
 --- !u!1001 &1176629781
 PrefabInstance:
   m_ObjectHideFlags: 0
