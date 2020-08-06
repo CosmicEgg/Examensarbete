@@ -324,7 +324,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1022323499}
   - component: {fileID: 1022323498}
-  - component: {fileID: 1022323500}
   - component: {fileID: 1022323501}
   m_Layer: 0
   m_Name: Main
@@ -365,23 +364,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1022323500
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1022323497}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 317bb8529027c9c4ba2894f640d1ab94, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  uiManager: {fileID: 1478923419}
-  batchSize: 6
-  population: 12
-  plane: {fileID: 1806056839}
-  startSeed: 0
 --- !u!114 &1022323501
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -395,10 +377,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   uiManager: {fileID: 1478923419}
+  createFromFile: 0
   batchSize: 10
   population: 20
   plane: {fileID: 1806056839}
-  startSeed: 5
+  startSeed: 0
 --- !u!1001 &1176629781
 PrefabInstance:
   m_ObjectHideFlags: 0

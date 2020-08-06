@@ -4,11 +4,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 public class EvolutionaryAlgorithm : MonoBehaviour
 {
     public UIManager uiManager;
+    public bool createFromFile = false;
     private bool createFromQueue = false;
+    private bool createdFromFileDone = false;
     private int maxAllowedTimeToStabilize = 6, currentBatchSize = 0;
     private int timeToStabilize = 6;
     public int batchSize = 6, population = 12;
@@ -26,15 +29,22 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     public int startSeed;
     Dictionary<Test, float> dictionary = new Dictionary<Test, float>();
     private float currentGeneration = 0;
+    SerializationTest serializationTest;
 
     // Start is called before the first frame update
     void Start()
     {
+        if (createFromFile)
+        {
+            createInitialRandomBatch = false;
+        }
+
         if (startSeed != 0)
         {
             Random.InitState(startSeed);
         }
 
+        serializationTest = new SerializationTest();
         uiManager.SetMaxPopulationSize(population);
     }
 
@@ -58,13 +68,22 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             {
 
             }
-            //using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\seedTest.txt", true))
-            //{
-            //    foreach (Test t in finishedTests)
-            //    {
-            //        file.WriteLine("Generation: " + currentGeneration + ", fitness: " + t.fitness + ", seed: " + t.creature.seed);
-            //    }
-            //}
+
+            SavePopulation(finishedTests);
+            //List<Node> test1 = creationManager.GetExpandedNodesList(finishedTests[0].creature.nodes[0]);
+
+            //List<Node> deserializedPopulation = serializationTest.DeserializePopulation();
+            //List<Node> deserializedRoot = creationManager.GetExpandedNodesList(serializationTest.DeserializeTree());
+
+            //AssertEqual(finishedTests, deserializedPopulation);
+
+            using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\seedTest.txt", true))
+            {
+                foreach (Test t in finishedTests)
+                {
+                    file.WriteLine("Generation: " + currentGeneration + ", fitness: " + t.fitness + ", node count: " + t.creature.nodes.Count);
+                }
+            }
 
             plane.SetActive(false);
             int amountToSelect = population / 2;
@@ -74,11 +93,13 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
             ///HÄr under är de kaos
             List<List<Node>> bestGenomes = CreateGenomesFromTests(bestTests);
-            //List<List<Node>> bestGenomes2 = CreateGenomesFromTests(bestTests);
+            //List<List<Node>> bestGenomes = CreateGenomesFromTests(finishedTests);
+            ////List<List<Node>> bestGenomes2 = CreateGenomesFromTests(bestTests);
             generationGenomes.AddRange(bestGenomes);
-            //generationGenomes.AddRange(bestGenomes2);
+            ////generationGenomes.AddRange(bestGenomes2);
             generationGenomes.AddRange(CrossOver(bestTests));
-            //Mutate(ref generationGenomes, 0.1f);
+            ////Mutate(ref generationGenomes);
+
             List<Creature> newCreatures = CreatePopulationFromGenomes(generationGenomes);
 
             //Delete gameobjects
@@ -112,6 +133,103 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             created = false;
             physicsInitiated = false;
         }   
+    }
+
+    static void ShowMessage([CallerLineNumber] int lineNumber = 0, [CallerMemberName] string caller = null)
+    {
+        print(" Line " + lineNumber + " (" + caller + ")");
+    }
+
+    private bool AssertEqual(List<Test> finishedTests, List<Node> deserializedRoots)
+    {
+        for (int i = 0; i < finishedTests.Count; i++)
+        {
+            List<Node> testNodes = creationManager.GetExpandedNodesList(finishedTests[i].creature.nodes[0]);
+            List<Node> deserializedNodes = creationManager.GetExpandedNodesList(deserializedRoots[i]);
+
+            if (testNodes.Count != deserializedNodes.Count)
+            {
+                return false;
+            }
+
+            for (int j = 0; j < testNodes.Count; j++)
+            {
+                if (testNodes[j].color != deserializedNodes[j].color)
+                {
+                    ShowMessage();
+                    Debug.Break();
+                    return false;
+                }
+                if (testNodes[j].rotation != deserializedNodes[j].rotation)
+                {
+                    ShowMessage();
+                    Debug.Break();
+                    return false;
+                }
+                if (testNodes[j].scale != deserializedNodes[j].scale)
+                {
+                    ShowMessage();
+                    Debug.Break();
+                    return false;
+                }
+                if (testNodes[j].primitiveType != deserializedNodes[j].primitiveType)
+                {
+                    ShowMessage();
+                    Debug.Break();
+                    return false;
+                }
+                if (testNodes[j].edges.Count != deserializedNodes[j].edges.Count)
+                {
+                    ShowMessage();
+                    Debug.Break();
+                    return false;
+                }
+                if (testNodes[j].scaleFactor != deserializedNodes[j].scaleFactor)
+                {
+                    ShowMessage();
+                    Debug.Break();
+                    return false;
+                }
+                if (testNodes[j].recursionJointType != deserializedNodes[j].recursionJointType)
+                {
+                    ShowMessage();
+                    Debug.Break();
+                    return false;
+                }
+                if (testNodes[j].numOfRecursiveChildren != deserializedNodes[j].numOfRecursiveChildren)
+                {
+                    ShowMessage();
+                    Debug.Break();
+                    return false;
+                }
+                if (testNodes[j].seed != deserializedNodes[j].seed)
+                {
+                    ShowMessage();
+                    Debug.Break();
+                    return false;
+                }
+                if (testNodes[j].uniqueId != deserializedNodes[j].uniqueId)
+                {
+                    ShowMessage();
+                    Debug.Break();
+                    return false;
+                }
+
+            }
+        }
+
+        return true;
+    }
+
+    private void SavePopulation(List<Test> tests)
+    {
+        List<Node> roots = new List<Node>();
+
+        foreach (Test t in tests)
+        {
+            roots.Add(t.creature.nodes[0]);
+        }
+        serializationTest.SerializePopulation(roots);
     }
 
     private List<Test> SelectBestTests(int amountToSelect, List<Test> finishedTests)
@@ -194,12 +312,14 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
     List<List<Node>> CrossOver(List<Test> bestTests)
     {
+        Random.InitState((int)DateTime.Now.Ticks);
         List<List<Node>> genomes = new List<List<Node>>();
         //List<Node> nodes = new List<Node>();
 
         for (int i = 0; i < bestTests.Count; i++)
         {
-            List<Node> expandedNodeList = creationManager.GetExpandedNodesList(bestTests[i].creature.nodes[0]);
+            Node node = bestTests[i].creature.nodes[0];
+            List < Node > expandedNodeList = creationManager.GetExpandedNodesList(node);
             genomes.Add(expandedNodeList);
 
             //nodes = new List<Node>();
@@ -263,7 +383,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
             else if (originalCrossOverNode1.parent == null)
             {
-
+                print("parent1 is null");
             }
 
             if (originalCrossOverNode2.parent != null)
@@ -294,21 +414,28 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
             else if (originalCrossOverNode2.parent == null)
             {
+                print("parent2 is null");
+            }
 
+            if (originalCrossOverNode1.parent == null && originalCrossOverNode2.parent == null)
+            {
+                print("both are null");
             }
 
             //crossOverNode1.parent = originalCrossOverNode2.parent;
             //crossOverNode2.parent = originalCrossOverNode1.parent;
 
-            Node temp = new Node(); temp = crossOverNode1.parent;
+            Node temp = crossOverNode1.parent;
             crossOverNode1.parent = originalCrossOverNode2.parent;
             crossOverNode2.parent = temp;
 
 
             List<Node> newNodes1 = new List<Node>();
             List<Node> newNodes2 = new List<Node>();
-            newNodes1 = creationManager.GetExpandedNodesList(genomes[i][0]);
-            newNodes2 = creationManager.GetExpandedNodesList(genomes[i+1][0]);
+            Node root1 = genomes[i][0];
+            Node root2 = genomes[i + 1][0];
+            newNodes1 = creationManager.GetExpandedNodesList(root1);
+            newNodes2 = creationManager.GetExpandedNodesList(root2);
 
             newGenomes.Add(newNodes1);
             newGenomes.Add(newNodes2);
@@ -387,7 +514,6 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         int placementFactor = 0;
         for (int i = 0; i < genomes.Count; i++) 
         {
-            placementFactor++;
             if (placementFactor == batchSize)
             {
                 placementFactor = 0;
@@ -395,6 +521,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
             Creature newCreature = creationManager.CreateCreatureFromNodes(genomes[i][0]);
             newCreature.handle.transform.position = new Vector3(20 * placementFactor, 5, 0);
+            newCreature.handle.name = placementFactor.ToString();
             newCreature.handle.layer = LayerMask.NameToLayer(placementFactor.ToString());
 
             foreach (Transform child in newCreature.handle.transform)
@@ -405,6 +532,9 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 }
                 child.gameObject.layer = LayerMask.NameToLayer(placementFactor.ToString());
             }
+
+            placementFactor++;
+
 
             if (i < batchSize)
             {
@@ -480,6 +610,15 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             physicsInitiated = true;
         }
 
+        if (createFromFile && !created && !createdFromFileDone)
+        {
+            CreatePopulationFromFile();
+            //CreateChampionFromFile();
+            createdFromFileDone = true;
+            createFromFile = false;
+            created = true;
+        }
+
         if (createFromQueue && !created)
         {
             CreateFromQueue();
@@ -491,6 +630,91 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             CreateInitialRandomBatch();
             created = true;
         }
+    }
+
+    private List<Creature> CreatePopulationFromFile()
+    {
+        plane.SetActive(false);
+
+        if (creationManager == null)
+        {
+            if (TryGetComponent<CreateCreature>(out creationManager)) { }
+            else creationManager = gameObject.AddComponent<CreateCreature>();
+        }
+
+        List<Node> genomes = new List<Node>();
+        genomes = serializationTest.DeserializePopulation();
+
+        currentCreatures.Clear();
+        creaturesToTestQueue.Clear();
+        creaturesToCreateQueue.Clear();
+        batchSize = 10;
+        int placementFactor = 0;
+        for (int i = 0; i < genomes.Count; i++)
+        {
+            if (placementFactor == batchSize)
+            {
+                placementFactor = 0;
+            }
+
+            Creature newCreature = creationManager.CreateCreatureFromNodes(genomes[i]);
+            newCreature.handle.transform.position = new Vector3(20 * placementFactor, 5, 0);
+            newCreature.handle.SetActive(false);
+            newCreature.handle.name = placementFactor.ToString();
+            newCreature.handle.layer = LayerMask.NameToLayer(placementFactor.ToString());
+
+            foreach (Transform child in newCreature.handle.transform)
+            {
+                if (null == child)
+                {
+                    continue;
+                }
+
+                string layer = placementFactor.ToString();
+
+                child.gameObject.layer = LayerMask.NameToLayer(placementFactor.ToString());
+            }
+
+            placementFactor++;
+
+
+            if (i < batchSize)
+            {
+                currentBatchSize++;
+                currentCreatures.Add(newCreature);
+                creaturesToTestQueue.Enqueue(newCreature);
+            }
+            else
+            {
+                newCreature.handle.SetActive(false);
+                creaturesToCreateQueue.Enqueue(newCreature);
+            }
+        }
+
+        foreach (Creature c in currentCreatures)
+        {
+            c.handle.SetActive(true);
+        }
+        plane.SetActive(true);
+        return currentCreatures;
+    }
+
+    private void CreateChampionFromFile()
+    {
+        plane.SetActive(false);
+        batchSize = 1;
+        if (creationManager == null)
+        {
+            if (TryGetComponent<CreateCreature>(out creationManager)) { }
+            else creationManager = gameObject.AddComponent<CreateCreature>();
+        }
+        Creature newCreature = creationManager.CreateCreatureFromNodes(serializationTest.DeserializeTree());
+        if (!newCreature.handle.activeSelf) newCreature.handle.SetActive(true);
+        newCreature.handle.transform.position = new Vector3(0, 5, 0);
+        newCreature.handle.SetActive(false);
+        creaturesToCreateQueue.Enqueue(newCreature);
+        plane.SetActive(true);
+        timeSinceSpawn = 0;
     }
 
     private void CreateFromQueue()
@@ -542,7 +766,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                     currentCreatures.Remove(toDestroy);
                     Destroy(toDestroy.handle);
                 }
-                else if (createFromQueue)
+                else if (currentGeneration > 0)
                 {
                     Creature toDestroy = creaturesToTestQueue.Dequeue();
                     Test test = new Test(toDestroy, 0);
@@ -552,6 +776,18 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                     currentCreatures.Remove(toDestroy);
                     Destroy(toDestroy.handle);
                 }
+                else if (createdFromFileDone)
+                {
+                    Creature toDestroy = creaturesToTestQueue.Dequeue();
+                    Test test = new Test(toDestroy, 0);
+                    test.finished = true;
+                    test.fitness = 0;
+                    tests.Add(test);
+                    currentCreatures.Remove(toDestroy);
+                    Destroy(toDestroy.handle);
+                }
+                //Går in i varken eller av dessa
+
             }
         }
     }

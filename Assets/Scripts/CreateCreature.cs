@@ -143,7 +143,7 @@ public class CreateCreature : MonoBehaviour
                     }
                     else //Remove backwards edge
                     {
-                        Debug.Log("Removing edge from " + currentNode.id + " to " + currentNode.edges[i].to.id);
+                        //Debug.Log("Removing edge from " + currentNode.id + " to " + currentNode.edges[i].to.id);
                         currentNode.edges.RemoveAt(i);
                     }
 
@@ -733,7 +733,7 @@ public class CreateCreature : MonoBehaviour
                     {
                         CreateSingleEdgeGeometry(currentNode.edges[i].to, currentNode, currentNode.edges[i], startOfRecurssionNode);
                         numbofgeo++;
-                        Debug.Log(numbofgeo);
+                        //Debug.Log(numbofgeo);
                     }
                     else if (!currentNode.edges[i].to.symmetry && !currentNode.edges[i].to.createdGeo && currentNode.edges[i].recursiveNumb > -1)
                     {
@@ -774,6 +774,8 @@ public class CreateCreature : MonoBehaviour
         startPosition = Vector3.zero;
         //nodes = oldNodes;
 
+        nodes = new List<Node>();
+        nodes.Add(root);
         nodes = GetExpandedNodesList(root);
 
         //recurssionStack = new Stack<Node>();
@@ -884,12 +886,13 @@ public class CreateCreature : MonoBehaviour
             }
         }
 
+        CleanupNodes();
+
         int geoCounter = 0;
         foreach (GameObject g in geometry)
         {
             if (g != null)
             {
-
                 geoCounter++;
             }
         }
@@ -924,40 +927,39 @@ public class CreateCreature : MonoBehaviour
     //Remove nodes not part of graph and edges leading to them in remaining nodes
     private void CleanupNodes()
     {
-        //List<Node> nodesToDelete = new List<Node>();
-        //List<Edge> edgesToDelete = new List<Edge>();
+        List<Node> nodesToDelete = new List<Node>();
+        List<Edge> edgesToDelete = new List<Edge>();
 
-        //foreach (Node n in nodes)
-        //{
-        //    if (!n.partOfGraph)
-        //    {
-        //        nodesToDelete.Add(n);
-        //    }
-        //}
+        foreach (Node n in nodes)
+        {
+            if (!n.partOfGraph || n.gameObjects.Count == 0)
+            {
+                nodesToDelete.Add(n);
+            }
+        }
 
-        //foreach (Node node in nodesToDelete)
-        //{
-        //    foreach (Node n in nodes)
-        //    {
-        //        foreach (Edge e in n.edges)
-        //        {
-        //            if (e.to == node)
-        //            {
-        //                edgesToDelete.Add(e);
-        //            }
-        //        }
+        foreach (Node node in nodesToDelete)
+        {
+            foreach (Node n in nodes)
+            {
+                foreach (Edge e in n.edges)
+                {
+                    if (e.to == node)
+                    {
+                        edgesToDelete.Add(e);
+                    }
+                }
 
-        //        foreach (Edge e in edgesToDelete)
-        //        {
-        //            n.edges.Remove(e);
-        //        }
-        //    }
-        //}
+                foreach (Edge e in edgesToDelete)
+                {
+                    n.edges.Remove(e);
+            }
+        }
 
-        //foreach (Node n in nodesToDelete)
-        //{
-        //    nodes.Remove(n);
-        //}
+        foreach (Node n in nodesToDelete)
+        {
+            nodes.Remove(n);
+        }
     }
 
     private void CreateRecurssionGeometry(Node node, Node parent, Edge currentEdge, Node recurssionNode)
@@ -974,11 +976,15 @@ public class CreateCreature : MonoBehaviour
 
         while (startOver)
         {
+
+                startOver = false;
+
+            
+            maxNumbOfTries++;
             firstGeo = true;
-            startOver = false;
             if (maxNumbOfTries > 100)
             {
-                Debug.Log("nope");
+                //Debug.Log("nope");
                 break;
             }
             foreach(GameObject pg in parent.gameObjects)
@@ -999,7 +1005,8 @@ public class CreateCreature : MonoBehaviour
                         tries++;
                         if (tries > 100)
                         {
-                            Debug.Log("To many tries");
+                            node.gameObjects.Clear();
+                            //Debug.Log("To many tries");
                             break;
                         }
                         created = true;
@@ -1038,7 +1045,7 @@ public class CreateCreature : MonoBehaviour
                         }
 
                         currentGeometry.transform.localScale = recurssionNode.scale * node.scaleFactor;
-                        node.scale *= node.scaleFactor;
+                        node.scale = recurssionNode.scale * node.scaleFactor;
                         currentGeometry.AddComponent<Rigidbody>();
                         currentGeometry.AddComponent<GeoInfo>();
                         Rigidbody rb = currentGeometry.GetComponent<Rigidbody>();
@@ -1079,7 +1086,7 @@ public class CreateCreature : MonoBehaviour
                                     Destroy(geo);
                                 }
 
-                                Debug.Log("Destroying Recurssion symmetry");
+                                //Debug.Log("Destroying Recurssion symmetry");
                                 node.gameObjects.Clear();
                                 created = false;
                                 break;
@@ -1088,7 +1095,7 @@ public class CreateCreature : MonoBehaviour
 
                         if (!created)
                         {
-                            break;
+                            continue;
                         }
 
                         if (created)
@@ -1188,7 +1195,6 @@ public class CreateCreature : MonoBehaviour
                                             muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
                                             frontRecurssionMuscle = muscles.muscles;
                                         }
-
                                     }
                                     else
                                     {
@@ -1388,7 +1394,7 @@ public class CreateCreature : MonoBehaviour
                 }
                 else if (!firstGeo)
                 {
-                    CreateRefRecGeometry(copyGameObject[0],pg, node, parent);
+                    CreateRefRecGeometry(copyGameObject[0], pg, node, parent);
                 }
             }
             copyGameObject.Clear();
@@ -1425,14 +1431,6 @@ public class CreateCreature : MonoBehaviour
             //InterpretTree(root);
 
         }
-
-        //Spawn new Creature
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            DestroyCurrent();
-            Create();
-            PhysicsOn = true;
-        }
     }
 
     private void DestroyCurrent()
@@ -1454,8 +1452,10 @@ public class CreateCreature : MonoBehaviour
         rootGameObject.AddComponent<GeoInfo>();
         rb.isKinematic = true;
         rb.useGravity = false;
-        if (root.startOfRecurssion)
-            root.scale.x = root.scale.z;
+        //if (root.startOfRecurssion)
+        //    root.scale.x = root.scale.z;
+        if (node.startOfRecurssion)
+            node.scale.x = node.scale.z;
         node.parent = null;
         node.created = true;
         node.gameObjects.Clear();
@@ -1477,9 +1477,11 @@ public class CreateCreature : MonoBehaviour
 
         bool restart = false;
 
+        int stopRestart = 0;
 
-        while (!restart)
+        while (!restart && stopRestart < 100)
         {
+            stopRestart++;
             List<GameObject> copyGeoList = new List<GameObject>();
 
             GameObject parentGeometry = parent.gameObjects[0];
@@ -1497,7 +1499,7 @@ public class CreateCreature : MonoBehaviour
                 tries++;
                 if (tries > 20)
                 {
-                    Debug.Log("To many tries");
+                    //Debug.Log("To many tries");
                     restart = true;
                     break;
                 }
@@ -1751,7 +1753,7 @@ public class CreateCreature : MonoBehaviour
                     if (testAxis > 10 && newAxis)
                     {
                         restart = false;
-                        Debug.Log("restarting");
+                        //Debug.Log("restarting");
                         foreach (GameObject geo in node.gameObjects)
                         {
                             Destroy(geo);
@@ -1787,6 +1789,7 @@ public class CreateCreature : MonoBehaviour
         {
             return;
         }
+
         bool firstGeo = true;
         Vector3 pointOnParent = new Vector3();
 
@@ -1798,7 +1801,7 @@ public class CreateCreature : MonoBehaviour
             startOver = false;
             if(maxNumbOfTries > 100)
             {
-                Debug.Log("nope");
+               // Debug.Log("nope");
                 break;
             }
 
@@ -1819,7 +1822,7 @@ public class CreateCreature : MonoBehaviour
                     tries++;
                     if (tries > 100)
                     {
-                        Debug.Log("To many tries");
+                        //Debug.Log("To many tries");
                         break;
                     }
                     created = true;
@@ -1992,7 +1995,7 @@ public class CreateCreature : MonoBehaviour
                 tries++;
                 if (tries > 100)
                 {
-                    Debug.Log("To many tries");
+                    //Debug.Log("To many tries");
                     break;
                 }
                 created = true;
@@ -2101,7 +2104,7 @@ public class CreateCreature : MonoBehaviour
             tries++;
             if (tries > 100)
             {
-                Debug.Log("To many tries");
+                //Debug.Log("To many tries");
                 break;
             }
             created = true;
@@ -2259,6 +2262,8 @@ public class CreateCreature : MonoBehaviour
         Dictionary<Node, Node> copyNodeEdge = new Dictionary<Node, Node>();
         bool nextNode = false;
         Node newOriNode = new Node(oriNode.primitiveType, oriNode.scale, oriNode.rotation, oriNode.id, oriNode, oriNode.recursionJointType, oriNode.scaleFactor, oriNode.seed);
+        newOriNode.numOfChildren = oriNode.numOfChildren;
+        newOriNode.axisList = oriNode.axisList;
         newOriNode.numOfRecursiveChildren = oriNode.numOfRecursiveChildren;
         newOriNode.color = oriNode.color;
 
@@ -2282,7 +2287,9 @@ public class CreateCreature : MonoBehaviour
                 if (!e.to.created && !ReferenceEquals(e.to, e.from))
                 {
                     Node newNode = new Node(e.to.primitiveType, e.to.scale, e.to.rotation, e.to.id, e.to, e.to.recursionJointType, e.to.scaleFactor, e.to.seed);
+                    newNode.numOfChildren = e.to.numOfChildren;
                     newNode.color = e.to.color;
+                    newNode.axisList = e.to.axisList;
                     //newNode.scale = e.to.scale;
                     //newNode.scaleFactor = e.to.scaleFactor;
                     copyStack.Push(e.to);
@@ -2321,7 +2328,8 @@ public class CreateCreature : MonoBehaviour
                     if(copyNodeEdge.TryGetValue(e.to, out Node temp))
                     {
                         Edge newEdge = new Edge(pair.Value, temp, e.recursiveLimit, e.numOfTravels/*, e.recursiveNumb, e.axis*/);
-                        newEdge.recursiveNumb = e.recursiveNumb;
+                        temp.parent = pair.Value;
+                        //newEdge.recursiveNumb = e.recursiveNumb;
                         pair.Value.edges.Add(newEdge);
                     
                     }
@@ -2344,6 +2352,8 @@ public class CreateCreature : MonoBehaviour
             primitiveRand = Random.Range(0, 3);
             Vector3 rotation = new Vector3(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
             Node node = new Node(primitiveRand, minScale, maxScale, rotation, i);
+            node.numOfChildren = Random.Range(0, 5);
+            node.recursionJointType = Random.Range(0, 3);
             node.seed = seed;
 
             if (i == 0)
@@ -2535,26 +2545,31 @@ public class Node
     public bool symmetry = false;
     public int occurence = 0;
     public float scaleFactor = 1;
-    public int recursionJointType = Random.Range(0,3);
+    public int recursionJointType;
     public PrimitiveType primitiveType;
     public Vector3 scale;
     public Vector3 rotation;
     public Vector3 parentToChildDir;
     public List<GameObject> gameObjects = new List<GameObject>();
     public List<Vector3> axisList = new List<Vector3>();
-    public int numOfChildren = Random.Range(0, 5);
+    public int numOfChildren;
     public bool stacked;
     public int id;
     public bool partOfGraph = false;
-    public Node parent;
+    public Node parent = null;
     public Color color;
     public int seed;
+    static int nodeCounter;
+    public int uniqueId;
 
     public List<Node> children = new List<Node>();
     public List<Edge> edges = new List<Edge>();
 
+    
     public Node(PrimitiveType primitiveType, Vector3 scale, Vector3 rotation, int id, Node referenceNode, int recursionJointType, float scaleFactor, int seed)
     {
+        nodeCounter++;
+        uniqueId = nodeCounter;
         this.primitiveType = primitiveType;
         this.scale = scale;
         this.scaleFactor = scaleFactor * 0.7f;
@@ -2564,14 +2579,19 @@ public class Node
         partOfGraph = true;
         this.recursionJointType = recursionJointType;
         this.seed = seed;
-
     }
 
-    public Node(){}
+    public Node()
+    {
+        nodeCounter++;
+        uniqueId = nodeCounter;
+    }
 
     public Node(int primitiveRand, float minScale, float maxScale, Vector3 rotation, int id)
     {
         //primitiveRand = 0;
+        nodeCounter++;
+        uniqueId = nodeCounter;
         switch (primitiveRand)
         {
             case 0:
@@ -2667,245 +2687,3 @@ public class Creature
         }
     }
 }
-
-//public class TreeContainer : MonoBehaviour, ISerializationCallbackReceiver
-//{
-//    [Serializable]
-//    public struct SerializableNode
-//    {
-//        public int numOfRecursiveChildren;
-//        public float randUniScale;
-//        public bool startOfRecurssion;
-//        public Node referenceNode;
-//        public bool createdGeo;
-//        public bool created;
-//        public bool symmetry;
-//        public int occurence;
-//        public float scaleFactor;
-//        public int recursionJointType;
-//        public PrimitiveType primitiveType;
-//        public Vector3 scale;
-//        public Vector3 rotation;
-//        public Vector3 parentToChildDir;
-//        public List<GameObject> gameObjects;
-//        public List<Vector3> axisList;
-//        public int numOfChildren;
-//        public bool stacked;
-//        public int id;
-//        public bool partOfGraph;
-//        public Node parent;
-//        public Color color;
-//        public int seed;
-
-//        public List<Edge> edges;
-
-//        public int childCount;
-//        public int indexOfFirstChild;
-//    }
-
-//    Node root = new Node();
-//    public List<SerializableNode> serializedNodes;
-
-//    public void OnBeforeSerialize()
-//    {
-//        if (serializedNodes == null)
-//        {
-//            serializedNodes = new List<SerializableNode>();
-//        }
-
-//        if (root == null)
-//        {
-//            root = new Node();
-//        }
-
-//        serializedNodes.Clear();
-//        AddNodeToSerializedNodes(root);
-//    }
-
-//    void AddNodeToSerializedNodes(Node n)
-//    {
-//        var serializedNode = new SerializableNode()
-//        {
-//            numOfRecursiveChildren = n.numOfRecursiveChildren,
-//            randUniScale = n.randUniScale,
-//            startOfRecurssion = n.startOfRecurssion,
-//            createdGeo = n.createdGeo,
-//            created = n.created,
-//            symmetry = n.symmetry,
-//            occurence = n.occurence,
-//            scaleFactor = n.scaleFactor,
-//            recursionJointType = n.recursionJointType,
-//            primitiveType = n.primitiveType,
-//            scale = n.scale,
-//            rotation = n.rotation,
-//            parentToChildDir = n.parentToChildDir,
-//            numOfChildren = n.numOfChildren,
-//            stacked = n.stacked,
-//            id = n.id,
-//            partOfGraph = n.partOfGraph,
-//            seed = n.seed,
-
-//            //Datatyper som är oklara hur de serialize:as
-//            axisList = n.axisList,
-//            color = n.color,
-//            gameObjects = n.gameObjects,
-
-//            referenceNode = n.referenceNode,
-//            edges = n.edges,
-//            parent = n.parent, //cykliskt?//
-
-//            childCount = n.edges.Count,
-//            indexOfFirstChild = serializedNodes.Count + 1
-//        };
-
-//        serializedNodes.Add(serializedNode);
-
-//        //Kanske borde ta hänsyn till rekursiva edges och ifall e.to är null
-//        foreach (Edge e in n.edges)
-//        {
-//            AddNodeToSerializedNodes(e.to);
-//        }
-//    }
-
-//    public void OnAfterDeserialize()
-//    {
-//        if (serializedNodes.Count > 0)
-//        {
-//            ReadNodeFromSerializedNodes(0, out root);
-//        }
-//        else
-//            root = new Node();
-//    }
-
-//    int ReadNodeFromSerializedNodes(int index, out Node node)
-//    {
-//        var serializedNode = serializedNodes[index];
-
-//        Node newNode = new Node()
-//        {
-//            numOfRecursiveChildren = serializedNode.numOfRecursiveChildren,
-//            randUniScale = serializedNode.randUniScale,
-//            startOfRecurssion = serializedNode.startOfRecurssion,
-//            createdGeo = serializedNode.createdGeo,
-//            created = serializedNode.created,
-//            symmetry = serializedNode.symmetry,
-//            occurence = serializedNode.occurence,
-//            scaleFactor = serializedNode.scaleFactor,
-//            recursionJointType = serializedNode.recursionJointType,
-//            primitiveType = serializedNode.primitiveType,
-//            scale = serializedNode.scale,
-//            rotation = serializedNode.rotation,
-//            parentToChildDir = serializedNode.parentToChildDir,
-//            numOfChildren = serializedNode.numOfChildren,
-//            stacked = serializedNode.stacked,
-//            id = serializedNode.id,
-//            partOfGraph = serializedNode.partOfGraph,
-
-//            //oklart hur dessa läses av
-//            //referenceNode = serializedNode.referenceNode,
-//            axisList = serializedNode.axisList,
-//            color = serializedNode.color,
-//            seed = serializedNode.seed,
-//            gameObjects = serializedNode.gameObjects,
-//            //edges = serializedNode.edges,
-//            //parent = serializedNode.parent,
-
-//            referenceNode = new Node(),
-//            parent = new Node(),
-//            edges = new List<Edge>(),
-//            children = new List<Node>()
-//        };
-
-//        // The tree needs to be read in depth-first, since that's how we wrote it out.
-//        for (int i = 0; i != serializedNode.childCount; i++)
-//        {
-//            Node childNode;
-//            index = ReadNodeFromSerializedNodes(++index, out childNode);
-//            //Edge edge = new Edge(newNode, childNode, )
-//            newNode.children.Add(childNode);
-//        }
-
-//        node = newNode;
-//        return index;
-//    }
-//}
-
-//public class BehaviourWithTree : MonoBehaviour, ISerializationCallbackReceiver
-//    {
-//        // Node class that is used at runtime.
-//        // This is internal to the BehaviourWithTree class and is not serialized.
-//        public class Node
-//        {
-//            public string interestingValue = "value";
-//            public List<Node> children = new List<Node>();
-//        }
-//        // Node class that we will use for serialization.
-//        [Serializable]
-//        public struct SerializableNode
-//        {
-//            public string interestingValue;
-//            public int childCount;
-//            public int indexOfFirstChild;
-//        }
-//        // The root node used for runtime tree representation. Not serialized.
-//        Node root = new Node();
-//        // This is the field we give Unity to serialize.
-//        public List<SerializableNode> serializedNodes;
-//        public void OnBeforeSerialize()
-//        {
-//            // Unity is about to read the serializedNodes field's contents.
-//            // The correct data must now be written into that field "just in time".
-//            if (serializedNodes == null) serializedNodes = new List<SerializableNode>();
-//            if (root == null) root = new Node();
-//            serializedNodes.Clear();
-//            AddNodeToSerializedNodes(root);
-//            // Now Unity is free to serialize this field, and we should get back the expected 
-//            // data when it is deserialized later.
-//        }
-//        void AddNodeToSerializedNodes(Node n)
-//        {
-//            var serializedNode = new SerializableNode()
-//            {
-//                interestingValue = n.interestingValue,
-//                childCount = n.children.Count,
-//                indexOfFirstChild = serializedNodes.Count + 1
-//            }
-//            ;
-//            serializedNodes.Add(serializedNode);
-//            foreach (var child in n.children)
-//                AddNodeToSerializedNodes(child);
-//        }
-//        public void OnAfterDeserialize()
-//        {
-//            //Unity has just written new data into the serializedNodes field.
-//            //let's populate our actual runtime data with those new values.
-//            if (serializedNodes.Count > 0)
-//            {
-//                ReadNodeFromSerializedNodes(0, out root);
-//            }
-//            else
-//                root = new Node();
-//        }
-//        int ReadNodeFromSerializedNodes(int index, out Node node)
-//        {
-//            var serializedNode = serializedNodes[index];
-//            // Transfer the deserialized data into the internal Node class
-//            Node newNode = new Node()
-//            {
-//                interestingValue = serializedNode.interestingValue,
-//                children = new List<Node>()
-//            }
-//            ;
-//            // The tree needs to be read in depth-first, since that's how we wrote it out.
-//            for (int i = 0; i != serializedNode.childCount; i++)
-//            {
-//                Node childNode;
-//                index = ReadNodeFromSerializedNodes(++index, out childNode);
-//                newNode.children.Add(childNode);
-//            }
-//            node = newNode;
-//            return index;
-//        }
-//    }
-
-

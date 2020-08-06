@@ -88,7 +88,7 @@ public class JointManager : MonoBehaviour
         this.parent = parentGeometry;
         transform = gameObject.transform;
         parentTransform = parentGeometry.transform;
-        int random = Random.Range(0, 3);
+        int random = Random.Range(1, 3);
         random = recursionJointType;
         //if (node.gameObjects.Count > 0)
         //{
