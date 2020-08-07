@@ -103,7 +103,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             //generationGenomes.AddRange(bestGenomes);
             //generationGenomes.AddRange(bestGenomes2);
             generationGenomes.AddRange(CrossOver(bestTests));
-            //Mutate(ref generationGenomes, 0.1f);
+            //Mutate(ref generationGenomes, 0.01f);
             newCreatures = CreatePopulationFromGenomes(generationGenomes);
 
             //Delete gameobjects
@@ -236,9 +236,9 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         serializationTest.SerializePopulation(roots);
     }
 
-    private List<Test> SelectBestTests(int amountToSelect, List<Test> finishedTests)
-    {
-        List<Test> selection = new List<Test>();
+    //private List<Test> SelectBestTests(int amountToSelect, List<Test> finishedTests)
+    //{
+    //    List<Test> selection = new List<Test>();
 
     //    finishedTests.Sort((Test t, Test t2) => t2.fitness.CompareTo(t.fitness));
 
@@ -961,7 +961,9 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 }
                 else if (currentGeneration > 0)
                 {
+                    print("REMOVED");
                     Creature toDestroy = creaturesToTestQueue.Dequeue();
+                    toDestroy.fitness = 0;
                     Test test = new Test(toDestroy, 0);
                     test.finished = true;
                     test.fitness = 0;
@@ -972,12 +974,14 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 else if (createdFromFileDone)
                 {
                     Creature toDestroy = creaturesToTestQueue.Dequeue();
+                    toDestroy.fitness = 0;
                     Test test = new Test(toDestroy, 0);
                     test.finished = true;
                     test.fitness = 0;
                     tests.Add(test);
                     currentCreatures.Remove(toDestroy);
                     Destroy(toDestroy.handle);
+
                 }
                 //Går in i varken eller av dessa
 
@@ -1118,6 +1122,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                     endCenterOfMass = CalculateMeanCenterOfMass();
                     float distanceTravelled = Vector2.Distance(new Vector2(initialCenterOfMass.x, initialCenterOfMass.z), new Vector2(endCenterOfMass.x, endCenterOfMass.z));
                     fitness = distanceTravelled;
+                    creature.fitness = fitness;
                     finished = true;
                     Destroy(creature.handle);
                 }
