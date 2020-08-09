@@ -138,6 +138,8 @@ public class Muscle
         placementOnParent.transform.parent = emptyParent.transform;
         placementOnParent.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
 
+        collider.isTrigger = true;
+
         Random.InitState(anchorSeed);
         anchor = new Vector3(Random.Range(childCollider.bounds.min.x, childCollider.bounds.max.x),
                 Random.Range(childCollider.bounds.min.y, childCollider.bounds.max.y), Random.Range(childCollider.bounds.min.z, childCollider.bounds.max.z));
@@ -163,6 +165,8 @@ public class Muscle
 
         connectedAnchor = emptyParent.transform.localPosition;
         anchor = emptyChild.transform.localPosition;
+
+        collider.isTrigger = true;
 
         distanceJoint = child.AddComponent<ConfigurableJoint>();
         distanceJoint.autoConfigureConnectedAnchor = false;
@@ -197,6 +201,9 @@ public class Muscle
         placementOnParent.transform.parent = emptyParent.transform;
         placementOnParent.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
 
+        Collider collider = placementOnParent.GetComponent<Collider>();
+        collider.isTrigger = true;
+
         GameObject placementOnChild = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         placementOnChild.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
         emptyChild = new GameObject();
@@ -208,6 +215,9 @@ public class Muscle
 
         connectedAnchor = emptyParent.transform.localPosition;
         anchor = emptyChild.transform.localPosition;
+
+        collider = placementOnChild.GetComponent<Collider>();
+        collider.isTrigger = true;
 
         distanceJoint = child.AddComponent<ConfigurableJoint>();
         distanceJoint.autoConfigureConnectedAnchor = false;
@@ -237,6 +247,8 @@ public class Muscle
         emptyParent.transform.parent = parent.transform;
         emptyParent.transform.localPosition = muscle.emptyParent.transform.localPosition;
 
+        Collider collider = placementOnParent.GetComponent<Collider>();
+        collider.isTrigger = true;
 
         GameObject placementOnChild = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         placementOnChild.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
@@ -249,6 +261,9 @@ public class Muscle
 
         connectedAnchor = emptyParent.transform.localPosition;
         anchor = emptyChild.transform.localPosition;
+
+        collider = placementOnChild.GetComponent<Collider>();
+        collider.isTrigger = true;
 
         distanceJoint = child.AddComponent<ConfigurableJoint>();
         distanceJoint.autoConfigureConnectedAnchor = false;
