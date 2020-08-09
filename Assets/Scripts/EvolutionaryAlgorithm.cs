@@ -704,7 +704,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 {
                     int rnd = Random.Range(0, 1000);
 
-                    int muscle = Random.Range(0, genomes[i][j].numbOfMuscles + 1);
+                    int muscle = Random.Range(0, genomes[i][j].numbOfMuscles);
 
                     if (genomes[i][j].numbOfMuscles != 0)
                         genomes[i][j].muscleSeeds[muscle, 0] = rnd;
@@ -716,7 +716,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 {
                     int rnd = Random.Range(0, 1000);
 
-                    int muscle = Random.Range(0, genomes[i][j].numbOfMuscles + 1);
+                    int muscle = Random.Range(0, genomes[i][j].numbOfMuscles);
 
                     if (genomes[i][j].numbOfMuscles != 0)
                         genomes[i][j].muscleSeeds[muscle, 1] = rnd;
@@ -728,7 +728,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 {
                     int rnd = Random.Range(0, 1000);
 
-                    int muscle = Random.Range(0, genomes[i][j].numbOfMuscles + 1);
+                    int muscle = Random.Range(0, genomes[i][j].numbOfMuscles);
 
                     if (genomes[i][j].numbOfMuscles != 0)
                         genomes[i][j].muscleSeeds[muscle, 2] = rnd;
@@ -1022,7 +1022,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 {
                     print("REMOVED");
                     Creature toDestroy = creaturesToTestQueue.Dequeue();
-                    toDestroy.fitness = 0;
+                    toDestroy.SetFitness(0);
                     Test test = new Test(fitnessType, toDestroy, 0);
                     test.finished = true;
                     test.fitness = 0;
@@ -1033,7 +1033,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 else if (createdFromFileDone)
                 {
                     Creature toDestroy = creaturesToTestQueue.Dequeue();
-                    toDestroy.fitness = 0;
+                    toDestroy.SetFitness(0);
                     Test test = new Test(fitnessType, toDestroy, 0);
                     test.finished = true;
                     test.fitness = 0;
@@ -1179,9 +1179,9 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         int index = 0;
         for (int i = 0; i < finishedTests.Count; i++)
         {
-            if (finishedTests[i].creature.fitness > maxFitness)
+            if (finishedTests[i].creature.GetAdjustedFitness() > maxFitness)
             {
-                maxFitness = finishedTests[i].creature.fitness;
+                maxFitness = finishedTests[i].creature.GetAdjustedFitness();
                 index = i;
             }
         }
@@ -1262,7 +1262,6 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
         }
 
-
         public void PrepareForClear()
         {
             Destroy(creature.handle);
@@ -1297,7 +1296,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 endCenterOfMass = CalculateMeanCenterOfMass();
                 float distanceTravelled = Vector2.Distance(new Vector2(initialCenterOfMass.x, initialCenterOfMass.z), new Vector2(endCenterOfMass.x, endCenterOfMass.z));
                 fitness = distanceTravelled;
-                creature.fitness = fitness;
+                creature.SetFitness(fitness);
                 finished = true;
                 Destroy(creature.handle);
             }
@@ -1320,7 +1319,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             //OnDrawGizmosSelected(AABB);
 
             fitness = AABB.size.y;
-            creature.fitness = fitness;
+            creature.SetFitness(fitness);
             finished = true;
             Destroy(creature.handle);
         }

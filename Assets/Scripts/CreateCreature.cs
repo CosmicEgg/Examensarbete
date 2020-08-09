@@ -2704,7 +2704,8 @@ public class Creature
     public bool active = false;
     public bool readyToStart = false;
     public bool finished = false;
-    public float fitness;
+    private float fitness;
+    int geoCounter = 0;
     public Vector3 initialCenterOfMass, finalCenterOfMass;
 
     public Creature(List<Node> nodes, List<GameObject> geometry, GameObject handle)
@@ -2712,6 +2713,35 @@ public class Creature
         this.handle = handle;
         this.nodes = nodes;
         this.geometry = geometry;
+
+        foreach (GameObject g in geometry)
+        {
+            if (g != null)
+            {
+                geoCounter++;
+            }
+        }
+    }
+
+    public void SetFitness(float fitness)
+    {
+        this.fitness = fitness;
+    }
+
+    public float GetAdjustedFitness()
+    {
+        float percent = 0.5f;
+        if (geoCounter < 3 || geoCounter > 15)
+        {
+            return fitness * percent;
+        }
+
+        return fitness;
+    }
+
+    private double Sigmoid(double x)
+    {
+        return 1 / (1 + Math.Exp(-x));
     }
 
     public void Update()
