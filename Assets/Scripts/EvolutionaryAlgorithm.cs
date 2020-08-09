@@ -8,7 +8,9 @@ using System.Runtime.CompilerServices;
 
 public class EvolutionaryAlgorithm : MonoBehaviour
 {
+    List<int> testIds = new List<int>();
     public UIManager uiManager;
+    public Test.FitnessType fitnessType;
     public bool createFromFile = false;
     private bool createFromQueue = false;
     private bool createdFromFileDone = false;
@@ -62,7 +64,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         }
 
         if (finishedTests.Count >= population)
-        {       
+        {
             currentGeneration++;
             //Write generation to file
             if (currentGeneration == 2)
@@ -70,7 +72,8 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
             }
 
-            SavePopulation(finishedTests);
+
+            //SavePopulation(finishedTests);
             //List<Node> test1 = creationManager.GetExpandedNodesList(finishedTests[0].creature.nodes[0]);
 
             //List<Node> deserializedPopulation = serializationTest.DeserializePopulation();
@@ -78,13 +81,16 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
             //AssertEqual(finishedTests, deserializedPopulation);
 
-            using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\seedTest.txt", true))
-            {
-                foreach (Test t in finishedTests)
-                {
-                    file.WriteLine("Generation: " + currentGeneration + ", fitness: " + t.fitness + ", node count: " + t.creature.nodes.Count);
-                }
-            }
+            //using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\seedTest.txt", true))
+            //{
+                //foreach (Test t in finishedTests)
+                //{
+                    //file.WriteLine("Generation: " + currentGeneration + ", fitness: " + t.fitness + ", node count: " + t.creature.nodes.Count);
+
+                //}
+            //}
+
+
 
             plane.SetActive(false);
             int amountToSelect = population / 2;
@@ -98,11 +104,19 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
 
             ///HÄr under är de kaos
-            //List<List<Node>> bestGenomes = CreateGenomesFromTests(bestTests);
+            //adList<List<Node>> bestGenomes = new List<List<Node>>();
             //List<List<Node>> bestGenomes2 = CreateGenomesFromTests(bestTests);
             //generationGenomes.AddRange(bestGenomes);
             //generationGenomes.AddRange(bestGenomes2);
-            generationGenomes.AddRange(CrossOver(bestTests));
+
+            generationGenomes.AddRange(CrossOver(ref bestTests));
+
+            //foreach (Creature t in bestTests)
+            //{
+            //    bestGenomes.Add(t.nodes);
+            //}
+            //generationGenomes.AddRange(bestGenomes);
+
             //Mutate(ref generationGenomes, 0.01f);
             newCreatures = CreatePopulationFromGenomes(generationGenomes);
 
@@ -136,7 +150,22 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             testsFinished = 0;
             created = false;
             physicsInitiated = false;
-        }   
+        }
+    }
+
+    void OnDrawGizmosSelected(Bounds myBounds)
+    {
+        // this function shows the bounding box as a white wire cube in the scene view
+        // when the object containing this bounds code is selected
+        var center = myBounds.center;
+        var size = myBounds.size;
+        Gizmos.color = Color.white;
+        Gizmos.DrawWireCube(center, new Vector3(size.x, size.y, size.z));
+    }
+
+    private void DestroyCreature(ref Creature toDestroy)
+    {
+        Destroy(toDestroy.handle);
     }
 
     static void ShowMessage([CallerLineNumber] int lineNumber = 0, [CallerMemberName] string caller = null)
@@ -441,7 +470,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     //    return newGenomes;
     //}
 
-    List<List<Node>> CrossOver(List<Creature> bestTests)
+    List<List<Node>> CrossOver(ref List<Creature> bestTests)
     {
         Random.InitState((int)System.DateTime.Now.Ticks);
         List<List<Node>> genomes = new List<List<Node>>();
@@ -475,14 +504,19 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             creationManager.CopyNodeTree(genomes[i][0], out childOneRoot);
             creationManager.CopyNodeTree(genomes[i + 1][0], out childTwoRoot);
 
-            cutOffNodeOne = FindNodeInPosition(childOneRoot, cutOffFather);
-            cutOffNodeTwo = FindNodeInPosition(childTwoRoot, cutOffMother);
+            cutOffNodeOne = FindNodeInPosition(ref childOneRoot, cutOffFather);
+            cutOffNodeTwo = FindNodeInPosition(ref childTwoRoot, cutOffMother);
+
+            if (cutOffNodeOne.parent == cutOffNodeTwo.parent)
+            {
+
+            }
 
             if (cutOffNodeOne.parent != null)
             {
                 foreach (Edge e in cutOffNodeOne.parent.edges)
                 {
-                    if (e.to == cutOffNodeOne)
+                    if (ReferenceEquals(cutOffNodeOne, e.to))
                         e.to = cutOffNodeTwo;
                 }
             }
@@ -490,16 +524,21 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 print("Father null");
 
 
-            if (cutOffNodeOne.parent != null)
+            if (cutOffNodeTwo.parent != null)
             {
                 foreach (Edge e in cutOffNodeTwo.parent.edges)
                 {
-                    if (e.to == cutOffNodeTwo)
+                    if (ReferenceEquals(e.to, cutOffNodeTwo))
                         e.to = cutOffNodeOne;
                 }
             }
             else
                 print("Mother null");
+
+            Node temp = new Node();
+            temp = cutOffNodeOne.parent;
+            cutOffNodeOne.parent = cutOffNodeTwo.parent;
+            cutOffNodeTwo.parent = temp;
 
             List<Node> childOne = new List<Node>();
             List<Node> childTwo = new List<Node>();
@@ -537,14 +576,14 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 else
                 {
                     nodeQueue.Enqueue(e.to);
-                } 
-                    
+                }
+
             }
         }
         return countNode;
     }
 
-    Node FindNodeInPosition(Node root, int position)
+    Node FindNodeInPosition(ref Node root, int position)
     {
         int nodeCounter = 0;
         Queue<Node> nodeQueue = new Queue<Node>();
@@ -582,7 +621,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 if (mutationChance <= mutationRate)
                 {
                     int seed = Random.Range(1, 10000);
-                    Random.InitState(seed);
+                    //Random.InitState(seed);
 
                     Node mutatedNode = genomes[i][j];
 
@@ -618,7 +657,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                     mutatedNode.primitiveType = primitiveType;
                     mutatedNode.rotation = rotation;
                     mutatedNode.scale = scale;
-                    
+
                     mutatedNode.seed = seed;
 
                     mutatedNode.numbOfMuscles = Random.Range(1, 5);
@@ -655,7 +694,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
                     if (genomes[i][j].numbOfMuscles < 0)
                         genomes[i][j].numbOfMuscles = 0;
-                    else if(genomes[i][j].numbOfMuscles < 4)
+                    else if (genomes[i][j].numbOfMuscles < 4)
                         genomes[i][j].numbOfMuscles = 4;
                 }
 
@@ -665,10 +704,10 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 {
                     int rnd = Random.Range(0, 1000);
 
-                    int muscle = Random.Range(0, genomes[i][j].numbOfMuscles+1);
+                    int muscle = Random.Range(0, genomes[i][j].numbOfMuscles + 1);
 
                     if (genomes[i][j].numbOfMuscles != 0)
-                        genomes[i][j].muscleSeeds[muscle, 0] = rnd;                   
+                        genomes[i][j].muscleSeeds[muscle, 0] = rnd;
                 }
 
                 mutationChance = Random.Range(0.0f, 1.0f);
@@ -700,19 +739,35 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
     private List<Creature> CreatePopulationFromGenomes(List<List<Node>> genomes)
     {
+        foreach (Creature c in currentCreatures)
+        {
+            Creature toDestroy = c;
+            DestroyCreature(ref toDestroy);
+        }
         currentCreatures.Clear();
+
+        for (int i = 0; i < creaturesToTestQueue.Count; i++)
+        {
+            Creature toDestroy = creaturesToTestQueue.Dequeue();
+            DestroyCreature(ref toDestroy);
+        }
         creaturesToTestQueue.Clear();
+        for (int i = 0; i < creaturesToCreateQueue.Count; i++)
+        {
+            Creature toDestroy = creaturesToCreateQueue.Dequeue();
+            DestroyCreature(ref toDestroy);
+        }
         creaturesToCreateQueue.Clear();
 
         int placementFactor = 0;
-        for (int i = 0; i < genomes.Count; i++) 
+        for (int i = 0; i < genomes.Count; i++)
         {
             if (placementFactor == batchSize)
             {
                 placementFactor = 0;
             }
-
-            Creature newCreature = creationManager.CreateCreatureFromNodes(genomes[i][0]);
+            Node newCreatureNode = genomes[i][0];
+            Creature newCreature = creationManager.CreateCreatureFromNodes(ref newCreatureNode);
             newCreature.handle.transform.position = new Vector3(20 * placementFactor, 5, 0);
             newCreature.handle.name = placementFactor.ToString();
             newCreature.handle.layer = LayerMask.NameToLayer(placementFactor.ToString());
@@ -732,6 +787,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             if (i < batchSize)
             {
                 currentBatchSize++;
+                //InitiatePhysicsOnCreature(newCreature);
                 currentCreatures.Add(newCreature);
                 creaturesToTestQueue.Enqueue(newCreature);
             }
@@ -787,7 +843,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         //        }
         //    }
         //}
-        
+
         //return true;
     }
 
@@ -805,7 +861,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
         if (createFromFile && !created && !createdFromFileDone)
         {
-            CreatePopulationFromFile();
+            //CreatePopulationFromFile();
             //CreateChampionFromFile();
             createdFromFileDone = true;
             createFromFile = false;
@@ -825,90 +881,91 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         }
     }
 
-    private List<Creature> CreatePopulationFromFile()
-    {
-        plane.SetActive(false);
+    //private List<Creature> CreatePopulationFromFile()
+    //{
+    //    plane.SetActive(false);
 
-        if (creationManager == null)
-        {
-            if (TryGetComponent<CreateCreature>(out creationManager)) { }
-            else creationManager = gameObject.AddComponent<CreateCreature>();
-        }
+    //    if (creationManager == null)
+    //    {
+    //        if (TryGetComponent<CreateCreature>(out creationManager)) { }
+    //        else creationManager = gameObject.AddComponent<CreateCreature>();
+    //    }
 
-        List<Node> genomes = new List<Node>();
-        genomes = serializationTest.DeserializePopulation();
+    //    List<Node> genomes = new List<Node>();
+    //    genomes = serializationTest.DeserializePopulation();
 
-        currentCreatures.Clear();
-        creaturesToTestQueue.Clear();
-        creaturesToCreateQueue.Clear();
-        batchSize = 10;
-        int placementFactor = 0;
-        for (int i = 0; i < genomes.Count; i++)
-        {
-            if (placementFactor == batchSize)
-            {
-                placementFactor = 0;
-            }
+    //    currentCreatures.Clear();
+    //    creaturesToTestQueue.Clear();
+    //    creaturesToCreateQueue.Clear();
 
-            Creature newCreature = creationManager.CreateCreatureFromNodes(genomes[i]);
-            newCreature.handle.transform.position = new Vector3(20 * placementFactor, 5, 0);
-            newCreature.handle.SetActive(false);
-            newCreature.handle.name = placementFactor.ToString();
-            newCreature.handle.layer = LayerMask.NameToLayer(placementFactor.ToString());
+    //    int placementFactor = 0;
+    //    for (int i = 0; i < genomes.Count; i++)
+    //    {
+    //        if (placementFactor == batchSize)
+    //        {
+    //            placementFactor = 0;
+    //        }
 
-            foreach (Transform child in newCreature.handle.transform)
-            {
-                if (null == child)
-                {
-                    continue;
-                }
+    //        Creature newCreature = creationManager.CreateCreatureFromNodes(genomes[i]);
+    //        newCreature.handle.transform.position = new Vector3(20 * placementFactor, 5, 0);
+    //        newCreature.handle.SetActive(false);
+    //        newCreature.handle.name = placementFactor.ToString();
+    //        newCreature.handle.layer = LayerMask.NameToLayer(placementFactor.ToString());
 
-                string layer = placementFactor.ToString();
+    //        foreach (Transform child in newCreature.handle.transform)
+    //        {
+    //            if (null == child)
+    //            {
+    //                continue;
+    //            }
 
-                child.gameObject.layer = LayerMask.NameToLayer(placementFactor.ToString());
-            }
+    //            string layer = placementFactor.ToString();
 
-            placementFactor++;
+    //            child.gameObject.layer = LayerMask.NameToLayer(placementFactor.ToString());
+    //        }
+
+    //        placementFactor++;
 
 
-            if (i < batchSize)
-            {
-                currentBatchSize++;
-                currentCreatures.Add(newCreature);
-                creaturesToTestQueue.Enqueue(newCreature);
-            }
-            else
-            {
-                newCreature.handle.SetActive(false);
-                creaturesToCreateQueue.Enqueue(newCreature);
-            }
-        }
+    //        if (i < batchSize)
+    //        {
+    //            currentBatchSize++;
+    //            //InitiatePhysicsOnCreature(newCreature);
+    //            currentCreatures.Add(newCreature);
+    //            creaturesToTestQueue.Enqueue(newCreature);
+    //        }
+    //        else
+    //        {
+    //            newCreature.handle.SetActive(false);
+    //            creaturesToCreateQueue.Enqueue(newCreature);
+    //        }
+    //    }
 
-        foreach (Creature c in currentCreatures)
-        {
-            c.handle.SetActive(true);
-        }
-        plane.SetActive(true);
-        return currentCreatures;
-    }
+    //    foreach (Creature c in currentCreatures)
+    //    {
+    //        c.handle.SetActive(true);
+    //    }
+    //    plane.SetActive(true);
+    //    return currentCreatures;
+    //}
 
-    private void CreateChampionFromFile()
-    {
-        plane.SetActive(false);
-        batchSize = 1;
-        if (creationManager == null)
-        {
-            if (TryGetComponent<CreateCreature>(out creationManager)) { }
-            else creationManager = gameObject.AddComponent<CreateCreature>();
-        }
-        Creature newCreature = creationManager.CreateCreatureFromNodes(serializationTest.DeserializeTree());
-        if (!newCreature.handle.activeSelf) newCreature.handle.SetActive(true);
-        newCreature.handle.transform.position = new Vector3(0, 5, 0);
-        newCreature.handle.SetActive(false);
-        creaturesToCreateQueue.Enqueue(newCreature);
-        plane.SetActive(true);
-        timeSinceSpawn = 0;
-    }
+    //private void CreateChampionFromFile()
+    //{
+    //    plane.SetActive(false);
+    //    batchSize = 1;
+    //    if (creationManager == null)
+    //    {
+    //        if (TryGetComponent<CreateCreature>(out creationManager)) { }
+    //        else creationManager = gameObject.AddComponent<CreateCreature>();
+    //    }
+    //    Creature newCreature = creationManager.CreateCreatureFromNodes(serializationTest.DeserializeTree());
+    //    if (!newCreature.handle.activeSelf) newCreature.handle.SetActive(true);
+    //    newCreature.handle.transform.position = new Vector3(0, 5, 0);
+    //    newCreature.handle.SetActive(false);
+    //    creaturesToCreateQueue.Enqueue(newCreature);
+    //    plane.SetActive(true);
+    //    timeSinceSpawn = 0;
+    //}
 
     private void CreateFromQueue()
     {
@@ -935,6 +992,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
 
             currentBatchSize++;
+            //InitiatePhysicsOnCreature(newCreature);
             currentCreatures.Add(newCreature);
             creaturesToTestQueue.Enqueue(newCreature);
         }
@@ -954,6 +1012,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             {
                 if (createInitialRandomBatch && !createFromQueue)
                 {
+                    print("Removing from initial randombatch");
                     Creature toDestroy = creaturesToTestQueue.Dequeue();
                     currentBatchSize--;
                     currentCreatures.Remove(toDestroy);
@@ -964,7 +1023,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                     print("REMOVED");
                     Creature toDestroy = creaturesToTestQueue.Dequeue();
                     toDestroy.fitness = 0;
-                    Test test = new Test(toDestroy, 0);
+                    Test test = new Test(fitnessType, toDestroy, 0);
                     test.finished = true;
                     test.fitness = 0;
                     tests.Add(test);
@@ -975,7 +1034,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 {
                     Creature toDestroy = creaturesToTestQueue.Dequeue();
                     toDestroy.fitness = 0;
-                    Test test = new Test(toDestroy, 0);
+                    Test test = new Test(fitnessType, toDestroy, 0);
                     test.finished = true;
                     test.fitness = 0;
                     tests.Add(test);
@@ -1015,6 +1074,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
 
             currentCreatures.Add(creature);
+            //InitiatePhysicsOnCreature(creature);
             creaturesToTestQueue.Enqueue(creature);
         }
 
@@ -1043,24 +1103,72 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         }
     }
 
+    private void InitiatePhysicsOnCreature(Creature creature)
+    {
+        foreach (GameObject g in creature.geometry)
+        {
+            if (g != null)
+            {
+                if (g.TryGetComponent<Rigidbody>(out Rigidbody rb))
+                {
+                    rb.isKinematic = false;
+                    rb.useGravity = true;
+                    rb.velocity = Vector3.zero;
+                    rb.angularVelocity = Vector3.zero;
+                    rb.interpolation = RigidbodyInterpolation.Extrapolate;
+                }
+            }
+        }
+    }
+
     private void UpdateTests()
     {
         if (tests.Count > 0)
         {
+            bool cleanup = false;
+
             for (int i = 0; i < tests.Count; i++)
             {
                 Test t = tests[i];
-                if (!t.finished)
+                if (!tests[i].finished)
                 {
-                    t.Update();
+                    tests[i].Update();
                 }
                 else
                 {
-                    finishedTests.Add(t);
-                    testsFinished++;
+                    for (int j = 0; j < testIds.Count; j++)
+                    {
+                        if (tests[i].id == testIds[i])
+                        {
+                            print("duplicate test");
+                        }
+                    }
+
+                    testIds.Add(tests[i].id);
+
+                    if (finishedTests.Count < population)
+                    {
+                        finishedTests.Add(t);
+                        testsFinished++;
+                    }
+
+                    if (finishedTests.Count == population)
+                    {
+
+                        cleanup = true;
+                        break;
+                    }
+
                     tests[i].PrepareForClear();
-                    tests.RemoveAt(i);
+                    tests.RemoveAt(i--);
                 }
+            }
+
+            if (cleanup)
+            {
+                tests.ForEach(delegate (Test t) { t.PrepareForClear(); });
+                tests.Clear();
+                creaturesToTestQueue.Clear();
             }
         }
     }
@@ -1089,13 +1197,24 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             return;
         }
 
-        Test test = new Test(creaturesToTestQueue.Dequeue(), testTime);
+        Test test = new Test(fitnessType, creaturesToTestQueue.Dequeue(), testTime);
         testsStarted++;
         tests.Add(test);
     }
 
     public class Test
     {
+        public enum FitnessType
+        {
+            StaticAABBTop,
+            StaticHighestAABBTop,
+            HighestAABBTopHighestAABBBottom,
+            HighestAABBBottomDistance,
+            Distance
+        };
+        static int counter;
+        public int id;
+        public FitnessType fitnessType;
         public bool finished = false;
         public Creature creature;
         public float fitness;
@@ -1103,10 +1222,13 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         float timer = 0;
         Vector3 initialCenterOfMass, endCenterOfMass;
 
-        public Test(Creature creature, float testTime)
+        public Test(FitnessType fitnessType, Creature creature, float testTime)
         {
+            counter++;
+            id = counter;
             this.testTime = testTime;
             this.creature = creature;
+            this.fitnessType = fitnessType;
             initialCenterOfMass = CalculateMeanCenterOfMass();
         }
 
@@ -1115,17 +1237,28 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             if (!finished)
             {
                 timer += Time.deltaTime;
-                creature.Update();
 
-                if (timer > testTime)
+                switch (fitnessType)
                 {
-                    endCenterOfMass = CalculateMeanCenterOfMass();
-                    float distanceTravelled = Vector2.Distance(new Vector2(initialCenterOfMass.x, initialCenterOfMass.z), new Vector2(endCenterOfMass.x, endCenterOfMass.z));
-                    fitness = distanceTravelled;
-                    creature.fitness = fitness;
-                    finished = true;
-                    Destroy(creature.handle);
+                    case FitnessType.StaticAABBTop:
+                        StaticAABBTop();
+                        break;
+                    case FitnessType.StaticHighestAABBTop:
+                        break;
+                    case FitnessType.HighestAABBTopHighestAABBBottom:
+                        break;
+                    case FitnessType.HighestAABBBottomDistance:
+                        break;
+                    case FitnessType.Distance:
+                        HorizontalDistanceTraveled();
+                        break;
+                    default:
+                        break;
                 }
+            }
+            else
+            {
+                Destroy(creature.handle);
             }
         }
 
@@ -1154,6 +1287,108 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             center = center / creature.geometry.Count;
 
             return center;
-        }        
+        }
+
+        void HorizontalDistanceTraveled()
+        {
+            creature.Update();
+            if (timer > testTime)
+            {
+                endCenterOfMass = CalculateMeanCenterOfMass();
+                float distanceTravelled = Vector2.Distance(new Vector2(initialCenterOfMass.x, initialCenterOfMass.z), new Vector2(endCenterOfMass.x, endCenterOfMass.z));
+                fitness = distanceTravelled;
+                creature.fitness = fitness;
+                finished = true;
+                Destroy(creature.handle);
+            }
+        }
+
+        void StaticAABBTop()
+        {
+            Bounds AABB = new Bounds();
+            AABB.center = CalculateMeanCenterOfMass();
+
+            foreach (Transform child in creature.handle.transform)
+            {
+                if (null == child)
+                {
+                    continue;
+                }
+                AABB.Encapsulate(child.position);
+            }
+
+            //OnDrawGizmosSelected(AABB);
+
+            fitness = AABB.size.y;
+            creature.fitness = fitness;
+            finished = true;
+            Destroy(creature.handle);
+        }
     }
 }
+
+//    public class Test
+//    {
+//        public bool finished = false;
+//        public Creature creature;
+//        public float fitness;
+//        float testTime;
+//        float timer = 0;
+//        Vector3 initialCenterOfMass, endCenterOfMass;
+
+//        public Test(Creature creature, float testTime)
+//        {
+//            this.testTime = testTime;
+//            this.creature = creature;
+//            initialCenterOfMass = CalculateMeanCenterOfMass();
+//        }
+
+//        public void Update()
+//        {
+//            if (!finished)
+//            {
+//                timer += Time.deltaTime;
+//                creature.Update();
+
+//           //     creature.handle.GetComponent<Collider>();
+
+//                if (timer > testTime)
+//                {
+//                    endCenterOfMass = CalculateMeanCenterOfMass();
+//                    float distanceTravelled = Vector2.Distance(new Vector2(initialCenterOfMass.x, initialCenterOfMass.z), new Vector2(endCenterOfMass.x, endCenterOfMass.z));
+//                    fitness = distanceTravelled;
+//                    creature.fitness = fitness;
+//                    finished = true;
+//                    Destroy(creature.handle);
+//                }
+//            }
+//        }
+
+
+//        public void PrepareForClear()
+//        {
+//            Destroy(creature.handle);
+//        }
+
+//        Vector3 CalculateMeanCenterOfMass()
+//        {
+//            Vector3 center = new Vector3();
+//            for (int i = 0; i < creature.geometry.Count; i++)
+//            {
+//                if (creature.geometry[i] == null)
+//                {
+//                    continue;
+//                }
+
+//                if (creature.geometry[i].TryGetComponent<Rigidbody>(out Rigidbody rb))
+//                {
+//                    center += rb.worldCenterOfMass;
+//                }
+//            }
+
+//            center = center / creature.geometry.Count;
+
+//            return center;
+//        }        
+//    }
+//}
