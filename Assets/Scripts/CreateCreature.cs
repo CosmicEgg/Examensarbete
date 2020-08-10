@@ -2704,9 +2704,11 @@ public class Creature
     public bool active = false;
     public bool readyToStart = false;
     public bool finished = false;
-    private float fitness;
-    int geoCounter = 0;
+    //private float fitness;
+    public float normalizedFitness = 0;
+    public int geoCounter = 0;
     public Vector3 initialCenterOfMass, finalCenterOfMass;
+    public float[] NonNormalizedFitnessScores = new float[2];
 
     public Creature(List<Node> nodes, List<GameObject> geometry, GameObject handle)
     {
@@ -2723,20 +2725,9 @@ public class Creature
         }
     }
 
-    public void SetFitness(float fitness)
+    public void SetFitness(int index, float fitness)
     {
-        this.fitness = fitness;
-    }
-
-    public float GetAdjustedFitness()
-    {
-        float percent = 0.5f;
-        if (geoCounter < 3 || geoCounter > 15)
-        {
-            return fitness * percent;
-        }
-
-        return fitness;
+        this.NonNormalizedFitnessScores[index] = fitness;
     }
 
     private double Sigmoid(double x)

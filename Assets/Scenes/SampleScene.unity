@@ -376,11 +376,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 317bb8529027c9c4ba2894f640d1ab94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fitnessScoreToBeat: 3
   uiManager: {fileID: 1478923419}
-  fitnessType: 4
+  fitnessType: 3
   createFromFile: 0
-  batchSize: 10
-  population: 100
+  batchSize: 12
+  population: 60
   plane: {fileID: 1806056839}
   startSeed: 6
 --- !u!1001 &1176629781
