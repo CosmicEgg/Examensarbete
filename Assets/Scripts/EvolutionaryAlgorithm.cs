@@ -16,6 +16,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     public bool createFromFile = false;
     private bool createFromQueue = false;
     private bool createdFromFileDone = false;
+    private bool checkedForTooHighStartingVelocity = false;
     private int maxAllowedTimeToStabilize = 6, currentBatchSize = 0;
     private int timeToStabilize = 6;
     public int batchSize = 6, population = 12;
@@ -185,6 +186,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             finishedTests.ForEach(delegate (Test t) { t.PrepareForClear(); });
             finishedTests.Clear();
 
+            checkedForTooHighStartingVelocity = false;
             physicsInitiated = false;
             created = true;
             createInitialRandomBatch = false;
@@ -834,6 +836,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
         while (nodeCounter != position)
         {
+            //Queue empty bug
             currentNode = nodeQueue.Dequeue();
             nodeCounter++;
 
@@ -1116,8 +1119,35 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         return currentCreatures;
     }
 
+
+    bool CheckForTooHighSpawnVelocity(Creature creature)
+    {
+        for (int i = 0; i < creature.handle.transform.childCount; i++)
+        {
+            Transform child = creature.handle.transform.GetChild(i);
+
+            if (child != null)
+            {
+                if (child.TryGetComponent<Rigidbody>(out Rigidbody rb))
+                {
+                    if (rb.velocity.magnitude > 7)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+
     bool ReadyToStart(Creature creature)
     {
+        //if (creature.handle == null)
+        //{
+        //    return false;
+        //}
         //foreach (GameObject g in creature.geometry)
         for (int i = 0; i < creature.handle.transform.childCount; i++)
         {
@@ -1131,6 +1161,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                     {
                         return false;
                     }
+                    
                     //else if (rb.angularVelocity.magnitude > 2)
                     //{
                     //    return false;
@@ -1312,11 +1343,57 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             creaturesToTestQueue.Enqueue(newCreature);
         }
 
+        checkedForTooHighStartingVelocity = false;
         timeSinceSpawn = 0;
     }
 
     private void CheckForStartTestOrDestroyCreature()
     {
+        //if (!checkedForTooHighStartingVelocity && timeSinceSpawn > 1)
+        //{
+        //    checkedForTooHighStartingVelocity = true;
+        //    for (int i = 0; i < currentCreatures.Count; i++)
+        //    {
+        //        Creature c = currentCreatures[i];
+        //        if (CheckForTooHighSpawnVelocity(c))
+        //        {
+        //            if (createInitialRandomBatch && !createFromQueue)
+        //            {
+        //                print("Removing from initial randombatch");
+        //                Creature toDestroy = c;
+        //                currentBatchSize--;
+        //                currentCreatures.RemoveAt(i--);
+        //                Destroy(toDestroy.handle);
+        //            }
+        //            else if (currentGeneration > 0)
+        //            {
+        //                print("REMOVED");
+        //                Creature toDestroy = c;
+        //                toDestroy.SetFitness(0, 0);
+        //                toDestroy.SetFitness(1, 0);
+        //                Test test = new Test(fitnessType, toDestroy, 0);
+        //                test.finished = true;
+        //                tests.Add(test);
+        //                currentCreatures.RemoveAt(i--);
+        //                Destroy(toDestroy.handle);
+        //            }
+        //            else if (createdFromFileDone)
+        //            {
+        //                Creature toDestroy = c;
+        //                toDestroy.SetFitness(0, 0);
+        //                toDestroy.SetFitness(1, 0);
+        //                Test test = new Test(fitnessType, toDestroy, 0);
+        //                test.finished = true;
+        //                tests.Add(test);
+        //                currentCreatures.RemoveAt(i--);
+        //                Destroy(toDestroy.handle);
+        //            }
+        //        }
+        //    }
+        //}
+        
+
+
         if (creaturesToTestQueue.Count != 0 && timeSinceSpawn > timeToStabilize)
         {
             if (ReadyToStart(creaturesToTestQueue.Peek()))
@@ -1325,42 +1402,47 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
             else if (!ReadyToStart(creaturesToTestQueue.Peek()) && timeSinceSpawn > maxAllowedTimeToStabilize)
             {
-                if (createInitialRandomBatch && !createFromQueue)
-                {
-                    print("Removing from initial randombatch");
-                    Creature toDestroy = creaturesToTestQueue.Dequeue();
-                    currentBatchSize--;
-                    currentCreatures.Remove(toDestroy);
-                    Destroy(toDestroy.handle);
-                }
-                else if (currentGeneration > 0)
-                {
-                    print("REMOVED");
-                    Creature toDestroy = creaturesToTestQueue.Dequeue();
-                    toDestroy.SetFitness(0, 0);
-                    toDestroy.SetFitness(1, 0);
-                    Test test = new Test(fitnessType, toDestroy, 0);
-                    test.finished = true;
-                    //test.fitness = 0;
-                    tests.Add(test);
-                    currentCreatures.Remove(toDestroy);
-                    Destroy(toDestroy.handle);
-                }
-                else if (createdFromFileDone)
-                {
-                    Creature toDestroy = creaturesToTestQueue.Dequeue();
-                    toDestroy.SetFitness(0, 0);
-                    toDestroy.SetFitness(1, 0);
-                    Test test = new Test(fitnessType, toDestroy, 0);
-                    test.finished = true;
-                    //test.fitness = 0;
-                    tests.Add(test);
-                    currentCreatures.Remove(toDestroy);
-                    Destroy(toDestroy.handle);
+                //if (creaturesToTestQueue.Peek().handle == null)
+                //{
+                //    creaturesToTestQueue.Dequeue();
+                //}
+                //else
+                //{
+                    if (createInitialRandomBatch && !createFromQueue)
+                    {
+                        print("Removing from initial randombatch");
+                        Creature toDestroy = creaturesToTestQueue.Dequeue();
+                        currentBatchSize--;
+                        currentCreatures.Remove(toDestroy);
+                        Destroy(toDestroy.handle);
+                    }
+                    else if (currentGeneration > 0)
+                    {
+                        print("REMOVED");
+                        Creature toDestroy = creaturesToTestQueue.Dequeue();
+                        toDestroy.SetFitness(0, 0);
+                        toDestroy.SetFitness(1, 0);
+                        Test test = new Test(fitnessType, toDestroy, 0);
+                        test.finished = true;
+                        //test.fitness = 0;
+                        tests.Add(test);
+                        currentCreatures.Remove(toDestroy);
+                        Destroy(toDestroy.handle);
+                    }
+                    else if (createdFromFileDone)
+                    {
+                        Creature toDestroy = creaturesToTestQueue.Dequeue();
+                        toDestroy.SetFitness(0, 0);
+                        toDestroy.SetFitness(1, 0);
+                        Test test = new Test(fitnessType, toDestroy, 0);
+                        test.finished = true;
+                        //test.fitness = 0;
+                        tests.Add(test);
+                        currentCreatures.Remove(toDestroy);
+                        Destroy(toDestroy.handle);
 
-                }
-                //Går in i varken eller av dessa
-
+                    }
+                //}
             }
         }
     }
@@ -1514,6 +1596,10 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         {
             return;
         }
+        else if(creaturesToTestQueue.Peek().handle == null)
+        {
+            return;
+        }
 
         Test test = new Test(fitnessType, creaturesToTestQueue.Dequeue(), testTime);
         testsStarted++;
@@ -1620,8 +1706,8 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 endCenterOfMass = CalculateMeanCenterOfMass();
                 float distanceFitness = Vector2.Distance(new Vector2(initialCenterOfMass.x, initialCenterOfMass.z), new Vector2(endCenterOfMass.x, endCenterOfMass.z));
                 
-                creature.SetFitness(0, AABBBottomMaxHeight);
-                creature.SetFitness(1, distanceFitness);
+                creature.SetFitness(0, AdjustFitnessByGeoCount(AABBBottomMaxHeight));
+                creature.SetFitness(1, AdjustFitnessByGeoCount(distanceFitness));
                 finished = true;
                 Destroy(creature.handle);
             }
@@ -1630,7 +1716,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         private void HighestAABBTopHighestAABBBottomTest()
         {
             Bounds AABB = new Bounds();
-            float weightedHeightFitness = 0 ;
+            float weightedHeightFitness = 0;
             float weightedBottomFitness = 0;
 
             if (timer < jumpTime)
@@ -1665,27 +1751,28 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
             else
             {
-                creature.SetFitness(0, weightedHeightFitness);
-                creature.SetFitness(1, weightedBottomFitness);
+                creature.SetFitness(0, AdjustFitnessByGeoCount(weightedHeightFitness));
+                creature.SetFitness(1, AdjustFitnessByGeoCount(weightedBottomFitness));
                 finished = true;
                 Destroy(creature.handle);
             }
         }
 
-        public float AdjustFitness(float inputFitness)
+        public float AdjustFitnessByGeoCount(float inputFitness)
         {
-            if (creature.geoCounter > 15)
+            if (creature.geoCounter > 25)
             {
                 return 0;
             }
-            else if (creature.geoCounter < 15 && creature.geoCounter >= 8)
+
+            if (creature.geoCounter >= 8)
             {
                 return inputFitness * (8 / creature.geoCounter);
             }
-            else if (creature.geoCounter < 8)
-            {
-                return inputFitness * 1 / (8 / creature.geoCounter);
-            }
+            //else if (creature.geoCounter < 8)
+            //{
+            //    return inputFitness * 1 / (8 / creature.geoCounter);
+            //}
 
             return inputFitness;
         }
@@ -1708,7 +1795,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 }
 
                 float fitness = AABB.size.y;
-                creature.SetFitness(0, AdjustFitness(fitness));
+                creature.SetFitness(0, AdjustFitnessByGeoCount(fitness));
 
                 startSizeCalculated = true;
             }
@@ -1740,7 +1827,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
             else
             {
-                creature.SetFitness(1, AABBTopMaxHeight);
+                creature.SetFitness(1, AdjustFitnessByGeoCount(AABBTopMaxHeight));
                 finished = true;
                 Destroy(creature.handle);
             }
@@ -1781,7 +1868,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             {
                 endCenterOfMass = CalculateMeanCenterOfMass();
                 float distanceFitness = Vector2.Distance(new Vector2(initialCenterOfMass.x, initialCenterOfMass.z), new Vector2(endCenterOfMass.x, endCenterOfMass.z));
-                creature.SetFitness(0, distanceFitness);
+                creature.SetFitness(0, AdjustFitnessByGeoCount(distanceFitness));
                 finished = true;
                 Destroy(creature.handle);
             }
@@ -1804,7 +1891,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             //OnDrawGizmosSelected(AABB);
 
             float fitness = AABB.size.y;
-            creature.SetFitness(0, AdjustFitness(fitness));
+            creature.SetFitness(0, AdjustFitnessByGeoCount(fitness));
             finished = true;
             Destroy(creature.handle);
         }
