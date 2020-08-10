@@ -8,6 +8,7 @@ public class MuscleManager : MonoBehaviour
     public float numbOfMuscles;
     float time, cycle;
     float cycleSpeed = 3f;
+    public float offSetCycle;
 
     public void CreateNewMuscles(GameObject parent, GameObject child, Node node)
     {
@@ -41,7 +42,7 @@ public class MuscleManager : MonoBehaviour
     public void UpdateMuscles()
     {
         time += Time.deltaTime;
-        cycle = Mathf.Sin(time * cycleSpeed);
+        cycle = Mathf.Sin(time * cycleSpeed + offSetCycle);
 
         if (cycle > 0)
         {
@@ -88,7 +89,7 @@ public class Muscle
     public GameObject emptyParent, emptyChild;
     GameObject child, parent;
     public Vector3 connectedAnchorInLocal;
-    public float strenght;
+    public float strength;
 
     public int strenghtSeed, anchorSeed, connectedAnchorSeed;
 
@@ -102,10 +103,10 @@ public class Muscle
     public void CreateNewMuscle(Node node, int strenghtSeed, int anchorSeed,int connectedAnchorSeed)
     {
         Random.InitState(strenghtSeed);
-        strenght = Random.Range(0.0f, 1.0f);
+        strength = Random.Range(0.0f, 1.0f);
 
         jointDrive.positionSpring = 0f;
-        jointDrive.maximumForce = 3.402823e+38f * strenght;
+        jointDrive.maximumForce = 3.402823e+38f * strength;
         jointDrive.positionDamper = 0;
 
         Collider parentCollider = parent.GetComponent<Collider>();
@@ -184,7 +185,7 @@ public class Muscle
     public void CreateRefMuscle(Muscle muscle, Vector3 refAxis)
     {
         jointDrive = muscle.jointDrive;
-
+        strength = muscle.strength;
         connectedAnchor = Vector3.Reflect(muscle.connectedAnchorInLocal, refAxis) + parent.transform.position;
 
         GameObject placementOnParent = GameObject.CreatePrimitive(PrimitiveType.Sphere);
@@ -227,6 +228,7 @@ public class Muscle
     public void CreateRecurssionMuscle(Muscle muscle)
     {
         jointDrive = muscle.jointDrive;
+        strength = muscle.strength;
 
         GameObject placementOnParent = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         placementOnParent.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
@@ -267,9 +269,9 @@ public class Muscle
 
     public void Contraction()
     {
-        jointDrive.positionSpring = 200f;
-        jointDrive.maximumForce = 3.402823e+38f * strenght;
-        jointDrive.positionDamper = 0;
+        jointDrive.positionSpring = 300f * strength;
+        jointDrive.maximumForce = 300f * strength;
+        jointDrive.positionDamper = 1;
         distanceJoint.xDrive = jointDrive;
         distanceJoint.yDrive = jointDrive;
         distanceJoint.zDrive = jointDrive;
@@ -277,8 +279,8 @@ public class Muscle
     }
     public void Relaxation()
     {
-        jointDrive.positionSpring = 1f;
-        jointDrive.maximumForce = 3.402823e+38f * strenght;
+        jointDrive.positionSpring = 0;
+        jointDrive.maximumForce = 0;
         jointDrive.positionDamper = 0;
         distanceJoint.xDrive = jointDrive;
         distanceJoint.yDrive = jointDrive;
