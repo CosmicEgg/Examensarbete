@@ -424,7 +424,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fitnessScoreToBeat: 3
   uiManager: {fileID: 1478923419}
-  fitnessType: 1
+  fitnessType: 0
   createFromFile: 0
   batchSize: 12
   population: 60
