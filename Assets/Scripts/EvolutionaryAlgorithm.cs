@@ -1591,6 +1591,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         Vector3 initialCenterOfMass, endCenterOfMass;
         private bool startSizeCalculated = false;
         private float AABBTopMaxHeight = 0, AABBBottomMaxHeight = 0;
+        float startHeight = 0;
         int generalTestTimeLimit = 5;
         float weightedHeightFitness = 0;
         float weightedBottomFitness = 0;
@@ -1682,6 +1683,23 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         {
             Bounds AABB = new Bounds();
 
+            if (!startSizeCalculated)
+            {
+                AABB.center = CalculateMeanCenterOfMass();
+
+                foreach (Transform child in creature.handle.transform)
+                {
+                    if (null == child)
+                    {
+                        continue;
+                    }
+                    AABB.Encapsulate(child.position);
+                }
+
+                startHeight = AABB.size.y;
+                startSizeCalculated = true;
+            }
+
             if (timer < jumpTime)
             {
                 creature.Update();
@@ -1703,17 +1721,26 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 if (AABB.max.y > AABBTopMaxHeight)
                 {
                     AABBTopMaxHeight = AABB.max.y;
-                    weightedHeightFitness = AABBTopMaxHeight / 2;
+                   // weightedHeightFitness = AABBTopMaxHeight / 2;
                 }
                 if (AABB.min.y > AABBBottomMaxHeight)
                 {
                     AABBBottomMaxHeight = AABB.min.y;
-                    weightedBottomFitness = AABBBottomMaxHeight * 2;
+                    //weightedBottomFitness = AABBBottomMaxHeight * 2;
                 }
 
             }
             else
             {
+                float differenceInHeight = AABBTopMaxHeight - startHeight;
+                if (differenceInHeight < 0)
+                {
+                    differenceInHeight = 0;
+                }
+
+                weightedHeightFitness = differenceInHeight;
+                weightedBottomFitness = AABBBottomMaxHeight;
+
                 creature.SetFitness(0, AdjustFitnessByGeoCount(weightedHeightFitness));
                 creature.SetFitness(1, AdjustFitnessByGeoCount(weightedBottomFitness));
                 finished = true;
@@ -1757,8 +1784,8 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                     AABB.Encapsulate(child.position);
                 }
 
-                float fitness = AABB.size.y;
-                creature.SetFitness(0, AdjustFitnessByGeoCount(fitness));
+                startHeight = AABB.size.y;
+                creature.SetFitness(0, AdjustFitnessByGeoCount(startHeight));
 
                 startSizeCalculated = true;
             }
@@ -1790,11 +1817,15 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
             else
             {
-                creature.SetFitness(1, AdjustFitnessByGeoCount(AABBTopMaxHeight));
+                float differenceInHeight = AABBTopMaxHeight - startHeight;
+                if (differenceInHeight < 0)
+                {
+                    differenceInHeight = 0;
+                }
+                creature.SetFitness(1, AdjustFitnessByGeoCount(differenceInHeight));
                 finished = true;
                 Destroy(creature.handle);
             }
-
         }
 
         public void PrepareForClear()
