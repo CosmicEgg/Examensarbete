@@ -122,7 +122,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
 
 
-            using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\seedTest.txt", true))
+            using (StreamWriter file = new StreamWriter(@"C:\Users\Cosmos\Desktop\seedTest.txt", true))
             {
                 foreach (Test t in finishedTests)
                 {
@@ -228,21 +228,21 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             switch (fitnessType)
             {
                 case Test.FitnessType.StaticAABBTop:
-                    fitnessScoreToBeat = 3.5f;
+                    fitnessScoreToBeat = 4f;
                     fitnessToCheck = t.creature.NonNormalizedFitnessScores[0];
                 break;
                 case Test.FitnessType.StaticHighestAABBTop:
-                    fitnessScoreToBeat = 5;
+                    fitnessScoreToBeat = 7;
                     fitnessToCheck = t.creature.NonNormalizedFitnessScores[0] + t.creature.NonNormalizedFitnessScores[1];
                     //fitnessToCheck = t.creature.normalizedFitness;
                     break;
                 case Test.FitnessType.HighestAABBTopHighestAABBBottom:
-                    fitnessScoreToBeat = 5;
+                    fitnessScoreToBeat = 10;
                     fitnessToCheck = t.creature.NonNormalizedFitnessScores[0] + t.creature.NonNormalizedFitnessScores[1];
                     //fitnessToCheck = t.creature.normalizedFitness;
                     break;
                 case Test.FitnessType.HighestAABBBottomDistance:
-                    fitnessScoreToBeat = 5;
+                    fitnessScoreToBeat = 12;
 
                     fitnessToCheck = t.creature.NonNormalizedFitnessScores[0] + t.creature.NonNormalizedFitnessScores[1];
                     //fitnessToCheck = t.creature.normalizedFitness;
@@ -960,7 +960,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
                 mutationChance = Random.Range(0.0f, 1.0f);
 
-                if (mutationChance <= mutationRate)
+                if (mutationChance <= mutationRate*2)
                 {
                     int rnd = Random.Range(0, 2);
 
@@ -1016,7 +1016,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
                 mutationChance = Random.Range(0.0f, 1.0f);
 
-                if (mutationChance <= mutationRate)
+                if (mutationChance <= mutationRate * 2)
                 {
                     int rnd = Random.Range(0, 1000);
 
@@ -1028,7 +1028,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
                 mutationChance = Random.Range(0.0f, 1.0f);
 
-                if (mutationChance <= mutationRate)
+                if (mutationChance <= mutationRate * 2)
                 {
                     int rnd = Random.Range(0, 1000);
 
@@ -1040,7 +1040,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
                 mutationChance = Random.Range(0.0f, 1.0f);
 
-                if (mutationChance <= mutationRate)
+                if (mutationChance <= mutationRate * 2)
                 {
                     int rnd = Random.Range(0, 1000);
 
