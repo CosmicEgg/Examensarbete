@@ -14,6 +14,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     public UIManager uiManager;
     public Test.FitnessType fitnessType;
     public bool createFromFile = false;
+    public bool addNewIndividualsToPopulation = false;
     private bool createFromQueue = false;
     private bool createdFromFileDone = false;
     private bool checkedForTooHighStartingVelocity = false;
@@ -39,11 +40,13 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     public float currentExperimentMaxNormalizedFitness;
     SerializationTest serializationTest;
     private bool proceedToNextFitnessTest = false, saveFittestCreature = false;
+    string testStartTime;
     
 
     // Start is called before the first frame update
     void Start()
     {
+        testStartTime = DateTime.Now.ToString("_yyyy_MM_dd_HH_mm_ss");
         if (createFromFile)
         {
             createInitialRandomBatch = false;
@@ -75,6 +78,11 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             saveFittestCreature = true;
         }
 
+        if (Input.GetKeyDown(KeyCode.L))
+        {
+            addNewIndividualsToPopulation = true;
+        }
+
         if (!physicsInitiated)
         {
             return;
@@ -104,7 +112,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                     break;
                 case Test.FitnessType.StaticHighestAABBTop:
                     SetNormalizedFitness(0);
-                    SetNormalizedFitness(1);
+                    //SetNormalizedFitness(1);
                     break;
                 case Test.FitnessType.HighestAABBTopHighestAABBBottom:
                     SetNormalizedFitness(0);
@@ -121,15 +129,19 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                     break;
             }
 
-
-            using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\seedTest.txt", true))
-            {
-                foreach (Test t in finishedTests)
+            //using (FileStream fs = new FileStream(@"C: \Users\adria\Desktop\tests\test_" + testStartTime + ".txt", FileMode.Append))
+            //{
+                using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\tests\test" +  testStartTime + ".txt", true))
                 {
-                    file.WriteLine("Generation: " + currentGeneration + ", NonNormalizedfitness: " + t.creature.NonNormalizedFitnessScores[0] + t.creature.NonNormalizedFitnessScores[1] + " Normalized Fitness: " + t.creature.normalizedFitness + ", Test type: " + fitnessType.ToString());
+                    foreach (Test t in finishedTests)
+                    {
+                    float nonNormalizedFitness = t.creature.NonNormalizedFitnessScores[0] + t.creature.NonNormalizedFitnessScores[1];
+                        file.WriteLine("Generation: " + currentGeneration + ", NonNormalizedfitness: " + nonNormalizedFitness.ToString("F") + " Normalized Fitness: " + t.creature.normalizedFitness + ", Test type: " + fitnessType.ToString());
 
+                    }
                 }
-            }
+            //}
+
 
             List<Node> champions = CheckIfFullFitness();
             List<Node> bestTests = new List<Node>();
@@ -228,16 +240,16 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             switch (fitnessType)
             {
                 case Test.FitnessType.StaticAABBTop:
-                    fitnessScoreToBeat = 3.5f;
+                    fitnessScoreToBeat = 4;
                     fitnessToCheck = t.creature.NonNormalizedFitnessScores[0];
                 break;
                 case Test.FitnessType.StaticHighestAABBTop:
-                    fitnessScoreToBeat = 5;
+                    fitnessScoreToBeat = 2;
                     fitnessToCheck = t.creature.NonNormalizedFitnessScores[0] + t.creature.NonNormalizedFitnessScores[1];
                     //fitnessToCheck = t.creature.normalizedFitness;
                     break;
                 case Test.FitnessType.HighestAABBTopHighestAABBBottom:
-                    fitnessScoreToBeat = 5;
+                    fitnessScoreToBeat = 4;
                     fitnessToCheck = t.creature.NonNormalizedFitnessScores[0] + t.creature.NonNormalizedFitnessScores[1];
                     //fitnessToCheck = t.creature.normalizedFitness;
                     break;
@@ -301,7 +313,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
     public void SaveCreature(Creature creature, int test)
     {
-        GameObject prefab = PrefabUtility.SaveAsPrefabAsset(creature.handle, "Assets/Prefabs/Test " + test + "/" + creature.normalizedFitness + ".prefab");
+        GameObject prefab = PrefabUtility.SaveAsPrefabAsset(creature.handle, "Assets/Prefabs/Test " + test + "/" + creature.normalizedFitness + "_" + fitnessType.ToString() + "_" + testStartTime + ".prefab");
     }
 
     public void NewSaveFolder(int test)
@@ -862,7 +874,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
             else
             {
-                Debug.Break();
+                //Debug.Break();
                 break;
             }
         }
@@ -959,8 +971,9 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 }
 
                 mutationChance = Random.Range(0.0f, 1.0f);
+                int muscleMutationFactor = 2;
 
-                if (mutationChance <= mutationRate)
+                if (mutationChance <= mutationRate * muscleMutationFactor)
                 {
                     int rnd = Random.Range(0, 2);
 
@@ -1016,7 +1029,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
                 mutationChance = Random.Range(0.0f, 1.0f);
 
-                if (mutationChance <= mutationRate)
+                if (mutationChance <= mutationRate * muscleMutationFactor)
                 {
                     int rnd = Random.Range(0, 1000);
 
@@ -1028,7 +1041,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
                 mutationChance = Random.Range(0.0f, 1.0f);
 
-                if (mutationChance <= mutationRate)
+                if (mutationChance <= mutationRate * muscleMutationFactor)
                 {
                     int rnd = Random.Range(0, 1000);
 
@@ -1040,7 +1053,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
                 mutationChance = Random.Range(0.0f, 1.0f);
 
-                if (mutationChance <= mutationRate)
+                if (mutationChance <= mutationRate * muscleMutationFactor)
                 {
                     int rnd = Random.Range(0, 1000);
 
@@ -1086,6 +1099,17 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             Node newCreatureNode = genomes[i][0];
             Creature newCreature = creationManager.CreateCreatureFromNodes(ref newCreatureNode);
 
+            if (addNewIndividualsToPopulation && i >= genomes.Count / 2 - 10 && i < genomes.Count / 2)
+            {
+                if (i == genomes.Count / 2 - 1)
+                {
+                    addNewIndividualsToPopulation = false;
+
+                }
+                Destroy(newCreature.handle);
+                newCreature = creationManager.Create();
+            }
+
             if (saveFittestCreature)
             {
                 if (i == population / 2)
@@ -1101,7 +1125,9 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 }
             }
 
-            newCreature.handle.transform.position = new Vector3(20 * placementFactor, 5, 0);
+            Bounds AABB = GetCombinedBoundingBoxOfChildren(newCreature.handle.transform);
+            float ySpawn = (AABB.min.y * -1) + 0.1f;
+            newCreature.handle.transform.position = new Vector3(20 * placementFactor, ySpawn, 0);
             newCreature.handle.name = placementFactor.ToString();
             newCreature.handle.layer = LayerMask.NameToLayer(placementFactor.ToString());
 
@@ -1132,6 +1158,27 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         }
 
         return currentCreatures;
+    }
+
+    public static Bounds GetCombinedBoundingBoxOfChildren(Transform root)
+    {
+        if (root == null)
+        {
+            throw new ArgumentException("The supplied transform was null");
+        }
+
+        var colliders = root.GetComponentsInChildren<Collider>();
+        if (colliders.Length == 0)
+        {
+            throw new ArgumentException("The supplied transform " + root?.name + " does not have any children with colliders");
+        }
+
+        Bounds totalBBox = colliders[0].bounds;
+        foreach (var collider in colliders)
+        {
+            totalBBox.Encapsulate(collider.bounds);
+        }
+        return totalBBox;
     }
 
 
@@ -1333,8 +1380,13 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         for (int i = 0; i < batchSize; i++)
         {
             Creature newCreature = creaturesToCreateQueue.Dequeue();
+            Bounds AABB = GetCombinedBoundingBoxOfChildren(newCreature.handle.transform);
+
+            float ySpawn = newCreature.handle.transform.position.y;
+            newCreature.handle.transform.position = new Vector3(20 * i, ySpawn, 0);
             if (!newCreature.handle.activeSelf) newCreature.handle.SetActive(true);
-            newCreature.handle.transform.position = new Vector3(20 * i, 5, 0);
+
+
 
             newCreature.handle.layer = LayerMask.NameToLayer(i.ToString());
 
@@ -1416,7 +1468,11 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         {
             currentBatchSize++;
             Creature creature = creationManager.Create();
-            creature.handle.transform.position = new Vector3(20 * i, 5, 0);
+
+            Bounds AABB = GetCombinedBoundingBoxOfChildren(creature.handle.transform);
+
+            float ySpawn = (AABB.min.y * -1) + 0.1f;
+            creature.handle.transform.position = new Vector3(20 * i, ySpawn, 0);
 
             creature.handle.layer = LayerMask.NameToLayer(i.ToString());
 
@@ -1589,10 +1645,10 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         float jumpTime = 1;
         float timer = 0;
         Vector3 initialCenterOfMass, endCenterOfMass;
-        private bool startSizeCalculated = false;
+        private bool startSizeDetermined = false;
         private float AABBTopMaxHeight = 0, AABBBottomMaxHeight = 0;
         float startHeight = 0;
-        int generalTestTimeLimit = 5;
+        int generalTestTimeLimit = 5, distanceTestTimeLimit = 7;
         float weightedHeightFitness = 0;
         float weightedBottomFitness = 0;
 
@@ -1650,16 +1706,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
             if (timer < generalTestTimeLimit)
             {
-                AABB.center = CalculateMeanCenterOfMass();
-
-                foreach (Transform child in creature.handle.transform)
-                {
-                    if (null == child)
-                    {
-                        continue;
-                    }
-                    AABB.Encapsulate(child.position);
-                }
+                AABB = GetCombinedBoundingBoxOfChildren(creature.handle.transform);
 
                 if (AABB.min.y > AABBBottomMaxHeight)
                 {
@@ -1669,9 +1716,18 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
             else
             {
+
                 endCenterOfMass = CalculateMeanCenterOfMass();
-                float distanceFitness = Vector2.Distance(new Vector2(initialCenterOfMass.x, initialCenterOfMass.z), new Vector2(endCenterOfMass.x, endCenterOfMass.z));
-                
+
+                float alpha = 3f;
+                double beta = 2f;
+                float distanceFitness = (alpha * (endCenterOfMass.z - initialCenterOfMass.z)) - (float)Math.Pow(Math.Abs(endCenterOfMass.x - initialCenterOfMass.x), beta);
+
+                if (distanceFitness < 0)
+                {
+                    distanceFitness = 0;
+                }
+
                 creature.SetFitness(0, AdjustFitnessByGeoCount(AABBBottomMaxHeight));
                 creature.SetFitness(1, AdjustFitnessByGeoCount(distanceFitness));
                 finished = true;
@@ -1681,23 +1737,12 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
         private void HighestAABBTopHighestAABBBottomTest()
         {
-            Bounds AABB = new Bounds();
+            Bounds AABB = GetCombinedBoundingBoxOfChildren(creature.handle.transform);
 
-            if (!startSizeCalculated)
+            if (!startSizeDetermined)
             {
-                AABB.center = CalculateMeanCenterOfMass();
-
-                foreach (Transform child in creature.handle.transform)
-                {
-                    if (null == child)
-                    {
-                        continue;
-                    }
-                    AABB.Encapsulate(child.position);
-                }
-
                 startHeight = AABB.size.y;
-                startSizeCalculated = true;
+                startSizeDetermined = true;
             }
 
             if (timer < jumpTime)
@@ -1707,16 +1752,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
             if (timer < generalTestTimeLimit)
             {
-                AABB.center = CalculateMeanCenterOfMass();
-
-                foreach (Transform child in creature.handle.transform)
-                {
-                    if (null == child)
-                    {
-                        continue;
-                    }
-                    AABB.Encapsulate(child.position);
-                }
+                AABB = GetCombinedBoundingBoxOfChildren(creature.handle.transform);
 
                 if (AABB.max.y > AABBTopMaxHeight)
                 {
@@ -1769,28 +1805,15 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
         private void StaticHighestAABBTopTest()
         {
-            Bounds AABB = new Bounds();
+            Bounds AABB = GetCombinedBoundingBoxOfChildren(creature.handle.transform);
 
-            if (!startSizeCalculated)
+            if (!startSizeDetermined)
             {
-                AABB.center = CalculateMeanCenterOfMass();
-
-                foreach (Transform child in creature.handle.transform)
-                {
-                    if (null == child)
-                    {
-                        continue;
-                    }
-                    AABB.Encapsulate(child.position);
-                }
-
                 startHeight = AABB.size.y;
-                creature.SetFitness(0, AdjustFitnessByGeoCount(startHeight));
-
-                startSizeCalculated = true;
+                //creature.SetFitness(0, AdjustFitnessByGeoCount(startHeight));
+                startSizeDetermined = true;
             }
            
-
             if (timer < jumpTime)
             {
                 creature.Update();
@@ -1798,22 +1821,12 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
             if (timer < generalTestTimeLimit)
             {
-                AABB.center = CalculateMeanCenterOfMass();
-
-                foreach (Transform child in creature.handle.transform)
-                {
-                    if (null == child)
-                    {
-                        continue;
-                    }
-                    AABB.Encapsulate(child.position);
-                }
+                AABB = GetCombinedBoundingBoxOfChildren(creature.handle.transform);
 
                 if (AABB.max.y > AABBTopMaxHeight)
                 {
                     AABBTopMaxHeight = AABB.max.y;
                 }
-
             }
             else
             {
@@ -1822,7 +1835,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 {
                     differenceInHeight = 0;
                 }
-                creature.SetFitness(1, AdjustFitnessByGeoCount(differenceInHeight));
+                creature.SetFitness(0, AdjustFitnessByGeoCount(differenceInHeight));
                 finished = true;
                 Destroy(creature.handle);
             }
@@ -1858,32 +1871,39 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         {
             creature.Update();
 
-            if (timer > generalTestTimeLimit)
+            if (timer > distanceTestTimeLimit)
             {
+
                 endCenterOfMass = CalculateMeanCenterOfMass();
-                float distanceFitness = Vector2.Distance(new Vector2(initialCenterOfMass.x, initialCenterOfMass.z), new Vector2(endCenterOfMass.x, endCenterOfMass.z));
+
+                float alpha = 3f;
+                double beta = 2f;
+                float distanceFitness = (alpha * (endCenterOfMass.z - initialCenterOfMass.z)) - (float)Math.Pow(Math.Abs(endCenterOfMass.x - initialCenterOfMass.x), beta);
+
+                if (distanceFitness < 0)
+                {
+                    distanceFitness = 0;
+                }
+
                 creature.SetFitness(0, AdjustFitnessByGeoCount(distanceFitness));
                 finished = true;
                 Destroy(creature.handle);
+
+
+
+
+                //endCenterOfMass = CalculateMeanCenterOfMass();
+                //float distanceFitness = Vector2.Distance(new Vector2(initialCenterOfMass.x, initialCenterOfMass.z), new Vector2(endCenterOfMass.x, endCenterOfMass.z));
+                //creature.SetFitness(0, AdjustFitnessByGeoCount(distanceFitness));
+                //finished = true;
+                //Destroy(creature.handle);
             }
         }
 
         //fungerar
         void StaticAABBTopTest()
         {
-            Bounds AABB = new Bounds();
-            AABB.center = CalculateMeanCenterOfMass();
-
-            foreach (Transform child in creature.handle.transform)
-            {
-                if (null == child)
-                {
-                    continue;
-                }
-                AABB.Encapsulate(child.position);
-            }
-
-            //OnDrawGizmosSelected(AABB);
+            Bounds AABB = GetCombinedBoundingBoxOfChildren(creature.handle.transform);
 
             float fitness = AABB.size.y;
             creature.SetFitness(0, AdjustFitnessByGeoCount(fitness));

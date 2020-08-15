@@ -424,12 +424,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fitnessScoreToBeat: 3
   uiManager: {fileID: 1478923419}
-  fitnessType: 0
+  fitnessType: 1
   createFromFile: 0
-  batchSize: 12
-  population: 60
+  addNewIndividualsToPopulation: 0
+  batchSize: 10
+  population: 100
   plane: {fileID: 1806056839}
-  startSeed: 2
+  startSeed: 0
   currentExperimentMaxNormalizedFitness: 0
 --- !u!1001 &1176629781
 PrefabInstance:

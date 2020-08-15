@@ -275,7 +275,7 @@ public class Muscle
         distanceJoint.xDrive = jointDrive;
         distanceJoint.yDrive = jointDrive;
         distanceJoint.zDrive = jointDrive;
-        distanceJoint.targetPosition = Vector3.zero;
+        distanceJoint.targetPosition = relaxationDistance / 2;
     }
     public void Relaxation()
     {
