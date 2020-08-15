@@ -2396,6 +2396,8 @@ public class CreateCreature : MonoBehaviour
         //Add Children
         for (int x = 0; x < nodes.Count; x++)
         {
+            Node previousSelectedNode = new Node();
+
             for (int y = 0; y < nodes[x].numOfChildren; y++)
             {
                 //Random.InitState(nodes[x].seed);
@@ -2405,12 +2407,17 @@ public class CreateCreature : MonoBehaviour
                 if (x != rnd)
                 {
                     nodes[x].edges.Add(new Edge(nodes[x], nodes[rnd], Random.Range(0, 4), 0));
+                    previousSelectedNode = nodes[rnd];
+                }
+                else if(x != rnd && y > 0 && chanceRnd < 20)
+                {
+                    nodes[x].edges.Add(new Edge(nodes[x], previousSelectedNode, Random.Range(0, 4), 0));
                 }
                 else if (x == rnd && chanceRnd < 10)
                 {
                     nodes[x].edges.Add(new Edge(nodes[x], nodes[rnd], Random.Range(0, 4), 0));
                 }
-                else
+                else if(x == rnd && chanceRnd < 10)
                 {
                     while (x == rnd)
                     {

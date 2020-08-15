@@ -254,7 +254,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                     //fitnessToCheck = t.creature.normalizedFitness;
                     break;
                 case Test.FitnessType.HighestAABBBottomDistance:
-                    fitnessScoreToBeat = 5;
+                    fitnessScoreToBeat = 12;
 
                     fitnessToCheck = t.creature.NonNormalizedFitnessScores[0] + t.creature.NonNormalizedFitnessScores[1];
                     //fitnessToCheck = t.creature.normalizedFitness;
