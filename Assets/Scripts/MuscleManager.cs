@@ -6,67 +6,82 @@ public class MuscleManager : MonoBehaviour
 {
     public List<Muscle> muscles = new List<Muscle>();
     public float numbOfMuscles;
-    float time, cycle;
-    float cycleSpeed = 3f;
-    public float offSetCycle;
 
     public void CreateNewMuscles(GameObject parent, GameObject child, Node node)
     {
         for (int i = 0; i < node.numbOfMuscles; i++)
         {
-            Muscle m = new Muscle(parent, child);
+            Muscle m = new Muscle(parent, child, node.offSetCycle);
             m.CreateNewMuscle(node, node.muscleSeeds[i,0], node.muscleSeeds[i, 1], node.muscleSeeds[i, 2]);
             muscles.Add(m);
         }
     }
-    public void CreateRefMuscles(GameObject parent, GameObject child, List<Muscle> refMuscle, Vector3 refAxis)
+    public void CreateRefMuscles(GameObject parent, GameObject child, List<Muscle> refMuscle, Vector3 refAxis, Node node)
     {
+        float offSetCycle = 0;
+
+        if (refMuscle != null)
+        {
+            if(refMuscle.Count != 0)
+            {
+                if (refMuscle[0] != null)
+                    offSetCycle = refMuscle[0].offSetCycle;
+            }
+        }
+
+        if (offSetCycle == 0)
+            offSetCycle = Mathf.PI;
+        else
+            offSetCycle = 0;
+
         foreach (Muscle muscle in refMuscle)
         {
-            Muscle m = new Muscle(parent, child);
+            Muscle m = new Muscle(parent, child, offSetCycle);
             m.CreateRefMuscle(muscle, refAxis);
             muscles.Add(m);
         }
     }
-    public void CreateRecurssionMuscles(GameObject parent, GameObject child, List<Muscle> refMuscle)
+    public void CreateRecurssionMuscles(GameObject parent, GameObject child, List<Muscle> refMuscle, Node node)
     {
+        float offSetCycle = 0;
+
+        if (refMuscle != null)
+        {
+            if (refMuscle.Count != 0)
+            {
+                if (refMuscle[0] != null)
+                    offSetCycle = refMuscle[0].offSetCycle;
+            }
+        }
+
+        if (offSetCycle == 0)
+            offSetCycle = Mathf.PI;
+        else
+            offSetCycle = 0;
+
         foreach (Muscle muscle in refMuscle)
         {
-            Muscle m = new Muscle(parent, child);
+            Muscle m = new Muscle(parent, child, offSetCycle);
             m.CreateRecurssionMuscle(muscle);
             muscles.Add(m);
         }
     }
 
-
     public void UpdateMuscles()
     {
-        time += Time.deltaTime;
-        cycle = Mathf.Sin(time * cycleSpeed + offSetCycle);
-
-        if (cycle > 0)
-        {
-            foreach (Muscle m in muscles)
-            {
-                m.Contraction();
-            }
-        }
-        else
-        {
-            foreach (Muscle m in muscles)
-            {
-                m.Relaxation();
-            }
-        }
-
         foreach (Muscle m in muscles)
         {
+            m.UpdateMuscle();
             m.DrawMuscle();
         }
     }
 
-    void Update()
-    {  
+    public void Relax()
+    {
+        foreach (Muscle m in muscles)
+        {
+            m.Relaxation();
+        }
     }
 
     private void OnDestroy()
@@ -90,14 +105,35 @@ public class Muscle
     GameObject child, parent;
     public Vector3 connectedAnchorInLocal;
     public float strength;
+    float time = 0;
+    float cycle;
+    float cycleSpeed;
+    public float offSetCycle;
 
     public int strenghtSeed, anchorSeed, connectedAnchorSeed;
 
-    public Muscle(GameObject parent, GameObject child)
+    public Muscle(GameObject parent, GameObject child, float offSetCycle)
     {
         jointDrive = new JointDrive();
         this.parent = parent;
         this.child = child;
+        this.offSetCycle = offSetCycle;
+        cycleSpeed = Mathf.PI;
+    }
+
+    public void UpdateMuscle()
+    {
+        time += Time.deltaTime;
+        cycle = Mathf.Sin(time * cycleSpeed + offSetCycle);
+
+        if (cycle > 0)
+        {
+           Contraction();      
+        }
+        else
+        {
+           Relaxation();
+        }
     }
 
     public void CreateNewMuscle(Node node, int strenghtSeed, int anchorSeed,int connectedAnchorSeed)
@@ -269,8 +305,8 @@ public class Muscle
 
     public void Contraction()
     {
-        jointDrive.positionSpring = 300f * strength;
-        jointDrive.maximumForce = 300f * strength;
+        jointDrive.positionSpring = 400f * strength;
+        jointDrive.maximumForce = 400f * strength;
         jointDrive.positionDamper = 1;
         distanceJoint.xDrive = jointDrive;
         distanceJoint.yDrive = jointDrive;

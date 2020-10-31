@@ -9,6 +9,12 @@ using UnityEditor;
 
 public class EvolutionaryAlgorithm : MonoBehaviour
 {
+    public enum CreatureType
+    {
+        UniformPulse,
+        AlternatingPulse
+    };
+
     List<int> testIds = new List<int>();
     public float fitnessScoreToBeat = 0;
     public UIManager uiManager;
@@ -36,6 +42,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
     public int startSeed;
     Dictionary<Test, float> dictionary = new Dictionary<Test, float>();
     private float currentGeneration = 0;
+    public CreatureType creatureType;
 
     public float currentExperimentMaxNormalizedFitness;
     SerializationTest serializationTest;
@@ -59,6 +66,11 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
         serializationTest = new SerializationTest();
         uiManager.SetMaxPopulationSize(population);
+
+        if (creatureType == CreatureType.UniformPulse)
+            fitnessType = Test.FitnessType.StaticAABBTop;
+        else
+            fitnessType = Test.FitnessType.DistanceStopTime;
     }
 
     // Update is called once per frame
@@ -105,33 +117,50 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             //int amountToSelect = population;
             generationGenomes.Clear();
 
-            switch (fitnessType)
+            if (creatureType == CreatureType.UniformPulse)
             {
-                case Test.FitnessType.StaticAABBTop:
-                    SetNormalizedFitness(0);
-                    break;
-                case Test.FitnessType.StaticHighestAABBTop:
-                    SetNormalizedFitness(0);
-                    //SetNormalizedFitness(1);
-                    break;
-                case Test.FitnessType.HighestAABBTopHighestAABBBottom:
-                    SetNormalizedFitness(0);
-                    SetNormalizedFitness(1);
-                    break;
-                case Test.FitnessType.HighestAABBBottomDistance:
-                    SetNormalizedFitness(0);
-                    SetNormalizedFitness(1);
-                    break;
-                case Test.FitnessType.Distance:
-                    SetNormalizedFitness(0);
-                    break;
-                default:
-                    break;
+                switch (fitnessType)
+                {
+                    case Test.FitnessType.StaticAABBTop:
+                        SetNormalizedFitness(0);
+                        break;
+                    case Test.FitnessType.StaticHighestAABBTop:
+                        SetNormalizedFitness(0);
+                        //SetNormalizedFitness(1);
+                        break;
+                    case Test.FitnessType.HighestAABBTopHighestAABBBottom:
+                        SetNormalizedFitness(0);
+                        SetNormalizedFitness(1);
+                        break;
+                    case Test.FitnessType.HighestAABBBottomDistance:
+                        SetNormalizedFitness(0);
+                        SetNormalizedFitness(1);
+                        break;
+                    case Test.FitnessType.Distance:
+                        SetNormalizedFitness(0);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            else if(creatureType == CreatureType.AlternatingPulse)
+            {
+                switch (fitnessType)
+                {
+                    case Test.FitnessType.DistanceStopTime:
+                        SetNormalizedFitness(0);
+                        break;
+                    case Test.FitnessType.Distance:
+                        SetNormalizedFitness(0);
+                        break;
+                    default:
+                        break;
+                }
             }
 
             //using (FileStream fs = new FileStream(@"C: \Users\adria\Desktop\tests\test_" + testStartTime + ".txt", FileMode.Append))
             //{
-                using (StreamWriter file = new StreamWriter(@"C:\Users\adria\Desktop\tests\test" +  testStartTime + ".txt", true))
+                using (StreamWriter file = new StreamWriter(@"C:\Users\Cosmos\Desktop\Tests\test" +  testStartTime + ".txt", true))
                 {
                     foreach (Test t in finishedTests)
                     {
@@ -142,14 +171,13 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 }
             //}
 
-
             List<Node> champions = CheckIfFullFitness();
             List<Node> bestTests = new List<Node>();
 
             if (champions != null)
             {
                 saveFittestCreature = true;
-                if (fitnessType != Test.FitnessType.Distance)
+                if (fitnessType != Test.FitnessType.Distance && creatureType == CreatureType.UniformPulse)
                 {
                     fitnessType++;
                 }
@@ -163,11 +191,6 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                 }
             }
             
-          
-            
-
-
-
             ///HÄr under är de kaos
             //adList<List<Node>> bestGenomes = new List<List<Node>>();
             //List<List<Node>> bestGenomes2 = CreateGenomesFromTests(bestTests);
@@ -244,23 +267,27 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                     fitnessToCheck = t.creature.NonNormalizedFitnessScores[0];
                 break;
                 case Test.FitnessType.StaticHighestAABBTop:
-                    fitnessScoreToBeat = 2;
+                    fitnessScoreToBeat = 5;
                     fitnessToCheck = t.creature.NonNormalizedFitnessScores[0] + t.creature.NonNormalizedFitnessScores[1];
                     //fitnessToCheck = t.creature.normalizedFitness;
                     break;
                 case Test.FitnessType.HighestAABBTopHighestAABBBottom:
-                    fitnessScoreToBeat = 4;
+                    fitnessScoreToBeat = 12;
                     fitnessToCheck = t.creature.NonNormalizedFitnessScores[0] + t.creature.NonNormalizedFitnessScores[1];
                     //fitnessToCheck = t.creature.normalizedFitness;
                     break;
                 case Test.FitnessType.HighestAABBBottomDistance:
-                    fitnessScoreToBeat = 12;
+                    fitnessScoreToBeat = 30;
 
                     fitnessToCheck = t.creature.NonNormalizedFitnessScores[0] + t.creature.NonNormalizedFitnessScores[1];
                     //fitnessToCheck = t.creature.normalizedFitness;
                     break;
                 case Test.FitnessType.Distance:
-                    fitnessScoreToBeat = 10000;
+                    fitnessScoreToBeat = 100000;
+                    fitnessToCheck = t.creature.NonNormalizedFitnessScores[0];
+                    break;
+                case Test.FitnessType.DistanceStopTime:
+                    fitnessScoreToBeat = 100000;
                     fitnessToCheck = t.creature.NonNormalizedFitnessScores[0];
                     break;
                 default:
@@ -332,53 +359,53 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         Gizmos.DrawWireCube(center, new Vector3(size.x, size.y, size.z));
     }
 
-    void AssignOffSetToMuscleBFS(ref Creature creature)
-    {
-        Node check = creature.nodes[0];
-        int numberOffNodeInCreature = CountNodesInThree(ref check);
+    //void AssignOffSetToMuscleBFS(ref Creature creature)
+    //{
+    //    Node check = creature.nodes[0];
+    //    int numberOffNodeInCreature = CountNodesInThree(ref check);
 
-        float offSetCyclePerNode;
+    //    float offSetCyclePerNode;
 
-        if (numberOffNodeInCreature - 1 <= 0)
-            offSetCyclePerNode = 0;
-        else
-            offSetCyclePerNode = Mathf.PI / numberOffNodeInCreature - 1;
+    //    if (numberOffNodeInCreature - 1 <= 0)
+    //        offSetCyclePerNode = 0;
+    //    else
+    //        offSetCyclePerNode = Mathf.PI / numberOffNodeInCreature - 1;
 
-        Queue<Node> nodeQueue = new Queue<Node>();
-        List<Node> visted = new List<Node>();
-        nodeQueue.Enqueue(check);
-        visted.Add(check);
-        int countNode = -1;
+    //    Queue<Node> nodeQueue = new Queue<Node>();
+    //    List<Node> visted = new List<Node>();
+    //    nodeQueue.Enqueue(check);
+    //    visted.Add(check);
+    //    int countNode = -1;
 
-        while (nodeQueue.Count > 0)
-        {
-            Node currentNode = nodeQueue.Dequeue();
-            countNode++;
-            foreach (GameObject g in currentNode.gameObjects)
-            {
-                if (g != null)
-                {
-                    MuscleManager mm;
-                    g.TryGetComponent<MuscleManager>(out mm);
-                    if (mm != null)
-                    {
-                        mm.offSetCycle = offSetCyclePerNode * countNode;
-                    }
-                }
-            }
+    //    while (nodeQueue.Count > 0)
+    //    {
+    //        Node currentNode = nodeQueue.Dequeue();
+    //        countNode++;
+    //        foreach (GameObject g in currentNode.gameObjects)
+    //        {
+    //            if (g != null)
+    //            {
+    //                MuscleManager mm;
+    //                g.TryGetComponent<MuscleManager>(out mm);
+    //                if (mm != null)
+    //                {
+    //                    mm.offSetCycle = offSetCyclePerNode * countNode;
+    //                }
+    //            }
+    //        }
 
-            foreach (Edge e in currentNode.edges)
-            {
-                if (e.to == e.from || CheckIfContains(ref visted, ref e.to))
-                    continue;
-                else
-                {
-                    nodeQueue.Enqueue(e.to);
-                    visted.Add(e.to);
-                }
-            }
-        }
-    }
+    //        foreach (Edge e in currentNode.edges)
+    //        {
+    //            if (e.to == e.from || CheckIfContains(ref visted, ref e.to))
+    //                continue;
+    //            else
+    //            {
+    //                nodeQueue.Enqueue(e.to);
+    //                visted.Add(e.to);
+    //            }
+    //        }
+    //    }
+    //}
 
     private void DestroyCreature(ref Creature toDestroy)
     {
@@ -1181,7 +1208,6 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         return totalBBox;
     }
 
-
     bool CheckForTooHighSpawnVelocity(Creature creature)
     {
         for (int i = 0; i < creature.handle.transform.childCount; i++)
@@ -1202,7 +1228,6 @@ public class EvolutionaryAlgorithm : MonoBehaviour
 
         return false;
     }
-
 
     bool ReadyToStart(Creature creature)
     {
@@ -1633,12 +1658,15 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             StaticHighestAABBTop,
             HighestAABBTopHighestAABBBottom,
             HighestAABBBottomDistance,
-            Distance
+            Distance,
+            DistanceStopTime
         };
         static int counter;
         public int id;
         public FitnessType fitnessType;
         public bool finished = false;
+        bool stopTest = false;
+        float distancePartOne;
         public Creature creature;
         //public float fitness;
         float testTime;
@@ -1648,7 +1676,7 @@ public class EvolutionaryAlgorithm : MonoBehaviour
         private bool startSizeDetermined = false;
         private float AABBTopMaxHeight = 0, AABBBottomMaxHeight = 0;
         float startHeight = 0;
-        int generalTestTimeLimit = 5, distanceTestTimeLimit = 7;
+        int generalTestTimeLimit = 5, distanceTestTimeLimit = 10, timeForStop = 3;
         float weightedHeightFitness = 0;
         float weightedBottomFitness = 0;
 
@@ -1684,6 +1712,9 @@ public class EvolutionaryAlgorithm : MonoBehaviour
                         break;
                     case FitnessType.Distance:
                         HorizontalDistanceTraveledTest();
+                        break;
+                    case FitnessType.DistanceStopTime:
+                        HorizontalDistanceTraveledPlusStopTimeTest();
                         break;
                     default:
                         break;
@@ -1790,15 +1821,16 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             {
                 return 0;
             }
-
-            if (creature.geoCounter >= 8)
-            {
-                return inputFitness * (8 / creature.geoCounter);
-            }
             else if (creature.geoCounter < 2)
             {
                 return 0;
             }
+
+
+            //if (creature.geoCounter >= 8)
+            //{
+            //    return inputFitness * (8 / creature.geoCounter);
+            //}
 
             return inputFitness;
         }
@@ -1900,6 +1932,54 @@ public class EvolutionaryAlgorithm : MonoBehaviour
             }
         }
 
+        void HorizontalDistanceTraveledPlusStopTimeTest()
+        {
+            if(timer < distanceTestTimeLimit)
+                creature.Update();
+            if (timer > distanceTestTimeLimit)
+                creature.Relax();
+
+            if (timer > distanceTestTimeLimit && !stopTest)
+            {
+
+                endCenterOfMass = CalculateMeanCenterOfMass();
+
+                float alpha = 3f;
+                double beta = 2f;
+                float distanceFitness = (alpha * (endCenterOfMass.z - initialCenterOfMass.z)) - (float)Math.Pow(Math.Abs(endCenterOfMass.x - initialCenterOfMass.x), beta);
+
+                if (distanceFitness < 0)
+                {
+                    distanceFitness = 0;
+                }
+
+
+                distancePartOne = distanceFitness;
+
+                //endCenterOfMass = CalculateMeanCenterOfMass();
+                //float distanceFitness = Vector2.Distance(new Vector2(initialCenterOfMass.x, initialCenterOfMass.z), new Vector2(endCenterOfMass.x, endCenterOfMass.z));
+                //creature.SetFitness(0, AdjustFitnessByGeoCount(distanceFitness));
+                //finished = true;
+                //Destroy(creature.handle);
+
+                stopTest = true;
+            }
+
+            if(timer >= (timeForStop+ distanceTestTimeLimit))
+            {
+                initialCenterOfMass = endCenterOfMass;
+
+                endCenterOfMass = CalculateMeanCenterOfMass();
+
+                float stopFitness = Vector3.Distance(initialCenterOfMass, endCenterOfMass);
+
+                creature.SetFitness(0, AdjustFitnessByGeoCount(distancePartOne-stopFitness));
+
+                finished = true;
+                Destroy(creature.handle);
+            }
+
+        }
         //fungerar
         void StaticAABBTopTest()
         {

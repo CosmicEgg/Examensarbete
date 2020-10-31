@@ -1150,14 +1150,14 @@ public class CreateCreature : MonoBehaviour
 
                                             muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
 
-                                            muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, parentGeometry.transform.right);
+                                            muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, parentGeometry.transform.right, node);
                                             oriRecurssionMuscle = muscleManager.muscles;
                                             leftRecurssionMuscle = muscles.muscles;
                                             Destroy(temp);
                                         }
                                         else
                                         {
-                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, parentGeometry.transform.right);
+                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, parentGeometry.transform.right, node);
                                             leftRecurssionMuscle = muscles.muscles;
                                         }
                                     }
@@ -1172,14 +1172,14 @@ public class CreateCreature : MonoBehaviour
 
                                             muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
 
-                                            muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, parentGeometry.transform.right);
+                                            muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, parentGeometry.transform.right, node);
                                             oriRecurssionMuscle = muscleManager.muscles;
                                             leftRecurssionMuscle = muscles.muscles;
                                             Destroy(temp);
                                         }
                                         else
                                         {
-                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, parentGeometry.transform.right);
+                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, parentGeometry.transform.right, node);
                                             leftRecurssionMuscle = muscles.muscles;
                                         }
                                     }
@@ -1195,14 +1195,14 @@ public class CreateCreature : MonoBehaviour
 
                                             muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
 
-                                            muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                            muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized, node);
                                             oriRecurssionMuscle = muscleManager.muscles;
                                             frontRecurssionMuscle = muscles.muscles;
                                             Destroy(temp);
                                         }
                                         else
                                         {
-                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized, node);
                                             frontRecurssionMuscle = muscles.muscles;
                                         }
                                     }
@@ -1217,7 +1217,7 @@ public class CreateCreature : MonoBehaviour
 
                                             muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
 
-                                            muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                            muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized, node);
                                             oriRecurssionMuscle = muscleManager.muscles;
                                             frontRecurssionMuscle = muscles.muscles;
                                             Destroy(temp);
@@ -1228,7 +1228,7 @@ public class CreateCreature : MonoBehaviour
                                             {
                                                 if (e.recursiveNumb == 0)
                                                 {
-                                                    muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                                    muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized, node);
                                                     frontRecurssionMuscle = muscles.muscles;
                                                     break;
                                                 }
@@ -1249,14 +1249,14 @@ public class CreateCreature : MonoBehaviour
 
                                             muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
 
-                                            muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                            muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized, node);
                                             oriRecurssionMuscle = muscleManager.muscles;
                                             backRecurssionMuscle = muscles.muscles;
                                             Destroy(temp);
                                         }
                                         else
                                         {
-                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized, node);
                                             backRecurssionMuscle = muscles.muscles;
                                         }
                                     }
@@ -1271,14 +1271,14 @@ public class CreateCreature : MonoBehaviour
 
                                             muscles.CreateNewMuscles(parentGeometry, currentGeometry, node);
 
-                                            muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                            muscleManager.CreateRefMuscles(parentGeometry, temp, muscles.muscles, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized, node);
                                             oriRecurssionMuscle = muscleManager.muscles;
                                             backRecurssionMuscle = muscles.muscles;
                                             Destroy(temp);
                                         }
                                         else
                                         {
-                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized, node);
                                             backRecurssionMuscle = muscles.muscles;
                                         }
                                     }
@@ -1291,12 +1291,12 @@ public class CreateCreature : MonoBehaviour
                                 {
                                     if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
                                     {
-                                        muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle);
+                                        muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, node);
                                     }
                                     else
                                     {
                                         muscles = currentGeometry.AddComponent<MuscleManager>();
-                                        muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle);
+                                        muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, node);
                                     }
 
                                     oriRecurssionMuscle = muscles.muscles;
@@ -1307,12 +1307,12 @@ public class CreateCreature : MonoBehaviour
                                     {
                                         if (leftRecurssionMuscle.Count == 0)
                                         {
-                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, parentGeometry.transform.right);
+                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, parentGeometry.transform.right, node);
                                             leftRecurssionMuscle = muscles.muscles;
                                         }
                                         else
                                         {
-                                            muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, leftRecurssionMuscle);
+                                            muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, leftRecurssionMuscle, node);
                                         }
                                     }
                                     else
@@ -1320,12 +1320,12 @@ public class CreateCreature : MonoBehaviour
                                         muscles = currentGeometry.AddComponent<MuscleManager>();
                                         if (leftRecurssionMuscle.Count == 0)
                                         {
-                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, parentGeometry.transform.right);
+                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, parentGeometry.transform.right, node);
                                             leftRecurssionMuscle = muscles.muscles;
                                         }
                                         else
                                         {
-                                            muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, leftRecurssionMuscle);
+                                            muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, leftRecurssionMuscle, node);
                                         }
                                     }
                                 }
@@ -1335,12 +1335,12 @@ public class CreateCreature : MonoBehaviour
                                     {
                                         if (frontRecurssionMuscle.Count == 0)
                                         {
-                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized, node);
                                             frontRecurssionMuscle = muscles.muscles;
                                         }
                                         else
                                         {
-                                            muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, frontRecurssionMuscle);
+                                            muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, frontRecurssionMuscle, node);
                                         }
 
                                     }
@@ -1349,12 +1349,12 @@ public class CreateCreature : MonoBehaviour
                                         muscles = currentGeometry.AddComponent<MuscleManager>();
                                         if (frontRecurssionMuscle.Count == 0)
                                         {
-                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (parentGeometry.transform.forward + parentGeometry.transform.right).normalized, node);
                                             frontRecurssionMuscle = muscles.muscles;
                                         }
                                         else
                                         {
-                                            muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, frontRecurssionMuscle);
+                                            muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, frontRecurssionMuscle, node);
                                         }
                                     }
                                 }
@@ -1364,12 +1364,12 @@ public class CreateCreature : MonoBehaviour
                                     {
                                         if (backRecurssionMuscle.Count == 0)
                                         {
-                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized, node);
                                             backRecurssionMuscle = muscles.muscles;
                                         }
                                         else
                                         {
-                                            muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, backRecurssionMuscle);
+                                            muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, backRecurssionMuscle, node);
                                         }
                                     }
                                     else
@@ -1377,12 +1377,12 @@ public class CreateCreature : MonoBehaviour
                                         muscles = currentGeometry.AddComponent<MuscleManager>();
                                         if (backRecurssionMuscle.Count == 0)
                                         {
-                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized);
+                                            muscles.CreateRefMuscles(parentGeometry, currentGeometry, oriRecurssionMuscle, (-parentGeometry.transform.forward + parentGeometry.transform.right).normalized, node);
                                             backRecurssionMuscle = muscles.muscles;
                                         }
                                         else
                                         {
-                                            muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, backRecurssionMuscle);
+                                            muscles.CreateRecurssionMuscles(parentGeometry, currentGeometry, backRecurssionMuscle, node);
                                         }
                                     }
                                 }
@@ -1730,12 +1730,12 @@ public class CreateCreature : MonoBehaviour
                         MuscleManager muscles;
                         if (refChild.TryGetComponent<MuscleManager>(out muscles))
                         {
-                            muscles.CreateRefMuscles(parentGeometry, refChild, currentGeometry.GetComponent<MuscleManager>().muscles, axis);
+                            muscles.CreateRefMuscles(parentGeometry, refChild, currentGeometry.GetComponent<MuscleManager>().muscles, axis, node);
                         }
                         else
                         {
                             muscles = refChild.AddComponent<MuscleManager>();
-                            muscles.CreateRefMuscles(parentGeometry, refChild, currentGeometry.GetComponent<MuscleManager>().muscles, axis);
+                            muscles.CreateRefMuscles(parentGeometry, refChild, currentGeometry.GetComponent<MuscleManager>().muscles, axis, node);
                         }
 
                         node.gameObjects.Add(refChild);
@@ -1938,12 +1938,12 @@ public class CreateCreature : MonoBehaviour
                             MuscleManager muscles;
                             if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
                             {
-                                muscles.CreateRefMuscles(parentGeometry, currentGeometry, node.gameObjects[0].GetComponent<MuscleManager>().muscles, pg.GetComponent<GeoInfo>().RefAxis);
+                                muscles.CreateRefMuscles(parentGeometry, currentGeometry, node.gameObjects[0].GetComponent<MuscleManager>().muscles, pg.GetComponent<GeoInfo>().RefAxis, node);
                             }
                             else
                             {
                                 muscles = currentGeometry.AddComponent<MuscleManager>();
-                                muscles.CreateRefMuscles(parentGeometry, currentGeometry, node.gameObjects[0].GetComponent<MuscleManager>().muscles, pg.GetComponent<GeoInfo>().RefAxis);
+                                muscles.CreateRefMuscles(parentGeometry, currentGeometry, node.gameObjects[0].GetComponent<MuscleManager>().muscles, pg.GetComponent<GeoInfo>().RefAxis, node);
                             }
                         }
 
@@ -2067,12 +2067,12 @@ public class CreateCreature : MonoBehaviour
                     MuscleManager muscles;
                     if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
                     {
-                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, currentGeo.GetComponent<MuscleManager>().muscles, axis);
+                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, currentGeo.GetComponent<MuscleManager>().muscles, axis, node);
                     }
                     else
                     {
                         muscles = currentGeometry.AddComponent<MuscleManager>();
-                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, currentGeo.GetComponent<MuscleManager>().muscles, axis);
+                        muscles.CreateRefMuscles(parentGeometry, currentGeometry, currentGeo.GetComponent<MuscleManager>().muscles, axis, node);
                     }
 
                     currentGeometry.GetComponent<GeoInfo>().RefAxis = axis;
@@ -2176,12 +2176,12 @@ public class CreateCreature : MonoBehaviour
                 MuscleManager muscles;
                 if (currentGeometry.TryGetComponent<MuscleManager>(out muscles))
                 {
-                    muscles.CreateRefMuscles(parentGeometry, currentGeometry, currentGeo.GetComponent<MuscleManager>().muscles, axis);
+                    muscles.CreateRefMuscles(parentGeometry, currentGeometry, currentGeo.GetComponent<MuscleManager>().muscles, axis, node);
                 }
                 else
                 {
                     muscles = currentGeometry.AddComponent<MuscleManager>();
-                    muscles.CreateRefMuscles(parentGeometry, currentGeometry, currentGeo.GetComponent<MuscleManager>().muscles, axis);
+                    muscles.CreateRefMuscles(parentGeometry, currentGeometry, currentGeo.GetComponent<MuscleManager>().muscles, axis, node);
                 }
 
                 geometry.Add(currentGeometry);
@@ -2280,6 +2280,7 @@ public class CreateCreature : MonoBehaviour
         newOriNode.color = oriNode.color;
         newOriNode.muscleSeeds = oriNode.muscleSeeds;
         newOriNode.numbOfMuscles = oriNode.numbOfMuscles;
+        newOriNode.offSetCycle = oriNode.offSetCycle;
 
         newOriNode.created = true;
         toReset.Add(newOriNode);
@@ -2306,6 +2307,7 @@ public class CreateCreature : MonoBehaviour
                     //newNode.axisList = e.to.axisList;
                     newNode.muscleSeeds = e.to.muscleSeeds;
                     newNode.numbOfMuscles = e.to.numbOfMuscles;
+                    newNode.offSetCycle = e.to.offSetCycle;
                     //newNode.scale = e.to.scale;
                     //newNode.scaleFactor = e.to.scaleFactor;
                     copyStack.Push(e.to);
@@ -2374,6 +2376,13 @@ public class CreateCreature : MonoBehaviour
             node.numbOfMuscles = Random.Range(1, 5);
             node.muscleSeeds = new int[node.numbOfMuscles, 3];
 
+            int chance = Random.Range(0, 2);
+
+            if (chance == 0)
+                node.offSetCycle = 0;
+            else if (chance == 1)
+                node.offSetCycle = Mathf.PI;
+                
             for (int j = 0; j < node.numbOfMuscles; j++)
             {
                 for (int k = 0; k < 3; k++)
@@ -2612,6 +2621,7 @@ public class Node
     public int uniqueId;
     public int numbOfMuscles;
     public int[,] muscleSeeds;
+    public float offSetCycle;
 
     public List<Node> children = new List<Node>();
     public List<Edge> edges = new List<Edge>();
@@ -2753,6 +2763,20 @@ public class Creature
                 if (g.TryGetComponent<MuscleManager>(out MuscleManager muscleManager))
                 {
                     muscleManager.UpdateMuscles();
+                }
+            }
+        }
+    }
+
+    public void Relax()
+    {
+        foreach (GameObject g in geometry)
+        {
+            if (g != null)
+            {
+                if (g.TryGetComponent<MuscleManager>(out MuscleManager muscleManager))
+                {
+                    muscleManager.Relax();
                 }
             }
         }
